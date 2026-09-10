@@ -136,11 +136,39 @@ def _normalize_api_product(row: dict[str, Any]) -> GRJCatalogProduct:
         nome=_clean_text(row.get("nome")) or "Produto Central Águas",
         unidade=_clean_text(row.get("unidade")) or "",
         preco_venda=_to_float(row.get("preco_venda")),
-        estoque_disponivel=_to_float(row.get("estoque_disponivel")),
+        estoque_disponivel=_stock_quantity_from_row(row),
         apelido=_clean_text(row.get("apelido")) or "",
         imagem_url=_image_url_from_row(row),
         raw=row,
     )
+
+
+def _stock_quantity_from_row(row: dict[str, Any]) -> float:
+    for field_name in (
+        "estoque_app",
+        "estoque_real",
+        "saldo_app",
+        "saldo_disponivel",
+        "disponivel_app",
+        "disponivel",
+        "estoque_disponivel",
+        "estoque_atual",
+        "saldo",
+        "quantidade_disponivel",
+        "qtd_disponivel",
+    ):
+        stock_quantity = _optional_float(row.get(field_name))
+        if stock_quantity is not None:
+            return stock_quantity
+
+    for field_name in ("estoque", "stock", "inventory"):
+        stock_data = row.get(field_name)
+        if isinstance(stock_data, dict):
+            stock_quantity = _stock_quantity_from_row(stock_data)
+            if stock_quantity is not None:
+                return stock_quantity
+
+    return 0.0
 
 
 def _image_url_from_row(row: dict[str, Any]) -> str:
@@ -218,14 +246,19 @@ def _clean_text(value: Any) -> str | None:
 
 
 def _to_float(value: Any) -> float:
+    parsed = _optional_float(value)
+    return parsed if parsed is not None else 0.0
+
+
+def _optional_float(value: Any) -> float | None:
     if value is None or value == "":
-        return 0.0
+        return None
     if isinstance(value, str):
         value = value.replace(".", "").replace(",", ".") if "," in value else value
     try:
         return float(value)
     except (TypeError, ValueError):
-        return 0.0
+        return None
 
 
 def _to_int(value: Any) -> int | None:

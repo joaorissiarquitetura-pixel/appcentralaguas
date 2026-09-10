@@ -96,6 +96,32 @@ class GRJCatalogApiTests(unittest.TestCase):
         self.assertEqual(products[0].nome, "Acquatuba 10L")
         self.assertEqual(products[0].stock_status, "indisponivel")
 
+    def test_fetch_products_prefers_operational_stock_over_catalog_stock(self):
+        def fake_urlopen(request, timeout):
+            return FakeResponse(
+                {
+                    "status": "ok",
+                    "data": [
+                        {
+                            "id": 20,
+                            "codigo": "20",
+                            "nome": "Aragua 20L",
+                            "preco_venda": 14.0,
+                            "estoque_disponivel": -3.0,
+                            "estoque_real": 19.0,
+                        }
+                    ],
+                }
+            )
+
+        with patch.object(settings, "CENTRAL_AGUAS_APP_TOKEN", "token-test"):
+            with patch.object(settings, "CENTRAL_AGUAS_PRODUCTS_API_URL", "https://example.test/products"):
+                with patch("app.services.grj_catalog.urllib.request.urlopen", fake_urlopen):
+                    products = grj_catalog.fetch_grj_products()
+
+        self.assertEqual(products[0].estoque_disponivel, 19.0)
+        self.assertEqual(products[0].stock_status, "disponivel")
+
     def test_fetch_products_maps_nested_image_fields(self):
         def fake_urlopen(request, timeout):
             return FakeResponse(

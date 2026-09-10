@@ -470,6 +470,26 @@ def api_grj_diagnostics():
                 "nome": str(item.get("nome", "")),
                 "preco_venda": item.get("preco_venda"),
                 "estoque_disponivel": item.get("estoque_disponivel"),
+                "stock_fields": [
+                    field_name
+                    for field_name in (
+                        "estoque_app",
+                        "estoque_real",
+                        "saldo_app",
+                        "saldo_disponivel",
+                        "disponivel_app",
+                        "disponivel",
+                        "estoque_disponivel",
+                        "estoque_atual",
+                        "saldo",
+                        "quantidade_disponivel",
+                        "qtd_disponivel",
+                        "estoque",
+                        "stock",
+                        "inventory",
+                    )
+                    if item.get(field_name) is not None
+                ],
                 "image_fields": [
                     field_name
                     for field_name in (
