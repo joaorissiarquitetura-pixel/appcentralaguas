@@ -108,7 +108,40 @@
       font: 700 1rem/1.1 "Montserrat", Arial, sans-serif;
     }
     .app-topbar.home h1 { color: var(--ca-white); }
-    .top-logo { width: 132px; border-radius: 10px; object-fit: contain; }
+    .top-brand {
+      display: inline-grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      color: var(--ca-white);
+    }
+    .top-brand-mark {
+      width: 30px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      color: #65cef7;
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+    .top-brand-copy {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+    .top-brand-name {
+      color: var(--ca-white);
+      font: 800 1.72rem/0.9 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+    .top-brand-subtitle {
+      color: rgba(255, 255, 255, 0.82);
+      font: 700 0.38rem/1.1 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
     .icon-button {
       width: 38px;
       height: 38px;
@@ -1082,7 +1115,13 @@
     <section class="app-screen {% if customer_logged_in %}is-active{% endif %}" data-screen="home">
       <div class="screen-inner">
         <header class="app-topbar home">
-          <img class="top-logo" src="/static/img/logo_central.jpg" alt="Central Águas">
+          <div class="top-brand" aria-label="Central Águas">
+            <span class="top-brand-mark"><i class="bi bi-droplet-fill"></i></span>
+            <span class="top-brand-copy">
+              <span class="top-brand-name">Central</span>
+              <span class="top-brand-subtitle">Distribuidora de água mineral</span>
+            </span>
+          </div>
           <button class="icon-button" type="button" data-go="gotinha" aria-label="Notificações"><i class="bi bi-bell-fill"></i></button>
           <button class="icon-button" type="button" data-go="{% if customer_logged_in %}menu{% else %}login{% endif %}" aria-label="Perfil"><i class="bi bi-person-fill"></i></button>
         </header>
