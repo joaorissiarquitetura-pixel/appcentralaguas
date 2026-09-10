@@ -1115,10 +1115,10 @@
           </div>
         </article>
         <div class="category-row" aria-label="Categorias">
-          <button class="category-tile" type="button" data-go="store"><i class="bi bi-droplet-fill"></i><span>Água</span></button>
-          <button class="category-tile" type="button" data-go="store"><i class="bi bi-basket-fill"></i><span>Fardos</span></button>
-          <button class="category-tile" type="button" data-go="store"><i class="bi bi-fire"></i><span>Gás</span></button>
-          <button class="category-tile" type="button" data-go="store"><i class="bi bi-cart4"></i><span>Loja</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="galao"><i class="bi bi-droplet-fill"></i><span>Galão</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="fardos"><i class="bi bi-basket-fill"></i><span>Fardos</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="gas"><i class="bi bi-fire"></i><span>Gás</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="galao"><i class="bi bi-cart4"></i><span>Loja</span></button>
         </div>
         <button class="gotinha-nudge" type="button" data-go="gotinha">
           <img src="/static/assets/gotinha/emotions/alegria.webp" alt="">
@@ -1194,13 +1194,13 @@
         </header>
         <input class="search-field" type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
         <div class="chip-row" aria-label="Categorias da loja">
-          <button class="chip active" type="button">Água</button>
-          <button class="chip" type="button">Fardos</button>
-          <button class="chip" type="button">Gás</button>
-          <button class="chip" type="button">Conveniência</button>
+          <button class="chip active" type="button" data-store-category="galao">Galão</button>
+          <button class="chip" type="button" data-store-category="fardos">Fardos</button>
+          <button class="chip" type="button" data-store-category="gas">Gás</button>
+          <button class="chip" type="button" data-store-category="conveniencia">Conveniência</button>
         </div>
         {% for offer in quick_offers %}
-          <article class="app-card product-row">
+          <article class="app-card product-row" data-product-category="{{ offer.category or 'galao' }}">
             <img src="{{ offer.image_url or '/static/img/20.png' }}" alt="{{ offer.name }}">
             <div class="product-info">
               <strong>{{ offer.name }}</strong>
@@ -1221,6 +1221,11 @@
             </div>
           </article>
         {% endfor %}
+        <div class="empty-state is-hidden" data-store-empty>
+          <span class="blue-icon"><i class="bi bi-basket"></i></span>
+          <strong>Nenhum produto nesta categoria.</strong>
+          <span>Escolha outra categoria para continuar.</span>
+        </div>
       </div>
     </section>
 
@@ -1577,6 +1582,7 @@
       lat: "",
       lng: "",
       paymentMethod: "pix",
+      storeCategory: "galao",
       notes: "Pedido iniciado pelo app Central Águas"
     };
     const hydrationDefaults = {
@@ -1701,6 +1707,21 @@
           <span class="small muted">${order.delivery || "Entrega a confirmar"} · ${paymentLabel(order.payment)}</span>
         </article>
       `).join("");
+    }
+
+    function renderStoreCategory() {
+      const category = state.storeCategory || "galao";
+      const rows = [...document.querySelectorAll("[data-product-category]")];
+      let visible = 0;
+      rows.forEach((row) => {
+        const show = row.dataset.productCategory === category;
+        row.classList.toggle("is-hidden", !show);
+        if (show) visible += 1;
+      });
+      document.querySelectorAll("[data-store-category]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.storeCategory === category);
+      });
+      document.querySelector("[data-store-empty]")?.classList.toggle("is-hidden", visible > 0);
     }
 
     function emptyGallons(stock = loadHouseStock()) {
@@ -2267,6 +2288,9 @@
       if (name === "orders") {
         renderOrders();
       }
+      if (name === "store") {
+        renderStoreCategory();
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -2350,9 +2374,18 @@
           if (next === "delivery") {
             renderDeliveryPeriods();
           }
+          if (next === "store" && go.dataset.storeCategoryGo) {
+            state.storeCategory = go.dataset.storeCategoryGo;
+          }
           updateCheckout();
           showScreen(next);
         }
+      }
+
+      const storeCategory = event.target.closest("[data-store-category]");
+      if (storeCategory) {
+        state.storeCategory = storeCategory.dataset.storeCategory || "galao";
+        renderStoreCategory();
       }
 
       const stepButton = event.target.closest("[data-step]");
@@ -2564,6 +2597,7 @@
     updateLocationDisplay();
     renderPayment();
     renderOrders();
+    renderStoreCategory();
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();

@@ -61,28 +61,41 @@ def _product_image_url(product: Product) -> str | None:
 
 def _catalog_image_for_name(name: str) -> str | None:
     name_lower = name.lower()
+    if "510" in name_lower or "500" in name_lower or "fardo" in name_lower:
+        return "/static/img/510.png"
     if "20" in name_lower:
         return "/static/img/20.png"
     if "10" in name_lower:
         return "/static/img/10.png"
-    if "510" in name_lower or "500" in name_lower or "fardo" in name_lower:
-        return "/static/img/510.png"
     return None
+
+
+def _product_category(name: str, description: str = "") -> str:
+    text = f"{name} {description}".lower()
+    if "fardo" in text:
+        return "fardos"
+    if "gás" in text or "gas" in text:
+        return "gas"
+    if "garrafão" in text or "garrafao" in text or "galão" in text or "galao" in text or "20l" in text or "10l" in text:
+        return "galao"
+    return "conveniencia"
 
 
 def _shop_offer_from_product(product: Product) -> SimpleNamespace:
     pickup_price = product.promo_pickup_price or product.pickup_price or 0
     delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    description = product.description or "Água mineral Central Águas."
     return SimpleNamespace(
         product_id=product.id,
         slug=_product_slug(product),
         name=product.name,
-        description=product.description or "Água mineral Central Águas.",
+        description=description,
         pickup_price=pickup_price,
         delivery_price=delivery_price,
         badge=product.promo_badge or "Pedido rápido",
         image_url=_product_image_url(product),
         stock_status=product.stock_status or "disponivel",
+        category=_product_category(product.name, description),
         rating_count=0,
         rating_average=0,
         customer_rating=None,
@@ -101,6 +114,7 @@ def _local_product_to_public_dict(product: Product) -> dict[str, object]:
         "stock_quantity": None,
         "stock_status": product.stock_status or "disponivel",
         "image_url": _product_image_url(product),
+        "category": _product_category(product.name, product.description or ""),
         "active": bool(product.active),
         "source": "local",
     }
@@ -117,6 +131,7 @@ def _shop_offer_from_grj_product(product: GRJCatalogProduct) -> SimpleNamespace:
         badge="Sistema GRJ",
         image_url=product.image_url or _catalog_image_for_name(product.name),
         stock_status=product.stock_status,
+        category=_product_category(product.name, product.description),
         rating_count=0,
         rating_average=0,
         customer_rating=None,
@@ -148,6 +163,7 @@ def _fallback_shop_offer() -> SimpleNamespace:
         badge="Pedido rápido",
         image_url="/static/img/20.png",
         stock_status="disponivel",
+        category="galao",
         rating_count=0,
         rating_average=0,
         customer_rating=None,
@@ -295,7 +311,7 @@ def app_home(request: Request, db: Session = Depends(get_db)):
                 "location": _home_location(customer),
                 "loyalty": loyalty,
                 "primary_offer": offers[0],
-                "quick_offers": offers[:3],
+                "quick_offers": offers,
                 "catalog_error": catalog_error,
                 "loyalty_target": settings.CARD_TARGET_POINTS,
                 "loyalty_reward": _money_reward(),
