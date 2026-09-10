@@ -1,4 +1,5 @@
 import json
+import socket
 import ssl
 import urllib.parse
 import urllib.request
@@ -330,6 +331,91 @@ def api_grj_products(db: Session = Depends(get_db)):
         "source": "grj_api",
         "products": [product_to_public_dict(product) for product in grj_products],
     }
+
+
+@router.get("/api/grj/diagnostico")
+def api_grj_diagnostics():
+    url = settings.CENTRAL_AGUAS_PRODUCTS_API_URL.strip()
+    token = settings.CENTRAL_AGUAS_APP_TOKEN.strip()
+    parsed = urllib.parse.urlparse(url)
+    result = {
+        "ok": False,
+        "configured": bool(url and token),
+        "url_configured": bool(url),
+        "token_configured": bool(token),
+        "token_length": len(token),
+        "token_preview": f"{token[:6]}...{token[-4:]}" if len(token) >= 12 else "",
+        "url_host": parsed.netloc,
+        "url_path": parsed.path,
+        "dns_ok": False,
+        "dns_addresses": [],
+        "http_ok": False,
+        "http_status": None,
+        "content_type": "",
+        "payload_ok": False,
+        "payload_status": "",
+        "data_count": 0,
+        "sample_products": [],
+        "error": "",
+    }
+    if not url or not token:
+        result["error"] = "missing_url_or_token"
+        return result
+    if not parsed.scheme or not parsed.netloc:
+        result["error"] = "invalid_products_api_url"
+        return result
+
+    try:
+        result["dns_addresses"] = sorted({item[4][0] for item in socket.getaddrinfo(parsed.hostname, parsed.port or 443)})
+        result["dns_ok"] = bool(result["dns_addresses"])
+    except Exception as exc:
+        result["error"] = f"dns_failed: {exc}"
+        return result
+
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "User-Agent": "CentralAguasFidelidade/diagnostico",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            result["http_status"] = response.status
+            result["content_type"] = response.headers.get("content-type", "")
+            raw_body = response.read(500_000).decode("utf-8")
+    except Exception as exc:
+        reason = getattr(exc, "reason", exc)
+        result["error"] = f"http_failed: {reason}"
+        return result
+
+    result["http_ok"] = 200 <= int(result["http_status"] or 0) < 300
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError as exc:
+        result["error"] = f"invalid_json: {exc}"
+        return result
+
+    data = payload.get("data")
+    result["payload_status"] = str(payload.get("status", ""))
+    result["payload_ok"] = payload.get("status") == "ok" and isinstance(data, list)
+    if isinstance(data, list):
+        result["data_count"] = len(data)
+        result["sample_products"] = [
+            {
+                "codigo": str(item.get("codigo", "")),
+                "nome": str(item.get("nome", "")),
+                "preco_venda": item.get("preco_venda"),
+                "estoque_disponivel": item.get("estoque_disponivel"),
+            }
+            for item in data[:5]
+            if isinstance(item, dict)
+        ]
+    result["ok"] = bool(result["http_ok"] and result["payload_ok"])
+    if not result["ok"]:
+        result["error"] = "unexpected_payload"
+    return result
 
 
 @router.get("/loja", response_class=HTMLResponse)
