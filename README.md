@@ -21,11 +21,13 @@ SESSION_COOKIE_SECURE=true
 AUTO_CREATE_TABLES=false
 DATABASE_URL=
 SECRET_KEY=
-CENTRAL_AGUAS_APP_TOKEN=
-CENTRAL_AGUAS_PRODUCTS_API_URL=https://grupogrj.com.br/api/v1/central-aguas/products?limit=500
+CENTRAL_AGUAS_APP_TOKEN=cole-o-token-da-api-do-grj-no-coolify
+CENTRAL_AGUAS_PRODUCTS_API_URL=https://grupogrj.com.br/api/v1/central-aguas/products
 LOCAL_TZ=America/Sao_Paulo
 BUSINESS_NAME=Central Águas
 ```
+
+O token da API GRJ deve ficar apenas nas variáveis de ambiente do deploy. Não grave o token real em commit.
 
 ## Rodar localmente
 

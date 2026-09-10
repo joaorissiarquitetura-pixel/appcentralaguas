@@ -136,7 +136,7 @@ def load_settings() -> Settings:
         ENABLE_SIGNATURE_BANNERS=env_bool("ENABLE_SIGNATURE_BANNERS", True),
         CENTRAL_AGUAS_PRODUCTS_API_URL=os.getenv(
             "CENTRAL_AGUAS_PRODUCTS_API_URL",
-            "https://grupogrj.com.br/api/v1/central-aguas/products?limit=500",
+            "https://grupogrj.com.br/api/v1/central-aguas/products",
         ),
         CENTRAL_AGUAS_APP_TOKEN=os.getenv("CENTRAL_AGUAS_APP_TOKEN", ""),
         GRJ_CATALOG_ENABLED=env_bool("GRJ_CATALOG_ENABLED", False),
