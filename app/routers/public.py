@@ -263,43 +263,9 @@ def _hydration_profile(customer: Customer | None) -> SimpleNamespace:
 
 
 # --- ROTA HOME ---
-@router.get("/", response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
-    close_db = False
-    if not hasattr(db, "execute"):
-        db = SessionLocal()
-        close_db = True
-
-    customer = None
-    cid = get_current_customer_id(request)
-    if cid:
-        customer = db.scalar(select(Customer).where(Customer.id == int(cid)))
-
-    offers, catalog_error = _shop_catalog(db)
-    primary_offer = offers[0]
-    loyalty = _home_loyalty(customer, db)
-    try:
-        return templates.TemplateResponse(
-            request=request,
-            name="home.html",
-            context={
-                "business_name": settings.BUSINESS_NAME,
-                "customer": customer,
-                "customer_logged_in": customer is not None,
-                "customer_first_name": customer.name.split(" ")[0] if customer and customer.name else "",
-                "customer_prefill": _customer_prefill(customer),
-                "location": _home_location(customer),
-                "loyalty": loyalty,
-                "primary_offer": primary_offer,
-                "quick_offers": offers[:4],
-                "catalog_error": catalog_error,
-                "loyalty_target": settings.CARD_TARGET_POINTS,
-                "loyalty_reward": _money_reward(),
-            },
-        )
-    finally:
-        if close_db:
-            db.close()
+@router.get("/")
+def home(request: Request):
+    return RedirectResponse("/app", status_code=307)
 
 
 @router.get("/app", response_class=HTMLResponse)

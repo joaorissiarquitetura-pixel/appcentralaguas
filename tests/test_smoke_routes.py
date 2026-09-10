@@ -22,8 +22,11 @@ class SmokeRoutesTests(unittest.TestCase):
 
     def test_public_pages_render(self):
         request = fake_request()
+        home_response = public.home(request)
+        self.assertEqual(home_response.status_code, 307)
+        self.assertEqual(home_response.headers["location"], "/app")
+
         responses = [
-            public.home(request),
             public.app_home(request),
             public.login_page(request),
             public.subscribe_page(request),
