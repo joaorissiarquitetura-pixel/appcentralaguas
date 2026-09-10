@@ -1207,7 +1207,7 @@
                   <output>1</output>
                   <button type="button" data-step="1" aria-label="Aumentar quantidade">+</button>
                 </div>
-                <button class="mini-add" type="button" data-product="{{ offer.name }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}" data-go="delivery">Adicionar</button>
+                <button class="mini-add" type="button" data-product="{{ offer.name }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}" data-go="delivery">Adicionar</button>
               </div>
             </div>
           </article>
@@ -1420,7 +1420,7 @@
         </div>
         <div class="product-actions">
           <button class="secondary-button" type="button" data-stock-use>Troquei o galão</button>
-          <button class="primary-button" type="button" data-go="store">Repor agora</button>
+          <button class="primary-button" type="button" data-stock-reorder>Repor agora</button>
         </div>
       </div>
     </section>
@@ -1637,6 +1637,9 @@
       orders.unshift({
         id: `APP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`,
         product: state.product,
+        description: state.description,
+        unitPrice: state.price,
+        image: state.image,
         qty: state.qty,
         total: state.price * state.qty,
         delivery: `${state.deliveryDay} - ${state.deliveryPeriod}`,
@@ -1689,6 +1692,52 @@
           <span class="small muted">${order.delivery || "Entrega a confirmar"} · ${paymentLabel(order.payment)}</span>
         </article>
       `).join("");
+    }
+
+    function emptyGallons(stock = loadHouseStock()) {
+      return Math.max(stock.total - stock.full - stock.inUse, 0);
+    }
+
+    function productFromCatalog(name) {
+      if (!name) return null;
+      const button = [...document.querySelectorAll("[data-product]")].find((item) => item.dataset.product === name);
+      if (!button) return null;
+      const card = button.closest(".product-row");
+      return {
+        product: button.dataset.product,
+        description: button.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description,
+        price: Number(button.dataset.price || state.price),
+        image: button.dataset.image || state.image
+      };
+    }
+
+    function applyProductSelection(product) {
+      if (!product) return;
+      state.product = product.product || state.product;
+      state.description = product.description || state.description;
+      state.price = Number(product.price || state.price);
+      state.image = product.image || state.image;
+    }
+
+    function reorderFromHouseStock() {
+      const stock = loadHouseStock();
+      const qty = Math.max(emptyGallons(stock), 1);
+      const lastOrder = loadOrders()[0];
+      if (!lastOrder) {
+        state.qty = qty;
+        updateCheckout();
+        showScreen("store");
+        return;
+      }
+      applyProductSelection(productFromCatalog(lastOrder.product) || {
+        product: lastOrder.product,
+        description: lastOrder.description,
+        price: lastOrder.unitPrice || state.price,
+        image: lastOrder.image || state.image
+      });
+      state.qty = qty;
+      updateCheckout();
+      showScreen("checkout");
     }
 
     function localDateIso(date = new Date()) {
@@ -2310,11 +2359,14 @@
 
       const add = event.target.closest("[data-product]");
       if (add) {
-        state.product = add.dataset.product;
-        state.price = Number(add.dataset.price || state.price);
-        state.image = add.dataset.image || state.image;
+        applyProductSelection({
+          product: add.dataset.product,
+          description: add.dataset.description,
+          price: add.dataset.price,
+          image: add.dataset.image
+        });
         const card = add.closest(".product-row");
-        state.description = card?.querySelector(".product-info span")?.textContent || state.description;
+        state.description = add.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description;
         const qty = card?.querySelector("output")?.textContent;
         state.qty = Number(qty || 1);
         updateCheckout();
@@ -2421,6 +2473,11 @@
         stock.updatedAt = new Date().toISOString();
         saveHouseStock(stock);
         renderHouseStock();
+      }
+
+      const stockReorder = event.target.closest("[data-stock-reorder]");
+      if (stockReorder) {
+        reorderFromHouseStock();
       }
 
       const currentLocation = event.target.closest("[data-location-current]");
