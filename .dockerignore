@@ -1,0 +1,13 @@
+.git
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite3
+*.log
+backend_server.err
+backend_server.log
+tests/tmp*/

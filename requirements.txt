@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2.0
+psycopg2-binary
+jinja2
+python-multipart
+passlib[bcrypt]
+python-dotenv
+itsdangerous
+qrcode[pil]
+requests
+fdb
+firebirdsql
+bcrypt==4.0.1
+geopy
+passlib==1.7.4
+bcrypt==4.0.1

@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline" href="/cadastrar">Criar cadastro</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .auth-shell {
+    max-width: 440px;
+    margin: 0 auto;
+    min-height: calc(100vh - 48px);
+    display: grid;
+    align-items: center;
+  }
+  .auth-card {
+    overflow: hidden;
+    border: 1px solid rgba(11, 76, 203, 0.12);
+    border-radius: 28px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(15, 45, 92, 0.12);
+  }
+  .auth-top {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 18px;
+    background: #0b4ccb;
+    color: #fff;
+  }
+  .auth-top-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 1.35rem;
+  }
+  .auth-top span {
+    display: block;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+  .auth-top strong {
+    display: block;
+    margin-top: 2px;
+    font: 800 1.05rem/1.1 "Montserrat", Arial, sans-serif;
+  }
+  .auth-body {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(179, 229, 255, 0.2), #fff 34%);
+  }
+  .auth-title {
+    display: grid;
+    gap: 8px;
+  }
+  .auth-title h1 {
+    margin: 0;
+    color: #101828;
+    font: 800 1.55rem/1.05 "Montserrat", Arial, sans-serif;
+  }
+  .auth-title p {
+    margin: 0;
+    color: #53627a;
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+  .auth-form {
+    display: grid;
+    gap: 13px;
+  }
+  .auth-field {
+    display: grid;
+    gap: 6px;
+  }
+  .auth-field label {
+    color: #344054;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+  .auth-input {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr);
+    align-items: center;
+    min-height: 48px;
+    border: 1px solid var(--ca-line);
+    border-radius: 14px;
+    background: var(--ca-surface-soft);
+  }
+  .auth-input i {
+    color: var(--ca-primary);
+    text-align: center;
+  }
+  .auth-input input {
+    width: 100%;
+    min-height: 46px;
+    border: 0;
+    background: transparent;
+    color: #101828;
+    outline: 0;
+    font-weight: 700;
+  }
+  .auth-strip {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid rgba(11, 76, 203, 0.1);
+    border-radius: 16px;
+    background: rgba(246, 251, 254, 0.9);
+  }
+  .auth-strip i {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(179, 229, 255, 0.42);
+    color: var(--ca-primary);
+  }
+  .auth-strip strong,
+  .auth-link-row strong {
+    display: block;
+    color: #101828;
+    font-size: 0.88rem;
+  }
+  .auth-strip span,
+  .auth-link-row span {
+    display: block;
+    margin-top: 2px;
+    color: #53627a;
+    font-size: 0.76rem;
+  }
+  .auth-link-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+  }
+  @media (max-width: 520px) {
+    .auth-shell {
+      max-width: none;
+    }
+    .auth-card {
+      border-radius: 22px;
+    }
+    .auth-body {
+      padding: 18px;
+    }
+  }
+</style>
+
+<section class="auth-shell">
+  <article class="auth-card">
+    <div class="auth-top">
+      <span class="auth-top-icon"><i class="bi bi-person-vcard"></i></span>
+      <div>
+        <span>Central Águas</span>
+        <strong>Área do cliente</strong>
+      </div>
+    </div>
+
+    <div class="auth-body">
+      <div class="auth-title">
+        <span class="section-label">Acesso unificado</span>
+        <h1>Entre na sua conta.</h1>
+        <p>Acompanhe pontos, pedidos e dados do seu atendimento em um só lugar.</p>
+      </div>
+
+      {% if error %}
+        <div class="alert alert-danger mb-0">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/login" class="auth-form">
+        <div class="auth-field">
+          <label for="loginPhone">Telefone ou e-mail</label>
+          <div class="auth-input">
+            <i class="bi bi-person"></i>
+            <input id="loginPhone" name="phone" placeholder="(17) 99999-9999" required>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="loginPassword">Senha</label>
+          <div class="auth-input">
+            <i class="bi bi-lock"></i>
+            <input id="loginPassword" name="password" type="password" placeholder="Sua senha atual" required>
+          </div>
+        </div>
+
+        <button type="submit" class="ca-pill ca-primary w-100">Entrar</button>
+      </form>
+
+      <div class="auth-strip">
+        <i class="bi bi-award"></i>
+        <span>
+          <strong>Cartão fidelidade preservado</strong>
+          <span>Seu saldo e histórico continuam vinculados ao telefone cadastrado.</span>
+        </span>
+      </div>
+
+      <div class="auth-link-row">
+        <span>
+          <strong>Ainda não tem acesso?</strong>
+          <span>Crie seu cadastro em poucos passos.</span>
+        </span>
+        <a class="ca-pill ca-outline" href="/cadastrar">Criar</a>
+      </div>
+    </div>
+  </article>
+</section>
+{% endblock %}

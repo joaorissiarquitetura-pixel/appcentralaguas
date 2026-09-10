@@ -1,0 +1,2029 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ business_name }} App | Central Águas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --ca-primary: #0B4CCB;
+      --ca-aqua: #00B4F0;
+      --ca-sky: #B3E5FF;
+      --ca-white: #FFFFFF;
+      --ca-graphite: #2E2E2E;
+      --ca-gold: #FFC629;
+      --ca-muted: #667085;
+      --ca-soft: #F5F9FF;
+      --ca-line: rgba(11, 76, 203, 0.13);
+      --ca-shadow: 0 10px 24px rgba(11, 76, 203, 0.08);
+      --ca-card: 16px;
+      --ca-featured: 24px;
+      --ca-button: 16px;
+      --ca-pill: 999px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--ca-white);
+      color: var(--ca-graphite);
+      font-family: "Inter", Arial, sans-serif;
+      line-height: 1.35;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea { font: inherit; }
+    img { display: block; max-width: 100%; }
+    .app-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      place-items: center;
+      background: var(--ca-primary);
+      color: var(--ca-white);
+      animation: splashOut 700ms ease 1250ms forwards;
+    }
+    .splash-inner { display: grid; justify-items: center; gap: 28px; }
+    .splash-inner img { width: min(54vw, 230px); border-radius: 14px; }
+    .splash-copy {
+      max-width: 240px;
+      text-align: center;
+      font-size: 0.96rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    .splash-loader {
+      width: 128px;
+      height: 6px;
+      overflow: hidden;
+      border-radius: var(--ca-pill);
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .splash-loader span {
+      display: block;
+      width: 44%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--ca-aqua);
+      animation: loader 1100ms ease-in-out infinite;
+    }
+    .phone-stage {
+      min-height: 100vh;
+      padding: 0 0 94px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+    }
+    .app-screen {
+      display: none;
+      min-height: calc(100vh - 94px);
+      padding: 14px 14px 20px;
+      background: var(--ca-white);
+    }
+    .app-screen.is-active { display: block; }
+    .screen-inner { width: min(100%, 460px); margin: 0 auto; }
+    .app-topbar {
+      min-height: 52px;
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) 38px;
+      align-items: center;
+      gap: 8px;
+    }
+    .app-topbar.home {
+      grid-template-columns: minmax(0, 1fr) 38px 38px;
+      min-height: 70px;
+      margin: -14px -14px 12px;
+      padding: 12px 14px 10px;
+      background: var(--ca-primary);
+      color: var(--ca-white);
+      border-radius: 0 0 20px 20px;
+    }
+    .app-topbar h1 {
+      margin: 0;
+      color: var(--ca-primary);
+      font: 700 1rem/1.1 "Montserrat", Arial, sans-serif;
+    }
+    .app-topbar.home h1 { color: var(--ca-white); }
+    .top-logo { width: 132px; border-radius: 10px; object-fit: contain; }
+    .icon-button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+      color: var(--ca-primary);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+    .app-topbar.home .icon-button {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.18);
+      color: var(--ca-white);
+    }
+    .onboarding-screen {
+      min-height: 100vh;
+      display: grid;
+      align-content: center;
+      gap: 26px;
+      padding: 28px 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1) 64%, rgba(179, 229, 255, 0.42) 100%),
+        var(--ca-white);
+    }
+    .onboarding-logo { width: 190px; margin: 0 auto 8px; border-radius: 14px; }
+    .onboarding-title {
+      margin: 0;
+      color: var(--ca-primary);
+      font: 700 1.85rem/1.08 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+    .onboarding-copy { margin: 12px 0 0; color: var(--ca-primary); font-size: 1rem; }
+    .water-band {
+      height: 82px;
+      margin: 12px -20px 0;
+      background:
+        radial-gradient(circle at 18% 55%, rgba(0, 180, 240, 0.16) 0 10px, transparent 11px),
+        radial-gradient(circle at 76% 38%, rgba(11, 76, 203, 0.16) 0 6px, transparent 7px),
+        linear-gradient(175deg, transparent 38%, rgba(0, 180, 240, 0.18) 39% 58%, rgba(11, 76, 203, 0.08) 59%);
+    }
+    .stack { display: grid; gap: 12px; }
+    .section-title {
+      margin: 18px 0 10px;
+      color: #101828;
+      font: 700 1.08rem/1.2 "Montserrat", Arial, sans-serif;
+    }
+    .muted { color: var(--ca-muted); }
+    .small { font-size: 0.82rem; }
+    .app-card {
+      border: 1px solid var(--ca-line);
+      border-radius: var(--ca-card);
+      background: var(--ca-white);
+      box-shadow: var(--ca-shadow);
+    }
+    .soft-card {
+      border: 1px solid rgba(179, 229, 255, 0.5);
+      border-radius: var(--ca-card);
+      background: var(--ca-soft);
+    }
+    .pad { padding: 14px; }
+    .primary-button,
+    .secondary-button {
+      min-height: 52px;
+      width: 100%;
+      border-radius: var(--ca-button);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 1px solid var(--ca-primary);
+      font: 600 0.94rem/1 "Montserrat", Arial, sans-serif;
+      cursor: pointer;
+    }
+    .primary-button {
+      background: var(--ca-primary);
+      color: var(--ca-white);
+      box-shadow: 0 12px 22px rgba(11, 76, 203, 0.17);
+    }
+    .secondary-button { background: var(--ca-white); color: var(--ca-primary); }
+    .text-button {
+      min-height: 42px;
+      border: 0;
+      background: transparent;
+      color: var(--ca-primary);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .address-strip {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 11px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+    }
+    button.address-strip {
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+    .address-strip strong,
+    .product-info strong,
+    .row-copy strong {
+      display: block;
+      color: #101828;
+      font-family: "Montserrat", Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+    .address-strip span,
+    .product-info span,
+    .row-copy span {
+      display: block;
+      margin-top: 2px;
+      color: var(--ca-muted);
+      font-size: 0.78rem;
+    }
+    .blue-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background: rgba(179, 229, 255, 0.38);
+      color: var(--ca-primary);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .reorder-card {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 13px;
+    }
+    .reorder-card img {
+      width: 82px;
+      max-height: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 12px rgba(11, 76, 203, 0.14));
+    }
+    .product-price {
+      display: block;
+      margin: 6px 0 10px;
+      color: #101828;
+      font: 700 1.1rem/1.1 "Montserrat", Arial, sans-serif;
+    }
+    .quantity-control {
+      display: inline-grid;
+      grid-template-columns: 34px 38px 34px;
+      overflow: hidden;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-soft);
+      vertical-align: middle;
+    }
+    .quantity-control button {
+      width: 34px;
+      height: 32px;
+      border: 0;
+      background: rgba(179, 229, 255, 0.4);
+      color: var(--ca-primary);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .quantity-control output {
+      min-width: 38px;
+      display: grid;
+      place-items: center;
+      color: #101828;
+      font-weight: 700;
+    }
+    .category-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .category-tile {
+      min-height: 72px;
+      padding: 9px 4px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 5px;
+      color: #101828;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+    }
+    .category-tile i { color: var(--ca-primary); font-size: 1.25rem; }
+    .gotinha-nudge {
+      width: 100%;
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr) 20px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: var(--ca-card);
+      background: rgba(179, 229, 255, 0.26);
+      border: 1px solid rgba(179, 229, 255, 0.65);
+      text-align: left;
+      cursor: pointer;
+    }
+    .gotinha-nudge img,
+    .gotinha-hero img {
+      object-fit: contain;
+      animation: floatDrop 4.8s ease-in-out infinite;
+    }
+    .gotinha-nudge img { width: 58px; }
+    .search-field {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 14px;
+      border: 1px solid var(--ca-line);
+      border-radius: 15px;
+      background: var(--ca-soft);
+      color: #101828;
+    }
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 2px 0 4px;
+      scrollbar-width: none;
+    }
+    .chip-row::-webkit-scrollbar { display: none; }
+    .chip {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-soft);
+      color: #344054;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .chip.active { background: var(--ca-primary); color: var(--ca-white); border-color: var(--ca-primary); }
+    .product-row {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+    }
+    .product-row img {
+      width: 84px;
+      max-height: 96px;
+      margin: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 12px rgba(11, 76, 203, 0.12));
+    }
+    .product-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .mini-add {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 11px;
+      background: var(--ca-primary);
+      color: var(--ca-white);
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .choice-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .choice-card {
+      min-height: 66px;
+      padding: 8px 4px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+      color: #344054;
+      text-align: center;
+      cursor: pointer;
+    }
+    .choice-card strong,
+    .choice-card span { display: block; }
+    .choice-card span { margin-top: 3px; color: var(--ca-muted); font-size: 0.72rem; }
+    .choice-card.is-selected { background: var(--ca-primary); color: var(--ca-white); border-color: var(--ca-primary); }
+    .choice-card.is-selected span { color: rgba(255, 255, 255, 0.82); }
+    .period-row,
+    .menu-row,
+    .summary-row,
+    .history-row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+      text-align: left;
+    }
+    button.period-row,
+    button.menu-row { width: 100%; cursor: pointer; }
+    .period-row.is-selected { border-color: var(--ca-primary); box-shadow: 0 0 0 3px rgba(11, 76, 203, 0.08); }
+    .radio-dot {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #98A2B3;
+      border-radius: 50%;
+    }
+    .is-selected .radio-dot {
+      border-color: var(--ca-primary);
+      box-shadow: inset 0 0 0 4px var(--ca-white);
+      background: var(--ca-primary);
+    }
+    .notes {
+      width: 100%;
+      min-height: 76px;
+      padding: 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      resize: vertical;
+      background: var(--ca-soft);
+    }
+    .location-search {
+      display: grid;
+      gap: 10px;
+      padding: 13px;
+      border: 1px solid rgba(11, 76, 203, 0.12);
+      border-radius: var(--ca-card);
+      background: linear-gradient(180deg, rgba(179, 229, 255, 0.22), rgba(255, 255, 255, 0.96));
+      box-shadow: var(--ca-shadow);
+    }
+    .location-search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+    .location-search input {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-white);
+      color: #101828;
+      font-weight: 700;
+    }
+    .location-status {
+      min-height: 18px;
+      color: var(--ca-muted);
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+    .location-complete {
+      display: grid;
+      gap: 12px;
+      padding: 13px;
+      border: 1px solid rgba(11, 76, 203, 0.12);
+      border-radius: var(--ca-card);
+      background: var(--ca-white);
+      box-shadow: var(--ca-shadow);
+    }
+    .location-map {
+      position: relative;
+      min-height: 154px;
+      overflow: hidden;
+      border: 1px solid var(--ca-line);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(179, 229, 255, 0.48), rgba(247, 251, 255, 0.95));
+    }
+    .location-map iframe {
+      width: 100%;
+      height: 154px;
+      display: none;
+      border: 0;
+    }
+    .location-map.has-map iframe {
+      display: block;
+    }
+    .location-map-placeholder {
+      min-height: 154px;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      color: var(--ca-muted);
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .location-map.has-map .location-map-placeholder {
+      display: none;
+    }
+    .location-found {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+    .location-input-grid {
+      display: grid;
+      grid-template-columns: minmax(86px, 0.42fr) minmax(0, 1fr);
+      gap: 10px;
+    }
+    .location-field {
+      display: grid;
+      gap: 5px;
+    }
+    .location-field label {
+      color: #344054;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+    .location-field input {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-soft);
+      color: #101828;
+      font-weight: 700;
+    }
+    .checkout-product {
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--ca-line);
+    }
+    .checkout-product img { width: 62px; max-height: 74px; object-fit: contain; }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      color: #101828;
+      font: 700 1.08rem/1.1 "Montserrat", Arial, sans-serif;
+    }
+    .confirm-screen {
+      min-height: calc(100vh - 114px);
+      display: grid;
+      align-content: center;
+      text-align: center;
+      gap: 18px;
+    }
+    .checkmark {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: #22C55E;
+      color: var(--ca-white);
+      display: grid;
+      place-items: center;
+      font-size: 2.4rem;
+    }
+    .loyalty-card {
+      padding: 16px;
+      border-radius: var(--ca-featured);
+      background: linear-gradient(135deg, rgba(255, 198, 41, 0.85), rgba(255, 229, 138, 0.82));
+      color: #101828;
+      border: 1px solid rgba(255, 198, 41, 0.42);
+      box-shadow: var(--ca-shadow);
+    }
+    .loyalty-card h2 { margin: 12px 0 10px; font: 700 1.45rem/1.05 "Montserrat", Arial, sans-serif; }
+    .progress-track {
+      height: 12px;
+      overflow: hidden;
+      border-radius: var(--ca-pill);
+      background: rgba(255, 255, 255, 0.7);
+    }
+    .progress-track span {
+      display: block;
+      width: {{ (loyalty.progress / loyalty_target) * 100 if loyalty.available else 0 }}%;
+      min-width: 8%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--ca-primary);
+    }
+    .house-reserve {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      align-items: end;
+      margin: 16px 0 10px;
+    }
+    .house-reserve img { width: 64px; height: 92px; object-fit: contain; margin: 0 auto; }
+    .house-reserve img.empty { opacity: 0.34; filter: grayscale(1); }
+    .house-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center; }
+    .house-counts strong { display: block; color: var(--ca-primary); font: 700 1.45rem/1 "Montserrat", Arial, sans-serif; }
+    .gotinha-hero {
+      display: grid;
+      justify-items: center;
+      text-align: center;
+      gap: 10px;
+      padding: 12px 0 8px;
+    }
+    .gotinha-hero img { width: 126px; }
+    .gotinha-hero h2 { margin: 0; color: var(--ca-primary); font: 700 1.18rem/1.12 "Montserrat", Arial, sans-serif; }
+    .hydration-card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid rgba(179, 229, 255, 0.62);
+      border-radius: var(--ca-card);
+      background: linear-gradient(180deg, rgba(179, 229, 255, 0.24), rgba(255, 255, 255, 0.95));
+      box-shadow: var(--ca-shadow);
+    }
+    .hydration-head {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+    .hydration-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+    }
+    .hydration-form.profile-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .hydration-field {
+      display: grid;
+      gap: 5px;
+    }
+    .hydration-field label {
+      color: #344054;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+    .hydration-field select,
+    .hydration-field input {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-white);
+      color: #101828;
+    }
+    .reminder-times {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .reminder-chip {
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: var(--ca-pill);
+      background: var(--ca-white);
+      color: var(--ca-primary);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+    .hydration-breakdown {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: 9px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid rgba(0, 180, 240, 0.18);
+      border-radius: 14px;
+      background: rgba(232, 250, 255, 0.82);
+    }
+    .hydration-breakdown strong {
+      display: block;
+      color: #101828;
+      font: 700 0.88rem/1.18 "Montserrat", Arial, sans-serif;
+    }
+    .hydration-breakdown span {
+      display: block;
+      margin-top: 2px;
+      color: var(--ca-muted);
+      font-size: 0.76rem;
+      line-height: 1.28;
+    }
+    .hydration-progress {
+      display: grid;
+      gap: 7px;
+    }
+    .hydration-progress-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: #344054;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .hydration-track {
+      height: 10px;
+      overflow: hidden;
+      border-radius: var(--ca-pill);
+      background: rgba(11, 76, 203, 0.1);
+    }
+    .hydration-track span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--ca-aqua);
+      transition: width 180ms ease;
+    }
+    .hydration-goal {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 10px 12px;
+      border: 1px solid rgba(11, 76, 203, 0.1);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    .hydration-goal span {
+      display: block;
+      color: var(--ca-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .hydration-goal strong {
+      display: block;
+      margin-top: 3px;
+      color: #101828;
+      font: 700 1rem/1.08 "Montserrat", Arial, sans-serif;
+    }
+    .hydration-goal output {
+      color: var(--ca-primary);
+      font: 800 1.25rem/1 "Montserrat", Arial, sans-serif;
+      white-space: nowrap;
+    }
+    .hydration-source {
+      margin: -2px 0 0;
+      color: var(--ca-muted);
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+    .notification-panel {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid rgba(11, 76, 203, 0.1);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+    .notification-panel .row-copy strong {
+      font-size: 0.84rem;
+    }
+    .notification-panel .row-copy span {
+      line-height: 1.25;
+    }
+    .notification-toggle {
+      width: 46px;
+      height: 28px;
+      border: 1px solid var(--ca-line-strong);
+      border-radius: 999px;
+      background: #e8eef7;
+      padding: 3px;
+      display: inline-flex;
+      justify-content: flex-start;
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+    .notification-toggle::before {
+      content: "";
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(16, 24, 40, 0.18);
+      transition: transform 160ms ease;
+    }
+    .notification-toggle.is-on {
+      justify-content: flex-start;
+      background: var(--ca-primary);
+      border-color: var(--ca-primary);
+    }
+    .notification-toggle.is-on::before {
+      transform: translateX(18px);
+    }
+    .profile-head {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) 22px;
+      gap: 10px;
+      align-items: center;
+      padding: 13px;
+    }
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(179, 229, 255, 0.4);
+      color: var(--ca-primary);
+      display: grid;
+      place-items: center;
+      font-size: 1.4rem;
+    }
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      border-top: 1px solid var(--ca-line);
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(14px);
+    }
+    .bottom-nav-inner {
+      width: min(100%, 460px);
+      min-height: 72px;
+      margin: 0 auto;
+      padding: 8px 8px 10px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 3px;
+    }
+    .nav-item {
+      min-width: 0;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: #667085;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 2px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .nav-item i { color: var(--ca-primary); font-size: 1.1rem; line-height: 1; }
+    .nav-item.is-active { background: rgba(179, 229, 255, 0.38); color: var(--ca-primary); }
+    body.login-mode .bottom-nav { display: none; }
+    @keyframes splashOut { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+    @keyframes loader {
+      0% { transform: translateX(-120%); }
+      55% { transform: translateX(96%); }
+      100% { transform: translateX(245%); }
+    }
+    @keyframes floatDrop {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .app-splash,
+      .splash-loader span,
+      .gotinha-nudge img,
+      .gotinha-hero img { animation: none; }
+      .app-splash { display: none; }
+    }
+    @media (min-width: 760px) {
+      body { background: #EEF6FF; }
+      .phone-stage {
+        width: 430px;
+        min-height: 840px;
+        margin: 28px auto;
+        overflow: hidden;
+        border: 10px solid #101828;
+        border-radius: 42px;
+        box-shadow: 0 28px 80px rgba(16, 24, 40, 0.18);
+      }
+      .bottom-nav {
+        left: 50%;
+        right: auto;
+        width: 410px;
+        transform: translateX(-50%);
+        bottom: 38px;
+        border-radius: 0 0 30px 30px;
+      }
+    }
+    @media (max-width: 360px) {
+      .category-row,
+      .choice-grid,
+      .hydration-form,
+      .hydration-form.profile-grid,
+      .location-input-grid { grid-template-columns: 1fr; }
+      .reorder-card,
+      .product-row { grid-template-columns: 74px minmax(0, 1fr); }
+      .product-actions { align-items: stretch; flex-direction: column; }
+      .mini-add { width: 100%; }
+    }
+  </style>
+</head>
+<body class="{% if not customer_logged_in %}login-mode{% endif %}">
+  <div class="app-splash" aria-hidden="true">
+    <div class="splash-inner">
+      <img src="/static/img/logo_central.jpg" alt="">
+      <div class="splash-copy">Água faz bem. A Central cuida do resto.</div>
+      <div class="splash-loader"><span></span></div>
+    </div>
+  </div>
+
+  <main class="phone-stage">
+    {% if not customer_logged_in %}
+      <section class="onboarding-screen" data-screen="login">
+        <div class="screen-inner stack">
+          <img class="onboarding-logo" src="/static/img/logo_central.jpg" alt="Central Águas">
+          <div>
+            <h1 class="onboarding-title">Peça sua água de um jeito mais simples.</h1>
+            <p class="onboarding-copy">Entrega rápida e a qualidade que você já conhece.</p>
+          </div>
+          <div class="stack">
+            <a class="primary-button" href="/login">Entrar</a>
+            <a class="secondary-button" href="/cadastrar">Criar conta</a>
+            <button class="text-button" type="button" data-go="home">Continuar como visitante</button>
+          </div>
+          <div class="water-band" aria-hidden="true"></div>
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="app-screen {% if customer_logged_in %}is-active{% endif %}" data-screen="home">
+      <div class="screen-inner">
+        <header class="app-topbar home">
+          <img class="top-logo" src="/static/img/logo_central.jpg" alt="Central Águas">
+          <a class="icon-button" href="/meu-cartao" aria-label="Notificações"><i class="bi bi-bell-fill"></i></a>
+          <a class="icon-button" href="{% if customer_logged_in %}/meu-cartao{% else %}/login{% endif %}" aria-label="Perfil"><i class="bi bi-person-fill"></i></a>
+        </header>
+        {% if catalog_error %}
+          <div class="location-status">{{ catalog_error }}</div>
+        {% endif %}
+        <button class="address-strip" type="button" data-location-current data-go="address">
+          <span class="blue-icon"><i class="bi bi-geo-alt-fill"></i></span>
+          <span class="row-copy">
+            <strong>{% if location.has_address %}Entregar em{% else %}Entrega em{% endif %}</strong>
+            <span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span>
+          </span>
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <h2 class="section-title">Seu pedido de sempre</h2>
+        <article class="app-card reorder-card">
+          <img src="{{ primary_offer.image_url or '/static/img/20.png' }}" alt="{{ primary_offer.name }}">
+          <div class="product-info">
+            <strong>{{ primary_offer.name }}</strong>
+            <span>{{ primary_offer.description }}</span>
+            <span class="product-price">R$ {{ "%.2f"|format(primary_offer.delivery_price)|replace('.', ',') }}</span>
+            <div class="product-actions">
+              <div class="quantity-control" data-quantity>
+                <button type="button" data-step="-1" aria-label="Diminuir quantidade">−</button>
+                <output>2</output>
+                <button type="button" data-step="1" aria-label="Aumentar quantidade">+</button>
+              </div>
+              <button class="mini-add" type="button" data-go="checkout">Pedir novamente</button>
+            </div>
+          </div>
+        </article>
+        <div class="category-row" aria-label="Categorias">
+          <button class="category-tile" type="button" data-go="store"><i class="bi bi-droplet-fill"></i><span>Água</span></button>
+          <button class="category-tile" type="button" data-go="store"><i class="bi bi-basket-fill"></i><span>Fardos</span></button>
+          <button class="category-tile" type="button" data-go="store"><i class="bi bi-fire"></i><span>Gás</span></button>
+          <button class="category-tile" type="button" data-go="store"><i class="bi bi-cart4"></i><span>Loja</span></button>
+        </div>
+        <button class="gotinha-nudge" type="button" data-go="gotinha">
+          <img src="/static/assets/gotinha/emotions/alegria.webp" alt="">
+          <span class="row-copy">
+            <strong>Já tomou água hoje?</strong>
+            <span>Mantenha sua rotina com mais bem-estar.</span>
+          </span>
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="address">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Endereço</h1>
+          <span></span>
+        </header>
+        <section class="location-search" aria-label="Buscar localização">
+          <button class="period-row" type="button" data-location-current>
+            <span class="blue-icon"><i class="bi bi-crosshair"></i></span>
+            <span class="row-copy"><strong>Buscar minha localização</strong><span>Usar a localização atual do aparelho</span></span>
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          <div class="location-search-row">
+            <input type="text" inputmode="numeric" maxlength="9" placeholder="Digite seu CEP" aria-label="Digite seu CEP" data-location-cep>
+            <button class="secondary-button" type="button" data-location-cep-search><i class="bi bi-search"></i></button>
+          </div>
+          <div class="location-status" data-location-status>Toque para buscar automaticamente ou informe o CEP.</div>
+        </section>
+        <section class="location-complete" aria-label="Completar endereço">
+          <div class="location-map" data-location-map>
+            <iframe title="Mapa da localização atual" loading="lazy" referrerpolicy="no-referrer-when-downgrade" data-location-map-frame></iframe>
+            <div class="location-map-placeholder">
+              Busque sua localização para ver o ponto no mapa.
+            </div>
+          </div>
+          <div class="location-found">
+            <span class="blue-icon"><i class="bi bi-geo-alt-fill"></i></span>
+            <span class="row-copy"><strong>Endereço encontrado</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
+          </div>
+          <div class="location-input-grid">
+            <div class="location-field">
+              <label for="locationNumber">Número</label>
+              <input id="locationNumber" type="text" inputmode="numeric" placeholder="Ex.: 123" value="{{ customer.number if customer else '' }}" data-location-number>
+            </div>
+            <div class="location-field">
+              <label for="locationComplement">Complemento</label>
+              <input id="locationComplement" type="text" placeholder="Apto, bloco, referência" value="{{ customer.complement if customer else '' }}" data-location-complement>
+            </div>
+          </div>
+        </section>
+        <h2 class="section-title">Endereços salvos</h2>
+        <button class="period-row is-selected" type="button" data-go="delivery">
+          <span class="radio-dot"></span>
+          <span class="row-copy"><strong>Casa</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <button class="period-row" type="button" data-go="delivery">
+          <span class="radio-dot"></span>
+          <span class="row-copy"><strong>Trabalho</strong><span>Cadastrar novo endereço</span></span>
+          <i class="bi bi-chevron-right"></i>
+        </button>
+        <a class="text-button" href="/cadastrar"><i class="bi bi-plus-lg"></i> Adicionar novo endereço</a>
+        <button class="primary-button" type="button" data-go="delivery">Continuar</button>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="store">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Loja</h1>
+          <a class="icon-button" href="/loja" aria-label="Carrinho"><i class="bi bi-cart3"></i></a>
+        </header>
+        <input class="search-field" type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+        <div class="chip-row" aria-label="Categorias da loja">
+          <button class="chip active" type="button">Água</button>
+          <button class="chip" type="button">Fardos</button>
+          <button class="chip" type="button">Gás</button>
+          <button class="chip" type="button">Conveniência</button>
+        </div>
+        {% for offer in quick_offers %}
+          <article class="app-card product-row">
+            <img src="{{ offer.image_url or '/static/img/20.png' }}" alt="{{ offer.name }}">
+            <div class="product-info">
+              <strong>{{ offer.name }}</strong>
+              <span>{{ offer.description }}</span>
+              <span class="product-price">R$ {{ "%.2f"|format(offer.delivery_price)|replace('.', ',') }}</span>
+              <div class="product-actions">
+                <div class="quantity-control" data-quantity>
+                  <button type="button" data-step="-1" aria-label="Diminuir quantidade">−</button>
+                  <output>1</output>
+                  <button type="button" data-step="1" aria-label="Aumentar quantidade">+</button>
+                </div>
+                <button class="mini-add" type="button" data-product="{{ offer.name }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}" data-go="delivery">Adicionar</button>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="delivery">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="store" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Entrega</h1>
+          <span></span>
+        </header>
+        <div class="address-strip">
+          <span class="blue-icon"><i class="bi bi-geo-alt-fill"></i></span>
+          <span class="row-copy"><strong>Casa</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
+          <button class="text-button" type="button" data-go="address">Alterar</button>
+        </div>
+        <h2 class="section-title">Quando você quer receber?</h2>
+        <div class="choice-grid">
+          {% for day in delivery_days %}
+            <button class="choice-card {% if loop.first %}is-selected{% endif %}" type="button" data-delivery-day="{{ day.label }}, {{ day.date }}" data-delivery-date="{{ day.iso_date }}"><strong>{{ day.label }}</strong><span>{{ day.date }}</span></button>
+          {% endfor %}
+        </div>
+        <h2 class="section-title">Período</h2>
+        <div class="stack" data-delivery-periods></div>
+        <div class="notification-panel">
+          <span class="blue-icon"><i class="bi bi-bell-fill"></i></span>
+          <span class="row-copy">
+            <strong>Aviso do pedido</strong>
+            <span data-delivery-notification-status>Permita notificações para ser avisado 30 minutos antes.</span>
+          </span>
+          <button class="notification-toggle" type="button" data-delivery-notification-toggle aria-label="Permitir aviso do pedido"></button>
+        </div>
+        <textarea class="notes" name="notes" placeholder="Ex.: interfone, ponto de referência..." aria-label="Observações"></textarea>
+        <button class="primary-button" type="button" data-go="checkout">Continuar</button>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="checkout">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="delivery" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Resumo do pedido</h1>
+          <span></span>
+        </header>
+        <article class="app-card pad">
+          <div class="checkout-product">
+            <img id="checkoutImage" src="{{ primary_offer.image_url or '/static/img/20.png' }}" alt="">
+            <span class="row-copy">
+              <strong id="checkoutName">{{ primary_offer.name }}</strong>
+              <span id="checkoutDesc">{{ primary_offer.description }}</span>
+              <span class="product-price" id="checkoutUnit">R$ {{ "%.2f"|format(primary_offer.delivery_price)|replace('.', ',') }}</span>
+            </span>
+            <span class="small" id="checkoutQty">2 un.</span>
+          </div>
+          <div class="summary-row"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Endereço</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span><button class="text-button" type="button" data-go="address">Alterar</button></div>
+          <div class="summary-row"><span class="blue-icon"><i class="bi bi-calendar-check"></i></span><span class="row-copy"><strong>Entrega</strong><span id="checkoutDelivery">{{ delivery_days[0].label }}, {{ delivery_days[0].date }} - Sem hora definida</span></span><button class="text-button" type="button" data-go="delivery">Alterar</button></div>
+          <div class="summary-row"><span class="blue-icon"><i class="bi bi-wallet2"></i></span><span class="row-copy"><strong>Pagamento</strong><span>Pix</span></span><span></span></div>
+          <div class="total-row"><span>Total</span><strong id="checkoutTotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
+        </article>
+        <form method="post" action="/loja/finalizar" id="orderForm">
+          <input type="hidden" name="items_json" id="itemsJson">
+          <input type="hidden" name="fulfillment" value="delivery">
+          <input type="hidden" name="payment_method" value="pix">
+          <input type="hidden" name="name" value="{{ customer.name if customer else '' }}">
+          <input type="hidden" name="phone" value="{{ customer.phone if customer else '' }}">
+          <input type="hidden" name="neighborhood" value="{{ customer.neighborhood if customer else '' }}">
+          <input type="hidden" name="street" value="{{ customer.street if customer else '' }}">
+          <input type="hidden" name="number" value="{{ customer.number if customer else '' }}">
+          <input type="hidden" name="complement" value="{{ customer.complement if customer else '' }}">
+          <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
+          <button class="primary-button" type="submit">Finalizar pedido</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="loyalty">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Meu Cartão</h1>
+          <a class="icon-button" href="/meu-cartao" aria-label="Abrir cartão completo"><i class="bi bi-person-fill"></i></a>
+        </header>
+        <article class="loyalty-card">
+          <div class="small"><i class="bi bi-award-fill"></i> Cliente Central</div>
+          <h2>{{ loyalty.progress if loyalty.available else 0 }} de {{ loyalty_target }} pontos</h2>
+          <div class="progress-track"><span></span></div>
+          <p class="small">Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.</p>
+          <a class="primary-button" href="/meu-cartao">Ver benefícios</a>
+        </article>
+        <h2 class="section-title">Histórico de pontos</h2>
+        <div class="history-row"><span class="blue-icon"><i class="bi bi-bag-check"></i></span><span class="row-copy"><strong>Compra na loja</strong><span>Última movimentação</span></span><strong>+1 ponto</strong></div>
+        <div class="history-row"><span class="blue-icon"><i class="bi bi-cart3"></i></span><span class="row-copy"><strong>Compra online</strong><span>Pedido pelo app</span></span><strong>+2 pontos</strong></div>
+        <a class="secondary-button" href="/fidelidade">Conhecer fidelidade</a>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="house">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Água da sua casa</h1>
+          <span></span>
+        </header>
+        <article class="soft-card pad">
+          <div class="house-reserve">
+            <img src="/static/img/20.png" alt="">
+            <img src="/static/img/20.png" alt="">
+            <img src="/static/img/20.png" alt="">
+            <img class="empty" src="/static/img/20.png" alt="">
+          </div>
+          <div class="house-counts">
+            <div><strong>3</strong><span class="small muted">galões cheios</span></div>
+            <div><strong>1</strong><span class="small muted">galão vazio</span></div>
+          </div>
+        </article>
+        <div class="soft-card period-row">
+          <span class="blue-icon"><i class="bi bi-calendar2-week"></i></span>
+          <span class="row-copy"><strong>Próxima reposição</strong><span>em cerca de 6 dias</span></span>
+        </div>
+        <div class="product-actions">
+          <button class="secondary-button" type="button">Troquei o galão</button>
+          <button class="primary-button" type="button" data-go="store">Repor agora</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="gotinha">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Minha Gotinha</h1>
+          <span></span>
+        </header>
+        <div class="gotinha-hero">
+          <img src="/static/assets/gotinha/emotions/alegria.webp" alt="Gotinha da Central Águas">
+          <h2>Sempre com você na sua rotina.</h2>
+          <p class="muted">Lembretes, dicas e um cuidado a mais para o seu dia.</p>
+        </div>
+        <section class="hydration-card" aria-labelledby="hydrationTitle">
+          <div class="hydration-head">
+            <span class="blue-icon"><i class="bi bi-droplet-fill"></i></span>
+            <span class="row-copy">
+              <strong id="hydrationTitle">Lembretes de água</strong>
+              <span data-hydration-message>{{ hydration_profile.message }}</span>
+            </span>
+          </div>
+          <div class="hydration-form">
+            <div class="hydration-field">
+              <label for="hydrationRoutine">Rotina</label>
+              <select id="hydrationRoutine" data-hydration-routine>
+                <option value="calma" {% if hydration_profile.rhythm == "individual" %}selected{% endif %}>Dia calmo</option>
+                <option value="normal" {% if hydration_profile.rhythm == "casa" %}selected{% endif %}>Rotina normal</option>
+                <option value="corrida" {% if hydration_profile.rhythm == "familia" %}selected{% endif %}>Dia corrido</option>
+              </select>
+            </div>
+          </div>
+          <div class="hydration-form profile-grid">
+            <div class="hydration-field">
+              <label for="hydrationWeight">Peso</label>
+              <input id="hydrationWeight" type="number" min="25" max="180" step="1" inputmode="decimal" placeholder="kg" data-hydration-weight>
+            </div>
+            <div class="hydration-field">
+              <label for="hydrationSex">Perfil</label>
+              <select id="hydrationSex" data-hydration-sex>
+                <option value="female">Mulher</option>
+                <option value="male">Homem</option>
+                <option value="neutral">Geral</option>
+              </select>
+            </div>
+          </div>
+          <div class="hydration-goal">
+            <div>
+              <span>Meta estimada de água</span>
+              <strong data-hydration-goal-copy>Com base no seu perfil</strong>
+            </div>
+            <output data-hydration-goal>--</output>
+          </div>
+          <p class="hydration-source">Fonte base: National Academies/IOM. A referência original é água total do dia, incluindo bebidas e parte dos alimentos; aqui a Gotinha converte para uma meta prática em copos de 300 ml.</p>
+          <div class="hydration-breakdown">
+            <span class="blue-icon"><i class="bi bi-cup-straw"></i></span>
+            <span>
+              <strong data-hydration-cup-plan>Meta dividida em copos</strong>
+              <span data-hydration-cup-copy>Os avisos serão distribuídos ao longo do dia.</span>
+            </span>
+          </div>
+          <div class="reminder-times" data-reminder-times aria-label="Horários sugeridos"></div>
+          <div class="notification-panel">
+            <span class="blue-icon"><i class="bi bi-bell-fill"></i></span>
+            <span class="row-copy">
+              <strong>Notificações</strong>
+              <span data-notification-status>Ative para receber os lembretes da Gotinha.</span>
+            </span>
+            <button class="notification-toggle" type="button" data-notification-toggle aria-label="Ativar notificações"></button>
+          </div>
+          <div class="hydration-progress">
+            <div class="hydration-progress-top">
+              <span>Hoje</span>
+              <span data-hydration-count>0 de {{ hydration_profile.reminder_count }}</span>
+            </div>
+            <div class="hydration-track" aria-hidden="true"><span data-hydration-bar></span></div>
+          </div>
+          <button class="primary-button" type="button" data-water-done>Registrar copo agora</button>
+        </section>
+        <button class="menu-row" type="button" data-water-done><span class="blue-icon"><i class="bi bi-plus-circle"></i></span><span class="row-copy"><strong>Hidratação</strong><span>Registrar agora</span></span><i class="bi bi-chevron-right"></i></button>
+        <button class="menu-row" type="button" data-go="house"><span class="blue-icon"><i class="bi bi-house-fill"></i></span><span class="row-copy"><strong>Minha casa</strong><span>Acompanhar galões</span></span><i class="bi bi-chevron-right"></i></button>
+        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-star-fill"></i></span><span class="row-copy"><strong>Minhas conquistas</strong><span>Ver progresso</span></span><i class="bi bi-chevron-right"></i></a>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="menu">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Mais</h1>
+          <span></span>
+        </header>
+        <a class="app-card profile-head" href="{% if customer_logged_in %}/meu-cartao{% else %}/login{% endif %}">
+          <span class="avatar"><i class="bi bi-person"></i></span>
+          <span class="row-copy">
+            <strong>{% if customer_logged_in %}{{ customer.name }}{% else %}Entrar ou criar conta{% endif %}</strong>
+            <span>{% if customer_logged_in %}Cliente Central{% else %}Acesse seus dados e pedidos{% endif %}</span>
+          </span>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></a>
+        <button class="menu-row" type="button" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></button>
+        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></a>
+        {% if customer_logged_in %}
+          <a class="menu-row" href="/logout"><span class="blue-icon"><i class="bi bi-box-arrow-right"></i></span><span class="row-copy"><strong>Sair</strong></span><i class="bi bi-chevron-right"></i></a>
+        {% endif %}
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Navegação do app">
+    <div class="bottom-nav-inner">
+      <button class="nav-item is-active" type="button" data-go="home"><i class="bi bi-house-door-fill"></i><span>Início</span></button>
+      <button class="nav-item" type="button" data-go="house"><i class="bi bi-house"></i><span>Casa</span></button>
+      <button class="nav-item" type="button" data-go="store"><i class="bi bi-cart3"></i><span>Loja</span></button>
+      <button class="nav-item" type="button" data-go="loyalty"><i class="bi bi-star"></i><span>Fidelidade</span></button>
+      <button class="nav-item" type="button" data-go="menu"><i class="bi bi-list"></i><span>Mais</span></button>
+    </div>
+  </nav>
+
+  <script>
+    const screens = [...document.querySelectorAll("[data-screen]")];
+    const navItems = [...document.querySelectorAll(".nav-item")];
+    const state = {
+      product: {{ primary_offer.name|tojson }},
+      description: {{ primary_offer.description|tojson }},
+      price: Number("{{ primary_offer.delivery_price }}"),
+      image: {{ (primary_offer.image_url or '/static/img/20.png')|tojson }},
+      qty: 2,
+      deliveryDay: {{ (delivery_days[0].label ~ ', ' ~ delivery_days[0].date)|tojson }},
+      deliveryDate: {{ delivery_days[0].iso_date|tojson }},
+      deliveryPeriod: "Sem hora definida",
+      deliveryStartHour: "",
+      locationLabel: {{ (location.label ~ (' - ' ~ location.detail if location.detail else ''))|tojson }},
+      locationBaseLabel: {{ (location.label ~ (' - ' ~ location.detail if location.detail else ''))|tojson }},
+      neighborhood: {{ (customer.neighborhood if customer else '')|tojson }},
+      street: {{ (customer.street if customer else '')|tojson }},
+      number: {{ (customer.number if customer else '')|tojson }},
+      complement: {{ (customer.complement if customer else '')|tojson }},
+      city: "Votuporanga",
+      lat: "",
+      lng: "",
+      notes: "Pedido iniciado pelo app Central Águas"
+    };
+    const hydrationDefaults = {
+      routine: {{ ("calma" if hydration_profile.rhythm == "individual" else "corrida" if hydration_profile.rhythm == "familia" else "normal")|tojson }},
+      weight: "",
+      sex: "neutral",
+      done: 0,
+      date: new Date().toISOString().slice(0, 10)
+    };
+    const hydrationKey = "centralAguas.hydrationProfile";
+    const notificationKey = "centralAguas.hydrationNotifications";
+    const deliveryNotificationKey = "centralAguas.deliveryNotifications";
+    const hydrationCupMl = 300;
+    let hydrationNotificationTimers = [];
+    let deliveryNotificationTimer = null;
+
+    function formatMoney(value) {
+      return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function localDateIso(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function deliveryNotificationsEnabled() {
+      return localStorage.getItem(deliveryNotificationKey) === "on";
+    }
+
+    function clearDeliveryNotification() {
+      if (deliveryNotificationTimer) {
+        clearTimeout(deliveryNotificationTimer);
+        deliveryNotificationTimer = null;
+      }
+    }
+
+    function deliveryPeriodLabel(startHour) {
+      if (startHour === "" || startHour === null || startHour === undefined) return "Sem hora definida";
+      const start = Number(startHour);
+      const end = start + 1;
+      return `${String(start).padStart(2, "0")}:00 às ${String(end).padStart(2, "0")}:00`;
+    }
+
+    function deliveryNotificationStatusText() {
+      if (!("Notification" in window)) {
+        return "Este navegador não permite notificações.";
+      }
+      if (state.deliveryStartHour === "") {
+        return "Escolha um horário para receber aviso 30 minutos antes.";
+      }
+      if (!deliveryNotificationsEnabled()) {
+        return "Permita notificações para ser avisado 30 minutos antes.";
+      }
+      if (Notification.permission === "granted") {
+        if (deliveryReminderDelay(state.deliveryStartHour) <= 0) {
+          return "Horário próximo: não dá para programar aviso 30 minutos antes.";
+        }
+        return `Aviso programado para ${deliveryReminderTimeLabel(state.deliveryStartHour)}.`;
+      }
+      if (Notification.permission === "denied") {
+        return "Notificações bloqueadas no navegador.";
+      }
+      return "Toque para aprovar as notificações do pedido.";
+    }
+
+    function deliveryReminderTimeLabel(startHour) {
+      if (startHour === "") return "";
+      const reminder = new Date(`${state.deliveryDate}T${String(startHour).padStart(2, "0")}:00:00`);
+      reminder.setMinutes(reminder.getMinutes() - 30);
+      return reminder.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function deliveryReminderDelay(startHour) {
+      if (startHour === "") return 0;
+      const deliveryAt = new Date(`${state.deliveryDate}T${String(startHour).padStart(2, "0")}:00:00`);
+      return deliveryAt.getTime() - 30 * 60 * 1000 - Date.now();
+    }
+
+    function renderDeliveryNotificationStatus() {
+      const toggle = document.querySelector("[data-delivery-notification-toggle]");
+      const status = document.querySelector("[data-delivery-notification-status]");
+      if (!toggle || !status) return;
+      const isOn = deliveryNotificationsEnabled() && "Notification" in window && Notification.permission === "granted";
+      toggle.classList.toggle("is-on", isOn);
+      toggle.setAttribute("aria-label", isOn ? "Desativar aviso do pedido" : "Permitir aviso do pedido");
+      status.textContent = deliveryNotificationStatusText();
+    }
+
+    function scheduleDeliveryNotification() {
+      clearDeliveryNotification();
+      if (!("Notification" in window) || !deliveryNotificationsEnabled() || Notification.permission !== "granted") return;
+      if (state.deliveryStartHour === "") return;
+      const delay = deliveryReminderDelay(state.deliveryStartHour);
+      if (delay <= 0) return;
+      deliveryNotificationTimer = setTimeout(() => {
+        new Notification("Seu pedido Central Águas", {
+          body: `Sua entrega está agendada para ${deliveryPeriodLabel(state.deliveryStartHour)}.`,
+          icon: "/static/img/logo_central.jpg"
+        });
+      }, delay);
+    }
+
+    async function toggleDeliveryNotifications() {
+      if (!("Notification" in window)) {
+        renderDeliveryNotificationStatus();
+        return;
+      }
+      if (deliveryNotificationsEnabled()) {
+        localStorage.setItem(deliveryNotificationKey, "off");
+        clearDeliveryNotification();
+        renderDeliveryNotificationStatus();
+        return;
+      }
+      const permission = Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission();
+      if (permission === "granted") {
+        localStorage.setItem(deliveryNotificationKey, "on");
+        scheduleDeliveryNotification();
+      } else {
+        localStorage.setItem(deliveryNotificationKey, "off");
+      }
+      renderDeliveryNotificationStatus();
+    }
+
+    function loadHydrationProfile() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(hydrationKey) || "{}");
+        const today = hydrationDefaults.date;
+        return {
+          ...hydrationDefaults,
+          ...saved,
+          done: saved.date === today ? Number(saved.done || 0) : 0,
+          date: today
+        };
+      } catch {
+        return { ...hydrationDefaults };
+      }
+    }
+
+    function saveHydrationProfile(profile) {
+      localStorage.setItem(hydrationKey, JSON.stringify(profile));
+    }
+
+    function notificationsEnabled() {
+      return localStorage.getItem(notificationKey) === "on";
+    }
+
+    function clearHydrationNotifications() {
+      hydrationNotificationTimers.forEach((timer) => clearTimeout(timer));
+      hydrationNotificationTimers = [];
+    }
+
+    function notificationStatusText(plan) {
+      if (!("Notification" in window)) {
+        return "Este navegador não permite notificações.";
+      }
+      if (!notificationsEnabled()) {
+        return "Ative e aprove a permissão para receber os avisos na hora de beber água.";
+      }
+      if (Notification.permission === "granted") {
+        const total = plan ? `${plan.count} avisos de ${plan.cupMl} ml` : "lembretes";
+        return `${total} ativos enquanto o app estiver aberto.`;
+      }
+      if (Notification.permission === "denied") {
+        return "Notificações bloqueadas no navegador.";
+      }
+      return "Toque para aprovar as notificações no navegador.";
+    }
+
+    function renderNotificationStatus(plan) {
+      const toggle = document.querySelector("[data-notification-toggle]");
+      const status = document.querySelector("[data-notification-status]");
+      if (!toggle || !status) return;
+      const isOn = notificationsEnabled() && "Notification" in window && Notification.permission === "granted";
+      toggle.classList.toggle("is-on", isOn);
+      toggle.setAttribute("aria-label", isOn ? "Desativar notificações" : "Ativar notificações");
+      status.textContent = notificationStatusText(plan);
+    }
+
+    function scheduleHydrationNotifications() {
+      clearHydrationNotifications();
+      if (!("Notification" in window) || !notificationsEnabled() || Notification.permission !== "granted") return;
+      const plan = hydrationPlan(loadHydrationProfile());
+      const now = new Date();
+      plan.times.forEach((time, index) => {
+        const [hour, minute] = time.split(":").map(Number);
+        const reminderAt = new Date();
+        reminderAt.setHours(hour, minute, 0, 0);
+        const delay = reminderAt.getTime() - now.getTime();
+        if (delay <= 0) return;
+        hydrationNotificationTimers.push(setTimeout(() => {
+          new Notification("Hora da água", {
+            body: `Beba 1 copo de ${plan.cupMl} ml. Aviso ${index + 1} de ${plan.count}.`,
+            icon: "/static/assets/gotinha/emotions/alegria.webp"
+          });
+        }, delay));
+      });
+    }
+
+    async function toggleHydrationNotifications() {
+      if (!("Notification" in window)) {
+        renderNotificationStatus();
+        return;
+      }
+      if (notificationsEnabled()) {
+        localStorage.setItem(notificationKey, "off");
+        clearHydrationNotifications();
+        renderNotificationStatus();
+        return;
+      }
+      const permission = Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission();
+      if (permission === "granted") {
+        localStorage.setItem(notificationKey, "on");
+        scheduleHydrationNotifications();
+      } else {
+        localStorage.setItem(notificationKey, "off");
+      }
+      renderNotificationStatus();
+    }
+
+    function setLocationStatus(text) {
+      const status = document.querySelector("[data-location-status]");
+      if (status) status.textContent = text;
+    }
+
+    function hasCoordinateText(value) {
+      return /-?\d{1,2}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}/.test(value || "");
+    }
+
+    function publicLocationLabel(value) {
+      const label = String(value || "").trim();
+      if (!label || hasCoordinateText(label) || label.startsWith("Localização atual -")) {
+        return "Endereço a confirmar";
+      }
+      return label;
+    }
+
+    function formattedLocationLabel() {
+      const baseLabel = publicLocationLabel(state.locationBaseLabel || state.locationLabel);
+      const number = String(state.number || "").trim();
+      const complement = String(state.complement || "").trim();
+      if (state.street) {
+        const streetLine = `${state.street}${number ? `, ${number}` : ""}`;
+        return [streetLine, complement, state.neighborhood, state.city].filter(Boolean).join(" - ");
+      }
+      if (number || complement) {
+        return [baseLabel, number ? `nº ${number}` : "", complement].filter(Boolean).join(" - ");
+      }
+      return baseLabel;
+    }
+
+    function mapUrl(lat, lng) {
+      const latitude = Number(lat);
+      const longitude = Number(lng);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return "";
+      const delta = 0.003;
+      const bbox = [
+        longitude - delta,
+        latitude - delta,
+        longitude + delta,
+        latitude + delta
+      ].join(",");
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${latitude},${longitude}`)}`;
+    }
+
+    function updateLocationMap() {
+      const map = document.querySelector("[data-location-map]");
+      const frame = document.querySelector("[data-location-map-frame]");
+      const url = mapUrl(state.lat, state.lng);
+      if (!map || !frame) return;
+      map.classList.toggle("has-map", Boolean(url));
+      if (url && frame.src !== url) {
+        frame.src = url;
+      }
+    }
+
+    function updateLocationDisplay() {
+      state.locationBaseLabel = publicLocationLabel(state.locationBaseLabel || state.locationLabel);
+      state.locationLabel = formattedLocationLabel();
+      document.querySelectorAll("[data-location-label]").forEach((item) => {
+        item.textContent = state.locationLabel;
+      });
+      const neighborhood = document.querySelector("input[name='neighborhood']");
+      const street = document.querySelector("input[name='street']");
+      const number = document.querySelector("input[name='number']");
+      const complement = document.querySelector("input[name='complement']");
+      const notes = document.querySelector("input[name='notes']");
+      if (neighborhood) neighborhood.value = state.neighborhood || "";
+      if (street) street.value = state.street || "";
+      if (number) number.value = state.number || "";
+      if (complement) complement.value = state.complement || "";
+      if (notes) notes.value = state.notes || "Pedido iniciado pelo app Central Águas";
+      updateLocationMap();
+    }
+
+    function applyCepLocation(data) {
+      const street = data.logradouro || "";
+      const neighborhood = data.bairro || "";
+      const city = data.localidade || "Votuporanga";
+      const uf = data.uf || "SP";
+      state.street = street;
+      state.neighborhood = neighborhood;
+      state.city = `${city}/${uf}`;
+      state.locationBaseLabel = [street || "Endereço pelo CEP", neighborhood, state.city].filter(Boolean).join(" - ");
+      state.notes = "Pedido iniciado pelo app Central Águas";
+      state.lat = "";
+      state.lng = "";
+      updateLocationDisplay();
+      setLocationStatus("Localização encontrada pelo CEP.");
+    }
+
+    function applyCurrentAddress(data, lat, lng) {
+      state.street = data.street || "";
+      state.neighborhood = data.neighborhood || "";
+      const resolvedLabel = data.label || [state.street, state.neighborhood, data.city].filter(Boolean).join(" - ");
+      state.city = data.city || "Votuporanga";
+      state.locationBaseLabel = publicLocationLabel(resolvedLabel);
+      state.lat = lat;
+      state.lng = lng;
+      state.notes = `Pedido iniciado pelo app Central Águas. Localização aproximada capturada pelo aparelho: ${lat}, ${lng}`;
+      updateLocationDisplay();
+      setLocationStatus("Endereço encontrado pela localização. Confira se está correto.");
+    }
+
+    async function searchCepLocation() {
+      const input = document.querySelector("[data-location-cep]");
+      const cep = (input?.value || "").replace(/\D/g, "");
+      if (cep.length !== 8) {
+        setLocationStatus("Digite um CEP com 8 números.");
+        return;
+      }
+      setLocationStatus("Buscando endereço pelo CEP...");
+      try {
+        const response = await fetch(`/api/cep/${cep}`);
+        const data = await response.json();
+        if (!response.ok || data.erro) {
+          setLocationStatus("Não encontrei esse CEP. Confira os números e tente novamente.");
+          return;
+        }
+        applyCepLocation(data);
+      } catch {
+        setLocationStatus("Não foi possível consultar o CEP agora.");
+      }
+    }
+
+    function searchCurrentLocation() {
+      if (!navigator.geolocation) {
+        setLocationStatus("Este navegador não permite buscar a localização.");
+        return;
+      }
+      state.locationBaseLabel = "Buscando endereço...";
+      updateLocationDisplay();
+      setLocationStatus("Buscando localização atual...");
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude.toFixed(5);
+          const lng = position.coords.longitude.toFixed(5);
+          setLocationStatus("Convertendo localização em endereço...");
+          try {
+            const response = await fetch(`/api/localizacao/reversa?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+            const data = await response.json();
+            if (!response.ok || data.erro || !data.label) {
+              state.locationBaseLabel = "Endereço a confirmar";
+              updateLocationDisplay();
+              setLocationStatus("Localização capturada, mas não consegui identificar o endereço. Busque pelo CEP ou complete manualmente.");
+              return;
+            }
+            applyCurrentAddress(data, lat, lng);
+          } catch {
+            state.locationBaseLabel = "Endereço a confirmar";
+            updateLocationDisplay();
+            setLocationStatus("Não consegui transformar a localização em endereço. Busque pelo CEP ou complete manualmente.");
+          }
+        },
+        () => {
+          setLocationStatus("Não consegui acessar a localização. Permita no navegador ou busque pelo CEP.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
+    }
+
+    function hydrationPlan(profile) {
+      const weight = Number(profile.weight || 0);
+      const hasWeight = weight >= 25 && weight <= 180;
+      const iomTotalWaterMl = profile.sex === "male" ? 3700 : profile.sex === "female" ? 2700 : 3200;
+      const drinkTargetMl = iomTotalWaterMl * 0.8;
+      const weightTargetMl = hasWeight ? weight * 32 : drinkTargetMl;
+      const routineBonusMl = profile.routine === "corrida" ? 500 : profile.routine === "normal" ? 250 : 0;
+      const estimatedMl = Math.max(1250, Math.min(4000, ((drinkTargetMl + weightTargetMl) / 2) + routineBonusMl));
+      const count = Math.max(5, Math.min(16, Math.round(estimatedMl / hydrationCupMl)));
+      const goalMl = count * hydrationCupMl;
+      const times = hydrationReminderTimes(count, profile.routine);
+      const messages = {
+        calma: "Meta leve, baseada em água total ajustada para bebidas.",
+        normal: "Meta equilibrada, com ajuste para a rotina do dia.",
+        corrida: "Meta reforçada para dias mais quentes ou corridos."
+      };
+      const liters = (goalMl / 1000).toLocaleString("pt-BR", { minimumFractionDigits: goalMl % 1000 === 0 ? 0 : 2, maximumFractionDigits: 2 });
+      const goalLabel = `${liters} L`;
+      const goalCopy = hasWeight
+        ? "Peso ajusta a meta do dia."
+        : "Informe o peso para personalizar melhor.";
+      return { count, cupMl: hydrationCupMl, goalMl, goalLabel, goalCopy, times, message: messages[profile.routine] || messages.normal };
+    }
+
+    function hydrationReminderTimes(count, routine) {
+      const startHour = routine === "corrida" ? 7 : routine === "calma" ? 8 : 7.5;
+      const endHour = routine === "calma" ? 20 : 21;
+      const totalMinutes = Math.max(1, Math.round((endHour - startHour) * 60));
+      const interval = count > 1 ? totalMinutes / (count - 1) : totalMinutes;
+      return Array.from({ length: count }, (_, index) => {
+        const minutesFromStart = Math.round(interval * index);
+        const total = Math.round(startHour * 60) + minutesFromStart;
+        const hour = String(Math.floor(total / 60)).padStart(2, "0");
+        const minute = String(total % 60).padStart(2, "0");
+        return `${hour}:${minute}`;
+      });
+    }
+
+    function renderHydration() {
+      const routineSelect = document.querySelector("[data-hydration-routine]");
+      const weightInput = document.querySelector("[data-hydration-weight]");
+      const sexSelect = document.querySelector("[data-hydration-sex]");
+      const times = document.querySelector("[data-reminder-times]");
+      const message = document.querySelector("[data-hydration-message]");
+      const count = document.querySelector("[data-hydration-count]");
+      const bar = document.querySelector("[data-hydration-bar]");
+      const goal = document.querySelector("[data-hydration-goal]");
+      const goalCopy = document.querySelector("[data-hydration-goal-copy]");
+      const cupPlan = document.querySelector("[data-hydration-cup-plan]");
+      const cupCopy = document.querySelector("[data-hydration-cup-copy]");
+      if (!routineSelect || !weightInput || !sexSelect || !times || !message || !count || !bar || !goal || !goalCopy || !cupPlan || !cupCopy) return;
+
+      const profile = loadHydrationProfile();
+      routineSelect.value = profile.routine;
+      weightInput.value = profile.weight || "";
+      sexSelect.value = profile.sex || "neutral";
+      const plan = hydrationPlan(profile);
+      const done = Math.min(Number(profile.done || 0), plan.count);
+
+      times.innerHTML = plan.times.map((time) => `<span class="reminder-chip"><i class="bi bi-bell"></i>${time} · ${plan.cupMl} ml</span>`).join("");
+      message.textContent = plan.message;
+      goal.textContent = plan.goalLabel;
+      goalCopy.textContent = plan.goalCopy;
+      cupPlan.textContent = `${plan.goalLabel} = ${plan.count} copos de ${plan.cupMl} ml`;
+      cupCopy.textContent = "Cada horário acima vira um lembrete depois que a pessoa aprovar a notificação.";
+      count.textContent = `${done} de ${plan.count} copos`;
+      bar.style.width = `${Math.round((done / plan.count) * 100)}%`;
+      renderNotificationStatus(plan);
+      scheduleHydrationNotifications();
+    }
+
+    function showScreen(name) {
+      const onboarding = document.querySelector(".onboarding-screen");
+      if (onboarding) {
+        onboarding.style.display = name === "login" ? "grid" : "none";
+      }
+      document.body.classList.toggle("login-mode", name === "login");
+      screens.forEach((screen) => {
+        screen.classList.toggle("is-active", screen.dataset.screen === name);
+      });
+      navItems.forEach((item) => {
+        item.classList.toggle("is-active", item.dataset.go === name || (name === "address" && item.dataset.go === "house"));
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deliveryPeriodsForSelectedDay() {
+      const now = new Date();
+      const isToday = state.deliveryDate === localDateIso(now);
+      const periods = [{ label: "Sem hora definida", detail: "A equipe combina o melhor horário", startHour: "" }];
+      for (let hour = 9; hour <= 17; hour += 1) {
+        if (isToday && now.getHours() >= hour) continue;
+        periods.push({
+          label: deliveryPeriodLabel(hour),
+          detail: `Aviso às ${deliveryReminderTimeLabel(hour)}`,
+          startHour: String(hour),
+        });
+      }
+      return periods;
+    }
+
+    function renderDeliveryPeriods() {
+      const wrapper = document.querySelector("[data-delivery-periods]");
+      if (!wrapper) return;
+      const periods = deliveryPeriodsForSelectedDay();
+      const hasSelected = periods.some((period) => String(period.startHour) === String(state.deliveryStartHour));
+      if (!hasSelected) {
+        const firstTimedPeriod = periods.find((period) => period.startHour !== "");
+        state.deliveryStartHour = firstTimedPeriod ? firstTimedPeriod.startHour : "";
+        state.deliveryPeriod = firstTimedPeriod ? firstTimedPeriod.label : "Sem hora definida";
+      }
+      wrapper.innerHTML = periods.map((period) => `
+        <button class="period-row ${String(period.startHour) === String(state.deliveryStartHour) ? "is-selected" : ""}" type="button" data-delivery-period="${period.label}" data-delivery-start="${period.startHour}">
+          <span class="radio-dot"></span>
+          <span class="row-copy"><strong>${period.label}</strong><span>${period.detail}</span></span>
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      `).join("");
+      renderDeliveryNotificationStatus();
+      scheduleDeliveryNotification();
+    }
+
+    function updateCheckout() {
+      const notesField = document.querySelector(".notes");
+      const orderNotes = document.getElementById("orderNotes");
+      const scheduleText = `${state.deliveryDay} - ${state.deliveryPeriod}`;
+      const customerNotes = String(notesField?.value || "").trim();
+      document.getElementById("checkoutImage").src = state.image;
+      document.getElementById("checkoutName").textContent = state.product;
+      document.getElementById("checkoutDesc").textContent = state.description;
+      document.getElementById("checkoutUnit").textContent = formatMoney(state.price);
+      document.getElementById("checkoutQty").textContent = `${state.qty} un.`;
+      document.getElementById("checkoutTotal").textContent = formatMoney(state.price * state.qty);
+      document.getElementById("checkoutDelivery").textContent = scheduleText;
+      document.getElementById("itemsJson").value = JSON.stringify([
+        { slug: state.product, qty: state.qty, unit_price: state.price }
+      ]);
+      if (orderNotes) {
+        orderNotes.value = [
+          "Pedido iniciado pelo app Central Águas",
+          `Agendamento: ${scheduleText}`,
+          customerNotes ? `Observações: ${customerNotes}` : "",
+        ].filter(Boolean).join(" | ");
+      }
+      updateLocationDisplay();
+    }
+
+    document.addEventListener("click", (event) => {
+      const addressStrip = event.target.closest(".address-strip");
+      if (addressStrip && addressStrip.closest("[data-screen='home']")) {
+        event.preventDefault();
+        event.stopPropagation();
+        showScreen("address");
+        searchCurrentLocation();
+        return;
+      }
+
+      const go = event.target.closest("[data-go]");
+      if (go) {
+        const next = go.dataset.go;
+        if (next) {
+          event.preventDefault();
+          if (next === "delivery") {
+            renderDeliveryPeriods();
+          }
+          updateCheckout();
+          showScreen(next);
+        }
+      }
+
+      const stepButton = event.target.closest("[data-step]");
+      if (stepButton) {
+        const control = stepButton.closest("[data-quantity]");
+        const output = control.querySelector("output");
+        const nextQty = Math.max(1, Number(output.value || output.textContent || 1) + Number(stepButton.dataset.step));
+        output.value = nextQty;
+        output.textContent = nextQty;
+        state.qty = nextQty;
+        updateCheckout();
+      }
+
+      const add = event.target.closest("[data-product]");
+      if (add) {
+        state.product = add.dataset.product;
+        state.price = Number(add.dataset.price || state.price);
+        state.image = add.dataset.image || state.image;
+        const card = add.closest(".product-row");
+        state.description = card?.querySelector(".product-info span")?.textContent || state.description;
+        const qty = card?.querySelector("output")?.textContent;
+        state.qty = Number(qty || 1);
+        updateCheckout();
+      }
+
+      const selectable = event.target.closest(".choice-card, .period-row");
+      if (selectable && selectable.parentElement) {
+        [...selectable.parentElement.children].forEach((item) => item.classList?.remove("is-selected"));
+        selectable.classList.add("is-selected");
+        if (selectable.dataset.deliveryDay) {
+          state.deliveryDay = selectable.dataset.deliveryDay;
+          state.deliveryDate = selectable.dataset.deliveryDate || state.deliveryDate;
+          renderDeliveryPeriods();
+        }
+        if (selectable.dataset.deliveryPeriod !== undefined) {
+          state.deliveryPeriod = selectable.dataset.deliveryPeriod;
+          state.deliveryStartHour = selectable.dataset.deliveryStart || "";
+          renderDeliveryNotificationStatus();
+          scheduleDeliveryNotification();
+        }
+        updateCheckout();
+      }
+
+      const waterDone = event.target.closest("[data-water-done]");
+      if (waterDone) {
+        const profile = loadHydrationProfile();
+        const plan = hydrationPlan(profile);
+        profile.done = Math.min(plan.count, Number(profile.done || 0) + 1);
+        saveHydrationProfile(profile);
+        renderHydration();
+      }
+
+      const currentLocation = event.target.closest("[data-location-current]");
+      if (currentLocation) {
+        searchCurrentLocation();
+      }
+
+      const cepSearch = event.target.closest("[data-location-cep-search]");
+      if (cepSearch) {
+        searchCepLocation();
+      }
+
+      const notificationToggle = event.target.closest("[data-notification-toggle]");
+      if (notificationToggle) {
+        toggleHydrationNotifications();
+      }
+
+      const deliveryNotificationToggle = event.target.closest("[data-delivery-notification-toggle]");
+      if (deliveryNotificationToggle) {
+        toggleDeliveryNotifications();
+      }
+    });
+
+    document.querySelector(".notes")?.addEventListener("input", updateCheckout);
+
+    document.querySelector("[data-location-cep]")?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        searchCepLocation();
+      }
+    });
+
+    document.querySelector("[data-location-number]")?.addEventListener("input", (event) => {
+      state.number = event.target.value.trim();
+      updateLocationDisplay();
+    });
+
+    document.querySelector("[data-location-complement]")?.addEventListener("input", (event) => {
+      state.complement = event.target.value.trim();
+      updateLocationDisplay();
+    });
+
+    document.querySelector("[data-hydration-routine]")?.addEventListener("change", (event) => {
+      const profile = loadHydrationProfile();
+      profile.routine = event.target.value;
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.querySelector("[data-hydration-weight]")?.addEventListener("change", (event) => {
+      const profile = loadHydrationProfile();
+      const value = Number(event.target.value || 0);
+      profile.weight = value ? Math.max(25, Math.min(180, value)) : "";
+      profile.done = 0;
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.querySelector("[data-hydration-sex]")?.addEventListener("change", (event) => {
+      const profile = loadHydrationProfile();
+      profile.sex = event.target.value;
+      profile.done = 0;
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.getElementById("orderForm")?.addEventListener("submit", () => {
+      updateCheckout();
+    });
+
+    renderDeliveryPeriods();
+    updateCheckout();
+    updateLocationDisplay();
+    renderHydration();
+    renderNotificationStatus();
+    {% if not customer_logged_in %}
+      showScreen("login");
+    {% endif %}
+  </script>
+</body>
+</html>

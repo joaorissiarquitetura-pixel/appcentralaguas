@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline" href="/login">Entrar</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .signup-shell {
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: calc(100vh - 48px);
+    display: grid;
+    align-items: center;
+  }
+  .signup-card {
+    overflow: hidden;
+    border: 1px solid rgba(11, 76, 203, 0.12);
+    border-radius: 28px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(15, 45, 92, 0.12);
+  }
+  .signup-top {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 18px;
+    background: #0b4ccb;
+    color: #fff;
+  }
+  .signup-top img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+  .signup-top span {
+    display: block;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+  .signup-top strong {
+    display: block;
+    margin-top: 2px;
+    font: 800 1.06rem/1.1 "Montserrat", Arial, sans-serif;
+  }
+  .signup-body {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(179, 229, 255, 0.2), #fff 34%);
+  }
+  .signup-title {
+    display: grid;
+    gap: 8px;
+  }
+  .signup-title h1 {
+    margin: 0;
+    color: #101828;
+    font: 800 1.5rem/1.05 "Montserrat", Arial, sans-serif;
+  }
+  .signup-title p {
+    margin: 0;
+    color: #53627a;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  .signup-form {
+    display: grid;
+    gap: 13px;
+  }
+  .signup-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .signup-field {
+    display: grid;
+    gap: 6px;
+  }
+  .signup-field.full {
+    grid-column: 1 / -1;
+  }
+  .signup-field label {
+    color: #344054;
+    font-size: 0.76rem;
+    font-weight: 800;
+  }
+  .signup-field input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 12px;
+    border: 1px solid var(--ca-line);
+    border-radius: 14px;
+    background: var(--ca-surface-soft);
+    color: #101828;
+    font-weight: 700;
+  }
+  .signup-field input[readonly] {
+    color: #53627a;
+  }
+  .cep-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 46px;
+    gap: 8px;
+  }
+  .cep-row button {
+    width: 46px;
+    min-height: 46px;
+    border: 1px solid var(--ca-line-strong);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--ca-primary);
+  }
+  .signup-helper {
+    color: #53627a;
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+  .terms-row {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 9px;
+    align-items: start;
+    color: #53627a;
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+  @media (max-width: 520px) {
+    .signup-shell {
+      max-width: none;
+    }
+    .signup-card {
+      border-radius: 22px;
+    }
+    .signup-body {
+      padding: 18px;
+    }
+    .signup-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<section class="signup-shell">
+  <article class="signup-card">
+    <div class="signup-top">
+      <img src="/static/img/mascote_clube.png" alt="">
+      <div>
+        <span>Central Águas</span>
+        <strong>Cadastro rápido</strong>
+      </div>
+    </div>
+
+    <div class="signup-body">
+      <div class="signup-title">
+        <span class="section-label">Votuporanga-SP</span>
+        <h1>Crie seu acesso.</h1>
+        <p>Use seu WhatsApp como login para acompanhar fidelidade, pedidos e atendimento.</p>
+      </div>
+
+      {% if error %}
+        <div class="alert alert-danger mb-0">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ error }}
+        </div>
+      {% endif %}
+
+      <form method="post" action="/cadastrar" class="signup-form">
+        <input type="hidden" name="ref_code" value="{{ ref }}">
+
+        <div class="signup-grid">
+          <div class="signup-field full">
+            <label for="name">Nome completo</label>
+            <input id="name" type="text" name="name" required value="{{ form_data.name if form_data else '' }}">
+          </div>
+
+          <div class="signup-field full">
+            <label for="phone">WhatsApp</label>
+            <input id="phone" type="text" name="phone" placeholder="(17) 99999-9999" required value="{{ form_data.phone if form_data else '' }}">
+          </div>
+
+          <div class="signup-field full">
+            <label for="birthDate">Data de nascimento</label>
+            <input id="birthDate" type="date" name="birth_date" value="{{ form_data.birth_date if form_data else '' }}">
+          </div>
+
+          <div class="signup-field">
+            <label for="cep">CEP</label>
+            <div class="cep-row">
+              <input id="cep" type="text" name="zip_code" maxlength="9" placeholder="15500-000" required value="{{ form_data.zip_code if form_data else '' }}">
+              <button type="button" onclick="buscarCep()" aria-label="Buscar CEP"><i class="bi bi-search"></i></button>
+            </div>
+            <span id="cep-loading" class="signup-helper d-none">Buscando CEP...</span>
+            <span id="cep-error" class="signup-helper text-danger d-none">Atendemos apenas Votuporanga.</span>
+          </div>
+
+          <div class="signup-field">
+            <label for="numero">Número</label>
+            <input id="numero" type="text" name="number" required value="{{ form_data.number if form_data else '' }}">
+          </div>
+
+          <div class="signup-field full">
+            <label for="rua">Endereço</label>
+            <input id="rua" type="text" name="street" readonly required placeholder="Busque pelo CEP" value="{{ form_data.street if form_data else '' }}">
+          </div>
+
+          <div class="signup-field full">
+            <label for="bairro">Bairro</label>
+            <input id="bairro" type="text" name="neighborhood" readonly required value="{{ form_data.neighborhood if form_data else '' }}">
+          </div>
+
+          <div class="signup-field">
+            <label for="password">Senha de 4 dígitos</label>
+            <input id="password" type="password" name="password" maxlength="4" inputmode="numeric" placeholder="****" required>
+          </div>
+
+          <div class="signup-field">
+            <label for="confirmPassword">Confirmar senha</label>
+            <input id="confirmPassword" type="password" name="confirm_password" maxlength="4" inputmode="numeric" placeholder="****" required>
+          </div>
+        </div>
+
+        <label class="terms-row" for="terms">
+          <input id="terms" type="checkbox" required>
+          <span>Aceito a <a href="/privacidade" target="_blank">Política de Privacidade</a>.</span>
+        </label>
+
+        <button type="submit" class="ca-pill ca-primary w-100">Finalizar meu cartão</button>
+        <a class="ca-pill ca-outline w-100" href="/login">Já tenho conta</a>
+      </form>
+    </div>
+  </article>
+</section>
+
+<script>
+  const cepInput = document.getElementById("cep");
+  const ruaInput = document.getElementById("rua");
+  const bairroInput = document.getElementById("bairro");
+  const numeroInput = document.getElementById("numero");
+  const cepLoading = document.getElementById("cep-loading");
+
+  cepInput.addEventListener("input", (event) => {
+    let value = event.target.value.replace(/\D/g, "");
+    if (value.length > 5) value = value.replace(/^(\d{5})(\d)/, "$1-$2");
+    event.target.value = value;
+  });
+
+  function liberarCamposManuais() {
+    ruaInput.removeAttribute("readonly");
+    bairroInput.removeAttribute("readonly");
+    ruaInput.placeholder = "Digite o nome da rua";
+    bairroInput.placeholder = "Digite o bairro";
+    ruaInput.focus();
+  }
+
+  async function buscarCep() {
+    const cep = cepInput.value.replace(/\D/g, "");
+    if (cep.length !== 8) {
+      alert("CEP incompleto.");
+      return;
+    }
+    if (!cep.startsWith("155")) {
+      alert("Atendemos apenas Votuporanga-SP.");
+      cepInput.value = "";
+      return;
+    }
+
+    cepLoading.classList.remove("d-none");
+    try {
+      const response = await fetch(`/api/cep/${cep}`);
+      const data = await response.json();
+      if (!response.ok || data.erro || data.error) throw new Error("CEP não encontrado");
+      if (data.localidade && data.localidade !== "Votuporanga") {
+        alert("Atendemos apenas Votuporanga.");
+        cepInput.value = "";
+        return;
+      }
+      ruaInput.value = data.logradouro || "";
+      bairroInput.value = data.bairro || "";
+      if (!data.logradouro) {
+        liberarCamposManuais();
+      } else {
+        numeroInput.focus();
+      }
+    } catch (error) {
+      alert("Não foi possível buscar automaticamente. Preencha seu endereço.");
+      liberarCamposManuais();
+    } finally {
+      cepLoading.classList.add("d-none");
+    }
+  }
+
+  cepInput.addEventListener("blur", function () {
+    if (this.value.replace(/\D/g, "").length === 8) buscarCep();
+  });
+</script>
+{% endblock %}

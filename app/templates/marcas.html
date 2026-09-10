@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .brands-page {
+    display: grid;
+    gap: 28px;
+    padding-bottom: 60px;
+  }
+
+  .brands-hero,
+  .ph-education,
+  .brands-grid,
+  .brands-cta {
+    border-radius: 28px;
+  }
+
+  /* ---- NOVO TOPO EM 2 COLUNAS ---- */
+  .brands-top-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: stretch;
+  }
+
+  .brands-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 48px 40px;
+    background:
+      linear-gradient(105deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.94) 45%, rgba(232, 242, 255, 0.88) 100%),
+      radial-gradient(circle at top right, rgba(47, 111, 214, 0.12), transparent 34%),
+      #f7fbff;
+    border: 1px solid rgba(22, 52, 91, 0.08);
+    box-shadow: 0 20px 50px rgba(17, 35, 56, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .brands-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto -80px -120px auto;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(47, 111, 214, 0.12) 0%, rgba(47, 111, 214, 0) 70%);
+    pointer-events: none;
+  }
+
+  .brands-hero .section-label {
+    margin-bottom: 18px;
+    width: fit-content;
+  }
+
+  .brands-hero h1 {
+    margin: 0 0 16px 0;
+    font-size: clamp(2rem, 3.5vw, 2.8rem);
+    line-height: 1.05;
+    color: var(--ca-navy);
+  }
+
+  .brands-hero p {
+    margin: 0;
+    color: var(--ca-text);
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+
+  /* Seção de Educação sobre pH ajustada para a coluna */
+  .ph-education {
+    background: #fff;
+    padding: 48px 40px;
+    box-shadow: 0 15px 35px rgba(17, 35, 56, 0.04);
+    border: 1px solid rgba(22, 52, 91, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+  }
+  .ph-education-icon {
+    font-size: 2.2rem;
+    color: var(--ca-primary);
+    background: #f4f9ff;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    flex-shrink: 0;
+  }
+  .ph-education-text h3 {
+    font-size: 1.6rem;
+    color: var(--ca-navy);
+    margin-bottom: 12px;
+    font-weight: 800;
+  }
+  .ph-education-text p {
+    color: var(--ca-text);
+    line-height: 1.6;
+    font-size: 0.95rem;
+    margin-bottom: 0;
+  }
+
+  /* ---- RESTANTE DA PÁGINA ---- */
+  .brands-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .brand-card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 34px;
+    background: #ffffff;
+    border-radius: 28px;
+    border: 1px solid rgba(22, 52, 91, 0.08);
+    box-shadow: 0 16px 40px rgba(17, 35, 56, 0.04);
+  }
+
+  .brand-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .brand-logo-wrapper {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+  }
+
+  .brand-logo-wrapper img {
+    max-height: 74px;
+    max-width: 220px;
+    object-fit: contain;
+  }
+
+  .brand-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #eef4fb;
+    color: var(--ca-navy);
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .brand-card h3 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: var(--ca-navy);
+  }
+
+  .brand-card p {
+    margin: 0;
+    color: var(--ca-text);
+  }
+
+  .brand-highlights {
+    display: grid;
+    gap: 10px;
+    padding-top: 4px;
+  }
+
+  .brand-highlights li {
+    list-style: none;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--ca-text);
+  }
+
+  .brand-highlights li i {
+    color: #2f6fd6;
+    margin-top: 3px;
+  }
+
+  .brand-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+
+  .brand-note {
+    color: var(--ca-text);
+    font-size: 0.92rem;
+  }
+
+  .brands-cta {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 22px;
+    padding: 34px;
+    background: linear-gradient(135deg, #16345b 0%, #214878 100%);
+    color: white;
+    box-shadow: 0 24px 50px rgba(17, 35, 56, 0.12);
+  }
+
+  .brands-cta h2 {
+    margin: 0 0 12px 0;
+    font-size: clamp(1.8rem, 3vw, 2.7rem);
+    line-height: 1.02;
+  }
+
+  .brands-cta p,
+  .brands-cta li {
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .brands-cta ul {
+    display: grid;
+    gap: 10px;
+    padding: 0;
+    margin: 0;
+  }
+
+  .brands-cta li {
+    list-style: none;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .brands-cta li i {
+    color: #8fd0ff;
+    margin-top: 3px;
+  }
+
+  .brands-cta-actions {
+    display: grid;
+    gap: 12px;
+    align-content: center;
+    justify-items: start;
+  }
+
+  .brands-cta .ca-outline {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+  }
+
+  .brands-cta .ca-outline:hover,
+  .brands-cta .ca-outline:focus {
+    background: rgba(255, 255, 255, 0.14);
+    color: white;
+  }
+
+  @media (max-width: 991.98px) {
+    .brands-top-split,
+    .brands-grid,
+    .brands-cta {
+      grid-template-columns: 1fr;
+    }
+    .brand-card-header,
+    .brand-footer {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .brand-badges {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .brands-hero,
+    .ph-education,
+    .brand-card,
+    .brands-cta {
+      padding: 26px 22px;
+      border-radius: 24px;
+    }
+  }
+</style>
+
+<div class="brands-page">
+  
+  <div class="brands-top-split">
+    <section class="brands-hero">
+      <span class="section-label">Marcas selecionadas</span>
+      <h1 class="display-serif">Águas escolhidas com cuidado para cada rotina.</h1>
+      <p>
+        Trabalhamos com marcas reconhecidas pela procedência, pelo sabor e pela confiança no dia a dia.
+        Aqui você encontra opções leves, alcalinas e versáteis para casa, escritório e atendimento.
+      </p>
+    </section>
+
+    <section class="ph-education">
+      <div class="ph-education-icon">
+        <i class="bi bi-droplet-half"></i>
+      </div>
+      <div class="ph-education-text">
+        <h3>A relação entre o pH, o Sódio e a Leveza</h3>
+        <p>
+          Você sabia que nem toda água entrega a mesma experiência no estômago? Águas naturalmente mais alcalinas (com pH mais alto) costumam ser ricas em minerais e, frequentemente, possuem um teor de sódio um pouco maior. Por isso, algumas pessoas sentem que elas "pesam" no estômago se consumidas em grande volume.
+          <br><br>
+          Por outro lado, águas com pH um pouco mais baixo (mais ácidas) geralmente possuem menos sódio, entregando aquela característica "levíssima" e de fácil digestão, ideal para acompanhar as refeições. A boa notícia é que na Central Águas você encontra opções para todos os perfis, inclusive águas de altíssima tecnologia que unem um pH alcalino com zero sódio!
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <section class="brands-grid">
+    
+    <article class="brand-card">
+      <div class="brand-card-header">
+        <div class="brand-logo-wrapper">
+          <img src="/static/img/logo_acquatuba.png" alt="Logo da Água Mineral Acquatuba">
+        </div>
+        <div class="brand-badges">
+          <span class="brand-badge">pH 9,47</span>
+          <span class="brand-badge">Zero Sódio</span>
+        </div>
+      </div>
+      <h3 class="display-serif">Água Mineral Acquatuba</h3>
+      <p>
+        A Acquatuba é uma inovação no mercado! Através de um rigoroso processo de osmose reversa, ela consegue entregar o melhor dos dois mundos: um pH super alcalino com absolutamente zero sódio.
+      </p>
+      <ul class="brand-highlights">
+        <li><i class="bi bi-check-circle-fill"></i><span>Equilíbrio alcalino sem causar a sensação de "água pesada".</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Filtrada por osmose reversa, garantindo pureza máxima.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Ideal para dietas com restrição de sódio e hidratação profunda.</span></li>
+      </ul>
+      <div class="brand-footer">
+        <span class="brand-note">Tecnologia avançada para uma água leve e alcalina.</span>
+        <a class="ca-pill ca-outline" href="/loja?marca=acquatuba">Ver na loja</a>
+      </div>
+    </article>
+
+    <article class="brand-card">
+      <div class="brand-card-header">
+        <div class="brand-logo-wrapper">
+          <img src="/static/img/logo_hidroleve.png" alt="Logo da Água Mineral Hidroleve">
+        </div>
+        <div class="brand-badges">
+          <span class="brand-badge">Baixo Sódio</span>
+          <span class="brand-badge">Levíssima</span>
+        </div>
+      </div>
+      <h3 class="display-serif">Água Mineral Hidroleve</h3>
+      <p>
+        A Hidroleve possui um pH naturalmente mais ácido, o que é o segredo para garantir uma água com baixíssimo teor de sódio. O resultado é um paladar extremamente leve e de fácil digestão.
+      </p>
+      <ul class="brand-highlights">
+        <li><i class="bi bi-check-circle-fill"></i><span>Baixo sódio que evita a retenção de líquidos e não pesa no estômago.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Perfeita para acompanhar refeições sem alterar o sabor dos alimentos.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Ótima escolha para o consumo contínuo de toda a família.</span></li>
+      </ul>
+      <div class="brand-footer">
+        <span class="brand-note">A clássica escolha para quem busca muita leveza.</span>
+        <a class="ca-pill ca-outline" href="/loja?marca=hidroleve">Ver na loja</a>
+      </div>
+    </article>
+
+    <article class="brand-card">
+      <div class="brand-card-header">
+        <div class="brand-logo-wrapper">
+          <img src="/static/img/logo_aragua.png" alt="Logo da Água Mineral Araguá">
+        </div>
+        <div class="brand-badges">
+          <span class="brand-badge">Levíssima</span>
+          <span class="brand-badge">Versátil</span>
+        </div>
+      </div>
+      <h3 class="display-serif">Água Mineral Araguá</h3>
+      <p>
+        Reconhecida pela sua incrível semelhança com a leveza da Hidroleve, a Araguá se destaca por seu baixo teor de sódio, que garante um paladar fresco e leve, descendo fácil a qualquer hora do dia.
+      </p>
+      <ul class="brand-highlights">
+        <li><i class="bi bi-check-circle-fill"></i><span>Linha Levíssima: baixo sódio para uma digestão super tranquila.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Uma das opções mais versáteis e confortáveis para beber em volume.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Excelente custo-benefício para rotinas intensas de hidratação.</span></li>
+      </ul>
+      <div class="brand-footer">
+        <span class="brand-note">Frescor e leveza com uma pureza indiscutível.</span>
+        <a class="ca-pill ca-outline" href="/loja?marca=aragua">Ver na loja</a>
+      </div>
+    </article>
+
+    <article class="brand-card">
+      <div class="brand-card-header">
+        <div class="brand-logo-wrapper">
+          <img src="/static/img/logo_ibira.png" alt="Logo da Água Mineral Ibirá">
+        </div>
+        <div class="brand-badges">
+          <span class="brand-badge">pH 10,24</span>
+          <span class="brand-badge">Alcalina e Funcional</span>
+        </div>
+      </div>
+      <h3 class="display-serif">Água Mineral Ibirá</h3>
+      <p>
+        Reconhecida pelo seu altíssimo pH alcalino e pela tradição em águas funcionais. A Ibirá possui minerais naturais da fonte (como o vanádio) e é indicada para quem busca benefícios medicinais.
+      </p>
+      <ul class="brand-highlights">
+        <li><i class="bi bi-check-circle-fill"></i><span>Perfil mineral marcante, voltado para propriedades curativas e digestivas.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Riquíssima em antioxidantes naturais que combatem radicais livres.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Presença forte em terapias de saúde e bem-estar.</span></li>
+      </ul>
+      <div class="brand-footer">
+        <span class="brand-note">Ideal para quem busca os benefícios profundos da alcalinidade.</span>
+        <a class="ca-pill ca-outline" href="/loja?marca=ibira">Ver na loja</a>
+      </div>
+    </article>
+
+    <article class="brand-card">
+      <div class="brand-card-header">
+        <div class="brand-logo-wrapper">
+          <img src="/static/img/logo_vanagua.png" alt="Logo da Água Mineral Vanágua">
+        </div>
+        <div class="brand-badges">
+          <span class="brand-badge">pH 7,52</span>
+          <span class="brand-badge">Equilíbrio Perfeito</span>
+        </div>
+      </div>
+      <h3 class="display-serif">Água Mineral Vanágua</h3>
+      <p>
+        A Vanágua possui uma característica muito especial: o seu pH é extremamente semelhante ao pH natural do corpo humano. Isso a torna uma água de aceitação perfeita e muito suave.
+      </p>
+      <ul class="brand-highlights">
+        <li><i class="bi bi-check-circle-fill"></i><span>Absorção rápida e natural pelo organismo.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Sabor discreto, ideal para consumo constante e preparo de alimentos.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Opção prática para compra recorrente em residências e escritórios.</span></li>
+      </ul>
+      <div class="brand-footer">
+        <span class="brand-note">Muito procurada por quem quer harmonia e praticidade.</span>
+        <a class="ca-pill ca-outline" href="/loja?marca=vanagua">Ver na loja</a>
+      </div>
+    </article>
+
+    <article class="brand-card" style="border: 2px solid #eef4fb; background: #fcfdfe;">
+      <div class="brand-card-header">
+        <div class="brand-logo-wrapper">
+          <img src="/static/img/logo_central.jpg" alt="Central Águas" style="border-radius: 12px;">
+        </div>
+        <div class="brand-badges">
+          <span class="brand-badge" style="background: #e1ebf6;">Curadoria</span>
+          <span class="brand-badge" style="background: #e1ebf6;">Atendimento</span>
+        </div>
+      </div>
+      <h3 class="display-serif">Escolha com orientação da Central</h3>
+      <p>
+        Se você ainda está decidindo qual marca é a ideal para a sua casa ou empresa, a nossa equipe organiza formatos, preços e características para ajudar na comparação.
+      </p>
+      <ul class="brand-highlights">
+        <li><i class="bi bi-check-circle-fill"></i><span>Comparação rápida entre retirada e entrega.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Loja pensada para pedir sem enrolação.</span></li>
+        <li><i class="bi bi-check-circle-fill"></i><span>Apoio via chat ou WhatsApp para orientar a melhor escolha.</span></li>
+      </ul>
+      <div class="brand-footer">
+        <span class="brand-note">Sua distribuidora parceira em cada escolha.</span>
+        <a class="ca-pill ca-primary" href="/loja">Abrir loja completa</a>
+      </div>
+    </article>
+
+  </section>
+
+  <section class="brands-cta">
+    <div>
+      <span class="tag gold" style="background: rgba(255,255,255,0.15); color: #fff;">Compra com clareza</span>
+      <h2 class="display-serif">Escolha a marca certa e siga para um pedido mais rápido.</h2>
+      <ul>
+        <li><i class="bi bi-check2-circle"></i><span>Veja disponibilidade, formato e proposta de cada marca.</span></li>
+        <li><i class="bi bi-check2-circle"></i><span>Compare retirada e entrega sem sair da mesma jornada.</span></li>
+        <li><i class="bi bi-check2-circle"></i><span>Finalize com mais segurança no fluxo da loja Central Águas.</span></li>
+      </ul>
+    </div>
+    <div class="brands-cta-actions">
+      <a class="ca-pill ca-primary" style="background: #fff; color: var(--ca-primary);" href="/loja">Ir para a loja</a>
+      <a class="ca-pill ca-outline" href="/">Voltar para a home</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

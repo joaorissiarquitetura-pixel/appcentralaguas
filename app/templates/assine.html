@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  /* Fundo escuro e misterioso para criar o suspense */
+  .teaser-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, #071222 0%, #0d2746 100%);
+    border-radius: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Efeito de luz de fundo (Glow) misterioso */
+  .teaser-page::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(47, 111, 214, 0.15) 0%, rgba(7, 18, 34, 0) 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: pulseGlow 4s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  }
+
+  .teaser-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 680px;
+    width: 100%;
+  }
+
+  .teaser-tag {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    color: #8fd0ff;
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(143, 208, 255, 0.2);
+    backdrop-filter: blur(4px);
+  }
+
+  .teaser-content h1 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    color: #ffffff;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .teaser-content p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.15rem;
+    line-height: 1.6;
+    margin-bottom: 40px;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Formulário minimalista e focado */
+  .teaser-form-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 32px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  }
+
+  .teaser-form-box h3 {
+    color: #ffffff;
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+  }
+
+  .teaser-input-group {
+    display: flex;
+    gap: 12px;
+  }
+
+  .teaser-input {
+    flex-grow: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .teaser-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .teaser-input:focus {
+    outline: none;
+    border-color: #2f6fd6;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .teaser-btn {
+    background: linear-gradient(135deg, #2f6fd6 0%, #17385e 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 0 32px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+  }
+
+  .teaser-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(47, 111, 214, 0.3);
+  }
+
+  /* Silhueta misteriosa */
+  .teaser-silhouette {
+    margin-top: 40px;
+    opacity: 0.4;
+    height: 180px;
+    filter: drop-shadow(0 0 20px rgba(47, 111, 214, 0.5));
+  }
+
+  @media (max-width: 768px) {
+    .teaser-page { padding: 40px 20px; }
+    .teaser-input-group { flex-direction: column; }
+    .teaser-btn { padding: 16px; width: 100%; }
+    .teaser-silhouette { height: 120px; }
+  }
+</style>
+
+<div class="teaser-page">
+  <div class="teaser-content">
+    
+    <span class="teaser-tag"><i class="bi bi-lock-fill" style="margin-right: 6px;"></i> Projeto Confidencial</span>
+    
+    <h1>Sua rotina de hidratação nunca mais será a mesma.</h1>
+    
+    <p>Estamos preparando uma revolução na forma como a água mineral chega até a sua casa. Esqueça a preocupação de ter que pedir água toda vez.</p>
+    
+    <div class="teaser-form-box">
+      <h3>Seja um dos primeiros a descobrir:</h3>
+      <form action="/assine/interesse" method="POST">
+        <div class="teaser-input-group">
+          <input type="text" name="name" class="teaser-input" placeholder="Seu nome" required>
+          <input type="text" name="phone" class="teaser-input" placeholder="Seu WhatsApp" required>
+          <button type="submit" class="teaser-btn">Quero acesso VIP</button>
+        </div>
+      </form>
+    </div>
+
+    <div>
+      <img src="/static/img/mascote_clube.png" alt="Misterio" class="teaser-silhouette" style="filter: brightness(0) invert(1) opacity(0.2);">
+    </div>
+
+  </div>
+</div>
+{% endblock %}

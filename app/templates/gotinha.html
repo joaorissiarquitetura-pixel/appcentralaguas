@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline" href="/loja">Loja</a>
+  <a class="ca-pill ca-primary" href="/meu-cartao">Fidelidade</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .gotinha-page {
+    display: grid;
+    gap: 24px;
+  }
+  .gotinha-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+    gap: 24px;
+    align-items: center;
+    padding: 24px;
+    background: linear-gradient(180deg, var(--ca-white) 0%, rgba(179, 229, 255, 0.34) 100%);
+  }
+  .gotinha-microcopy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .gotinha-microcopy span {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--ca-radius-pill);
+    display: inline-flex;
+    align-items: center;
+    background: var(--ca-white);
+    border: 1px solid var(--ca-line);
+    color: var(--ca-primary);
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+  .gotinha-copy {
+    display: grid;
+    gap: 12px;
+  }
+  .gotinha-copy h1 {
+    margin: 0;
+    color: var(--ca-primary);
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.08;
+  }
+  .gotinha-copy p {
+    margin: 0;
+    color: var(--ca-text);
+    max-width: 58ch;
+  }
+  .gotinha-stage {
+    min-height: 360px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    border-radius: var(--ca-radius-featured);
+    background: rgba(255, 255, 255, 0.76);
+    border: 1px solid var(--ca-line);
+    overflow: hidden;
+  }
+  .gotinha-stage::before {
+    content: "";
+    position: absolute;
+    width: 68%;
+    height: 68%;
+    border-radius: 50%;
+    background: rgba(0, 180, 240, 0.12);
+  }
+  .gotinha-float {
+    width: min(78%, 260px);
+    aspect-ratio: 1 / 1;
+    position: relative;
+    display: grid;
+    place-items: center;
+    animation: gotinhaFloat 4.8s ease-in-out infinite;
+  }
+  .gotinha-float img {
+    position: absolute;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 24px rgba(11, 76, 203, 0.16));
+    opacity: 1;
+    transition: opacity 320ms ease;
+  }
+  .gotinha-float img[data-gotinha-next-image] {
+    opacity: 0;
+  }
+  .gotinha-float img[data-gotinha-next-image].is-visible {
+    opacity: 1;
+  }
+  .gotinha-panel {
+    padding: 20px;
+    display: grid;
+    gap: 18px;
+  }
+  .gotinha-status-grid,
+  .gotinha-control-grid {
+    display: grid;
+    gap: 12px;
+  }
+  .gotinha-status-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .gotinha-status-card {
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-radius-card);
+    padding: 14px;
+    background: var(--ca-white);
+  }
+  .gotinha-status-card span {
+    display: block;
+    color: var(--ca-text);
+    font-size: 0.82rem;
+  }
+  .gotinha-status-card strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--ca-primary);
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 1rem;
+  }
+  .gotinha-control-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .gotinha-emotion-button {
+    min-height: 48px;
+    border-radius: var(--ca-radius-button);
+    border: 1px solid var(--ca-line-strong);
+    background: var(--ca-white);
+    color: var(--ca-primary);
+    font-family: "Montserrat", Arial, sans-serif;
+    font-weight: 600;
+  }
+  .gotinha-emotion-button:hover,
+  .gotinha-emotion-button:focus {
+    border-color: var(--ca-aqua);
+    box-shadow: 0 0 0 4px rgba(0, 180, 240, 0.14);
+  }
+  .gotinha-note {
+    margin: 0;
+    color: var(--ca-text);
+    font-size: 0.92rem;
+  }
+  @keyframes gotinhaFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gotinha-float {
+      animation: none;
+    }
+    .gotinha-float img {
+      transition: none;
+    }
+  }
+  @media (max-width: 900px) {
+    .gotinha-hero,
+    .gotinha-status-grid,
+    .gotinha-control-grid {
+      grid-template-columns: 1fr;
+    }
+    .gotinha-stage {
+      min-height: 280px;
+    }
+  }
+</style>
+
+<div class="gotinha-page">
+  <section class="surface-card gotinha-hero">
+    <div class="gotinha-copy">
+      <span class="section-label">Gotinha</span>
+      <h1 class="display-serif">Preview interno de emoções.</h1>
+      <p>
+        A Gotinha deixa o app menos frio: ela acompanha o cliente, reage por estados visuais e já está preparada para regras futuras.
+      </p>
+      <div class="gotinha-microcopy" aria-label="Papel da Gotinha">
+        <span>flutuante</span>
+        <span>expressiva</span>
+        <span>sem regras automáticas ainda</span>
+      </div>
+    </div>
+
+    <div class="gotinha-stage" data-gotinha-root>
+      <div class="gotinha-float" aria-live="polite">
+        <img src="{{ initial_asset }}" alt="Gotinha em estado {{ initial_emotion }}" data-gotinha-image>
+        <img src="" alt="" data-gotinha-next-image>
+      </div>
+    </div>
+  </section>
+
+  <section class="surface-card gotinha-panel">
+    <div class="gotinha-status-grid" aria-label="Estado atual da Gotinha">
+      <div class="gotinha-status-card">
+        <span>Estado anterior</span>
+        <strong data-gotinha-previous>-</strong>
+      </div>
+      <div class="gotinha-status-card">
+        <span>Estado atual</span>
+        <strong data-gotinha-current>{{ initial_emotion }}</strong>
+      </div>
+      <div class="gotinha-status-card">
+        <span>Player</span>
+        <strong data-gotinha-status>Estado estável</strong>
+      </div>
+    </div>
+
+    <div class="gotinha-control-grid" aria-label="Escolher emoção de destino">
+      {% for emotion in emotions %}
+      <button class="gotinha-emotion-button" type="button" data-gotinha-emotion="{{ emotion }}">
+        {{ emotion }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <p class="gotinha-note">
+      Em produção, a UI usará apenas os assets processados. As pranchas-fonte ficam fora da interface.
+    </p>
+  </section>
+</div>
+
+<script>
+  window.GOTINHA_MANIFEST = {{ manifest_json | safe }};
+</script>
+<script src="/static/js/gotinha.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const root = document.querySelector("[data-gotinha-root]");
+    if (!root || !window.CentralAguasGotinha) return;
+
+    const registry = new window.CentralAguasGotinha.GotinhaAssetRegistry(window.GOTINHA_MANIFEST);
+    const controller = new window.CentralAguasGotinha.GotinhaStateController("{{ initial_emotion }}");
+    const player = new window.CentralAguasGotinha.GotinhaTransitionPlayer(root, registry, controller);
+    player.mount();
+
+    document.querySelectorAll("[data-gotinha-emotion]").forEach((button) => {
+      button.addEventListener("click", () => {
+        player.setEmotion(button.dataset.gotinhaEmotion);
+      });
+    });
+  });
+</script>
+{% endblock %}

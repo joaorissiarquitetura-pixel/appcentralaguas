@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .policy-shell {
+        width: min(100%, 430px);
+        margin: 0 auto;
+    }
+
+    .policy-card {
+        overflow: hidden;
+        border: 1px solid #d7e6ff;
+        border-radius: 28px;
+        background: #fff;
+        box-shadow: 0 18px 45px rgba(12, 74, 180, 0.12);
+    }
+
+    .policy-top {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        padding: 18px;
+        color: #fff;
+        background: linear-gradient(135deg, #0b4fd3 0%, #176fff 100%);
+    }
+
+    .policy-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 1.25rem;
+    }
+
+    .policy-brand {
+        margin: 0;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        opacity: 0.82;
+    }
+
+    .policy-top h1 {
+        margin: 2px 0 0;
+        font-size: 1.22rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .policy-body {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        background: linear-gradient(180deg, #f7fbff 0%, #fff 42%);
+    }
+
+    .policy-intro {
+        display: grid;
+        gap: 7px;
+    }
+
+    .policy-pill {
+        width: fit-content;
+        max-width: 100%;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #0050cc;
+        background: #dff4ff;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+
+    .policy-intro h2 {
+        margin: 0;
+        color: #061634;
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1.05;
+    }
+
+    .policy-intro p,
+    .policy-note,
+    .policy-section p,
+    .policy-section li,
+    .policy-review {
+        color: #4c5d78;
+        font-size: 0.86rem;
+        line-height: 1.45;
+    }
+
+    .policy-note {
+        margin: 0;
+        padding: 12px;
+        border: 1px solid #bceeff;
+        border-radius: 16px;
+        background: #e8faff;
+    }
+
+    .policy-section {
+        padding: 14px;
+        border: 1px solid #dbe8ff;
+        border-radius: 18px;
+        background: #fff;
+    }
+
+    .policy-section h3 {
+        margin: 0 0 8px;
+        color: #004bc7;
+        font-size: 0.96rem;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .policy-section p {
+        margin: 0 0 8px;
+    }
+
+    .policy-section ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .policy-section li + li {
+        margin-top: 6px;
+    }
+
+    .policy-section strong {
+        color: #17233a;
+    }
+
+    .policy-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 2px;
+    }
+
+    .policy-review {
+        margin: 0;
+        text-align: center;
+    }
+
+    .policy-shell,
+    .policy-card,
+    .policy-section,
+    .policy-actions a {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 420px) {
+        .policy-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="policy-shell">
+    <article class="policy-card">
+        <header class="policy-top">
+            <span class="policy-icon"><i class="bi bi-shield-check"></i></span>
+            <div>
+                <p class="policy-brand">Central Águas</p>
+                <h1>Privacidade e termos</h1>
+            </div>
+        </header>
+
+        <div class="policy-body">
+            <section class="policy-intro">
+                <span class="policy-pill">LGPD</span>
+                <h2>Política de Privacidade</h2>
+                <p class="mb-0">Dados usados para entrega, fidelidade e atendimento em Votuporanga/SP.</p>
+            </section>
+
+            <p class="policy-note">
+                Esta política descreve como protegemos os seus dados e as regras para o uso dos seus bônus, em conformidade com a LGPD (Lei 13.709/2018).
+            </p>
+
+            <section class="policy-section">
+                <h3>1. Coleta e finalidade dos dados</h3>
+                <p>Ao cadastrar-se no nosso Clube, coletamos o seu <strong>nome, WhatsApp e endereço</strong>. A finalidade exclusiva é:</p>
+                <ul>
+                    <li>Operacionalizar a logística de entrega dos galões;</li>
+                    <li>Gerir o saldo de selos e processar os bônus de desconto;</li>
+                    <li>Enviar alertas de segurança sobre expiração de pontos e promoções.</li>
+                </ul>
+            </section>
+
+            <section class="policy-section">
+                <h3>2. Pontuação e expiração</h3>
+                <p>O sistema de recompensas segue critérios rigorosos de validade:</p>
+                <ul>
+                    <li><strong>Validade individual:</strong> cada selo acumulado tem validade de <strong>180 dias</strong> a contar da data da compra.</li>
+                    <li><strong>Expiração escalonada:</strong> os selos expiram individualmente conforme a sua antiguidade. O sistema notificará o membro 10 dias antes de qualquer expiração.</li>
+                    <li><strong>Intransferibilidade:</strong> os pontos são pessoais e vinculados ao CPF/telefone do titular, sendo proibida a transferência ou venda para terceiros.</li>
+                </ul>
+            </section>
+
+            <section class="policy-section">
+                <h3>3. Restrições do bônus</h3>
+                <ul>
+                    <li><strong>Apenas líquido:</strong> o bônus de R$ 10,00 aplica-se exclusivamente ao conteúdo líquido de galões de 10L ou 20L.</li>
+                    <li><strong>Vasilhames:</strong> o benefício não cobre vasilhames novos, acessórios ou outros produtos.</li>
+                    <li><strong>Não conversível:</strong> o saldo não poderá ser convertido em dinheiro físico.</li>
+                    <li><strong>Sem troco:</strong> se o desconto exceder o valor do produto, não haverá devolução de troco ou manutenção de saldo residual.</li>
+                </ul>
+            </section>
+
+            <section class="policy-section">
+                <h3>4. Vigência e cancelamento</h3>
+                <p>A campanha tem validade prevista até <strong>31/12/2026</strong>. A Central Águas reserva-se o direito de:</p>
+                <ul>
+                    <li>Prorrogar ou encerrar o programa mediante aviso prévio de 30 dias.</li>
+                    <li>Suspender o acesso de membros que utilizem meios fraudulentos para acumular selos.</li>
+                </ul>
+            </section>
+
+            <section class="policy-section">
+                <h3>5. Exclusão de dados</h3>
+                <p class="mb-0">O membro pode solicitar a exclusão da sua conta via atendimento oficial. A exclusão dos dados pessoais implica na <strong>perda imediata e irreversível</strong> de todos os pontos acumulados.</p>
+            </section>
+
+            <p class="policy-review">Última revisão: Fevereiro de 2026</p>
+
+            <div class="policy-actions">
+                <a href="/cadastrar" class="btn btn-primary fw-bold rounded-pill">Cadastro</a>
+                <a href="/app" class="btn btn-outline-primary fw-bold rounded-pill">Voltar ao app</a>
+            </div>
+        </div>
+    </article>
+</div>
+{% endblock %}

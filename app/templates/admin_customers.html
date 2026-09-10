@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="btn btn-outline-secondary btn-sm" href="/admin">Voltar ao Painel</a>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h4 mb-0">Gestão de Clientes</h1>
+    <small class="text-muted">Listagem paginada para evitar travamento da tela.</small>
+  </div>
+
+  <div class="d-flex gap-2">
+    <form method="post" action="/admin/maintenance/sync_points"
+          onsubmit="return confirm('Isso vai recalcular o saldo de TODOS os clientes somando o histórico de transações. Continuar?');">
+      <button class="btn btn-outline-primary btn-sm" title="Recalcular saldo baseado no histórico">
+        <i class="bi bi-arrow-repeat"></i> Sincronizar Saldos
+      </button>
+    </form>
+    <span class="badge text-bg-secondary align-self-center">{{ customers|length }} cadastrados</span>
+    <span class="badge text-bg-success align-self-center">{{ linked_customers }} vinculados</span>
+    <span class="badge text-bg-warning align-self-center">{{ unlinked_customers }} sem vinculo</span>
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="clientTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="todos-tab" data-bs-toggle="tab" data-bs-target="#todos" type="button" role="tab">
+      <i class="bi bi-people"></i> Todos Clientes
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="niver-tab" data-bs-toggle="tab" data-bs-target="#niver" type="button" role="tab">
+      <i class="bi bi-cake2"></i> Aniversariantes <span class="badge bg-danger ms-1">{{ birthdays|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="ranking-tab" data-bs-toggle="tab" data-bs-target="#ranking" type="button" role="tab">
+      <i class="bi bi-trophy"></i> Ranking VIP
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="clientTabsContent">
+
+  <div class="tab-pane fade show active" id="todos" role="tabpanel">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-lg-6">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" id="customerSearch" placeholder="Buscar por nome ou telefone...">
+              <button class="btn btn-outline-secondary" type="button" id="clearCustomerSearch" title="Limpar busca">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6 text-lg-end small text-muted">
+            Exibindo <strong>20 clientes por página</strong>. Total carregado nesta tela: <strong id="totalLoadedLabel">{{ customers|length }}</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle mb-0" id="customersTable">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Nome</th>
+                <th>Telefone</th>
+                <th>Vinculo Central</th>
+                <th class="text-center">Pontos</th>
+                <th>Nascimento</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              {% for c in customers %}
+              <tr class="customer-row" data-search="{{ (c.name ~ ' ' ~ c.phone)|lower }}">
+                <td class="ps-3 fw-bold text-primary">
+                  {{ c.name }}
+                  {% if not c.birth_date %}
+                    <span class="badge text-bg-warning ms-1" title="Sem data de nascimento">!</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  <a href="https://wa.me/55{{ c.phone }}" target="_blank" class="text-decoration-none text-dark">
+                    <i class="bi bi-whatsapp text-success me-1"></i> {{ c.phone }}
+                  </a>
+                </td>
+
+                <td style="min-width: 220px;">
+                  {% if c.central_customer_code %}
+                    <span class="badge text-bg-success mb-1">Vinculado</span>
+                  {% else %}
+                    <span class="badge text-bg-light text-secondary border mb-1">Sem vinculo</span>
+                  {% endif %}
+                  <form method="post" action="/admin/customers/{{ c.id }}/central_link" class="d-flex gap-1">
+                    <input class="form-control form-control-sm" name="central_customer_code" value="{{ c.central_customer_code or '' }}" placeholder="Codigo no sistema">
+                    <button class="btn btn-sm btn-outline-primary" title="Salvar vinculo">
+                      <i class="bi bi-link-45deg"></i>
+                    </button>
+                    {% if c.central_customer_code %}
+                    <button class="btn btn-sm btn-outline-secondary" name="clear" value="1" title="Remover vinculo">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                    {% endif %}
+                  </form>
+                </td>
+
+                <td class="text-center">
+                  {% if c.points and c.points > 0 %}
+                    <span class="badge text-bg-warning fs-6 border border-warning">{{ c.points }}</span>
+                  {% else %}
+                    <span class="badge text-bg-light text-secondary fs-6 border">{{ c.points or 0 }}</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if c.birth_date %}
+                    {{ c.birth_date.strftime('%d/%m/%Y') }}
+                  {% else %}
+                    <span class="text-muted small">--/--/----</span>
+                  {% endif %}
+                </td>
+
+                <td class="text-nowrap">
+                  <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="openHistoryModal({{ c.id }})" title="Ver Histórico de Movimentações">
+                    <i class="bi bi-eye"></i>
+                  </button>
+
+                  <form method="post" action="/admin/customers/{{ c.id }}/reset_password"
+                        onsubmit="return confirm('Tem certeza? A senha deste cliente sera redefinida para 0000 e ele sera obrigado a criar uma nova senha no proximo login.');"
+                        class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Redefinir senha para 0000">
+                      <i class="bi bi-key"></i>
+                    </button>
+                  </form>
+
+                  <form method="post" action="/admin/customers/{{ c.id }}/delete"
+                        onsubmit="return confirm('ATENÇÃO: Isso apagará TODO o histórico, pontos e cadastro do cliente {{ c.name }}. Não tem volta! Deseja continuar?');"
+                        class="d-inline ms-1">
+                    <button type="submit" class="btn btn-sm btn-outline-dark" title="Excluir Cliente Permanentemente">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr id="noCustomersServerRow">
+                <td colspan="6" class="text-center py-4 text-muted">Nenhum cliente encontrado.</td>
+              </tr>
+              {% endfor %}
+
+              <tr id="noCustomersFilteredRow" style="display: none;">
+                <td colspan="6" class="text-center py-4 text-muted">Nenhum cliente encontrado para essa busca.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer bg-white">
+        <div class="d-flex flex-column flex-lg-row gap-2 align-items-center justify-content-between">
+          <div class="small text-muted" id="customerPageInfo">Mostrando 0 cliente(s).</div>
+
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="firstPageBtn" title="Primeira página">
+              <i class="bi bi-chevron-double-left"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="prevPageBtn">
+              <i class="bi bi-chevron-left"></i> Anterior
+            </button>
+            <span class="small text-muted px-2" id="customerPageNumber">Página 1 de 1</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="nextPageBtn">
+              Próxima <i class="bi bi-chevron-right"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="lastPageBtn" title="Última página">
+              <i class="bi bi-chevron-double-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="niver" role="tabpanel">
+    <div class="alert alert-info d-flex align-items-center">
+      <i class="bi bi-gift fs-4 me-2"></i>
+      <div>
+        Estes são os aniversariantes deste mês! Aproveite para enviar uma mensagem ou oferecer um brinde.
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-info">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="bg-info text-white">
+            <tr>
+              <th class="ps-3">Dia</th>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th class="text-end pe-3">Enviar Parabéns</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in birthdays %}
+            <tr>
+              <td class="ps-3 fw-bold">{{ c.birth_date.strftime('%d') }}</td>
+              <td>{{ c.name }}</td>
+              <td>{{ c.phone }}</td>
+              <td class="text-end pe-3">
+                {% set first_name = c.name.split()[0]|title %}
+                {% set birthday_msg = "Parabéns, " ~ first_name ~ "! A Central Águas deseja um feliz aniversário. Nesta semana especial, suas compras valem pontos em dobro: de 3 dias antes até 3 dias depois do seu aniversário. Aproveite!" %}
+                <a href="https://wa.me/55{{ c.phone }}?text={{ birthday_msg|urlencode }}" target="_blank" class="btn btn-success btn-sm">
+                  <i class="bi bi-whatsapp"></i> Mensagem Pronta
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-4">Nenhum aniversariante restante neste mês.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="ranking" role="tabpanel">
+    <div class="card shadow-sm border-warning">
+      <div class="card-header bg-warning text-dark fw-bold">
+        <i class="bi bi-trophy-fill"></i> Top 20 Clientes com Mais Pontos Acumulados
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-3">#</th>
+              <th>Nome</th>
+              <th>Pontos Totais</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in ranking %}
+            <tr>
+              <td class="ps-3 fw-bold">{{ loop.index }}º</td>
+              <td>{{ c.name }}</td>
+              <td><span class="badge bg-primary fs-6">{{ c.points }}</span></td>
+              <td>
+                {% if loop.index == 1 %} 👑 <span class="text-warning fw-bold">Líder Supremo</span>
+                {% elif loop.index <= 3 %} 🥈 Top 3
+                {% elif loop.index <= 10 %} ⭐ Cliente VIP
+                {% else %} Cliente Fiel {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-4 text-muted">Nenhum cliente no ranking.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal fade" id="historyModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="historyModalName">Histórico do Cliente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="d-flex justify-content-between mb-3">
+          <span class="text-muted" id="historyModalPhone">--</span>
+          <span class="badge bg-primary fs-6" id="historyModalPoints">0 Pontos</span>
+        </div>
+
+        <div id="historyLoading" class="text-center py-3">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted">Buscando extrato...</p>
+        </div>
+
+        <ul class="list-group" id="historyList" style="display: none;"></ul>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const PAGE_SIZE = 20;
+  let currentPage = 1;
+
+  const searchInput = document.getElementById('customerSearch');
+  const clearSearchBtn = document.getElementById('clearCustomerSearch');
+  const allRows = Array.from(document.querySelectorAll('.customer-row'));
+  const noFilteredRow = document.getElementById('noCustomersFilteredRow');
+
+  const info = document.getElementById('customerPageInfo');
+  const pageNumber = document.getElementById('customerPageNumber');
+  const firstBtn = document.getElementById('firstPageBtn');
+  const prevBtn = document.getElementById('prevPageBtn');
+  const nextBtn = document.getElementById('nextPageBtn');
+  const lastBtn = document.getElementById('lastPageBtn');
+
+  function normalizeText(value) {
+    return String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  function getFilteredRows() {
+    const term = normalizeText(searchInput ? searchInput.value : '');
+
+    if (!term) {
+      return allRows;
+    }
+
+    return allRows.filter(row => {
+      const rowSearch = normalizeText(row.dataset.search || row.textContent || '');
+      return rowSearch.includes(term);
+    });
+  }
+
+  function renderCustomers() {
+    const filteredRows = getFilteredRows();
+    const totalRows = filteredRows.length;
+    const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+
+    if (currentPage > totalPages) {
+      currentPage = totalPages;
+    }
+
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = Math.min(startIndex + PAGE_SIZE, totalRows);
+
+    allRows.forEach(row => {
+      row.style.display = 'none';
+    });
+
+    filteredRows.slice(startIndex, endIndex).forEach(row => {
+      row.style.display = '';
+    });
+
+    if (noFilteredRow) {
+      noFilteredRow.style.display = totalRows === 0 && allRows.length > 0 ? '' : 'none';
+    }
+
+    if (totalRows === 0) {
+      info.textContent = 'Nenhum cliente encontrado.';
+      pageNumber.textContent = 'Página 0 de 0';
+    } else {
+      info.textContent = `Mostrando ${startIndex + 1} a ${endIndex} de ${totalRows} cliente(s).`;
+      pageNumber.textContent = `Página ${currentPage} de ${totalPages}`;
+    }
+
+    firstBtn.disabled = currentPage <= 1 || totalRows === 0;
+    prevBtn.disabled = currentPage <= 1 || totalRows === 0;
+    nextBtn.disabled = currentPage >= totalPages || totalRows === 0;
+    lastBtn.disabled = currentPage >= totalPages || totalRows === 0;
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      currentPage = 1;
+      renderCustomers();
+    });
+  }
+
+  if (clearSearchBtn && searchInput) {
+    clearSearchBtn.addEventListener('click', function () {
+      searchInput.value = '';
+      currentPage = 1;
+      renderCustomers();
+      searchInput.focus();
+    });
+  }
+
+  firstBtn.addEventListener('click', function () {
+    currentPage = 1;
+    renderCustomers();
+  });
+
+  prevBtn.addEventListener('click', function () {
+    currentPage -= 1;
+    renderCustomers();
+  });
+
+  nextBtn.addEventListener('click', function () {
+    currentPage += 1;
+    renderCustomers();
+  });
+
+  lastBtn.addEventListener('click', function () {
+    const totalRows = getFilteredRows().length;
+    currentPage = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+    renderCustomers();
+  });
+
+  renderCustomers();
+})();
+
+async function openHistoryModal(customerId) {
+  const modalElement = document.getElementById('historyModal');
+  const modal = new bootstrap.Modal(modalElement);
+  modal.show();
+
+  const loadingElement = document.getElementById('historyLoading');
+  const listElement = document.getElementById('historyList');
+
+  loadingElement.innerHTML = `
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Buscando extrato...</p>
+  `;
+  loadingElement.style.display = 'block';
+  listElement.style.display = 'none';
+  listElement.innerHTML = '';
+
+  document.getElementById('historyModalName').textContent = 'Carregando...';
+  document.getElementById('historyModalPhone').textContent = '--';
+  document.getElementById('historyModalPoints').textContent = '0 Pontos';
+
+  try {
+    const response = await fetch(`/admin/customers/${customerId}/history`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      credentials: 'include'
+    });
+
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      data = {};
+    }
+
+    if (!response.ok) {
+      loadingElement.innerHTML = `<p class="text-danger mb-0">Erro: ${data.error || 'Falha ao buscar dados.'}</p>`;
+      return;
+    }
+
+    document.getElementById('historyModalName').textContent = data.name || 'Histórico do Cliente';
+    document.getElementById('historyModalPhone').textContent = data.phone || '--';
+    document.getElementById('historyModalPoints').textContent = `${data.total_points || 0} Pontos Atuais`;
+
+    const history = Array.isArray(data.history) ? data.history : [];
+
+    if (history.length === 0) {
+      listElement.innerHTML = '<li class="list-group-item text-center text-muted py-4">Nenhuma movimentação encontrada.</li>';
+    } else {
+      history.forEach(item => {
+        const points = item.points || 0;
+        const colorClass = String(points).startsWith('-') ? 'danger' : 'success';
+        const date = item.date || '--/--/----';
+        const reason = item.reason || 'Movimentação';
+
+        listElement.innerHTML += `
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-muted d-block" style="font-size: 0.8rem;">${date}</small>
+              <span class="fw-semibold">${reason}</span>
+            </div>
+            <span class="badge bg-${colorClass} rounded-pill fs-6">${points}</span>
+          </li>`;
+      });
+    }
+
+    loadingElement.style.display = 'none';
+    listElement.style.display = 'block';
+
+  } catch (error) {
+    loadingElement.innerHTML = '<p class="text-danger mb-0">Erro de conexão ao buscar o histórico.</p>';
+  }
+}
+</script>
+
+{% endblock %}

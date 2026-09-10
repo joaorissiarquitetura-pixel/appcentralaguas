@@ -1,0 +1,26 @@
+# Ignorar ambiente virtual (O MAIS IMPORTANTE)
+venv/
+env/
+.env
+frontend/node_modules/
+frontend/.next/
+backend/staticfiles/
+backend/media/
+backend/db.sqlite3
+*.log
+backend_server.err
+backend_server.log
+
+# Ignorar banco de dados local
+*.db
+*.sqlite3
+instance/
+
+# Ignorar arquivos compilados do Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignorar configurações da IDE
+.vscode/
+.idea/

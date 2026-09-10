@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/assine">Voltar para planos</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="ca-card p-4">
+      <span class="eyebrow">Checkout</span>
+      <h1 class="h3 mt-2 mb-3">Ativar assinatura</h1>
+      <form class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Plano escolhido</label>
+          <select class="form-select form-select-lg">
+            {% for plan in plans %}
+            <option {% if plan.name == selected_plan.name %}selected{% endif %}>{{ plan.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Nome</label>
+          <input class="form-control form-control-lg" placeholder="Seu nome">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">WhatsApp</label>
+          <input class="form-control form-control-lg" placeholder="(17) 99999-9999">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Endereco</label>
+          <input class="form-control form-control-lg" placeholder="Rua, numero e complemento">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Pagamento</label>
+          <select class="form-select form-select-lg">
+            <option>Cartao recorrente</option>
+            <option>PIX programado</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Entrega</label>
+          <select class="form-select form-select-lg">
+            <option>Semanal</option>
+            <option>Quinzenal</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <div class="alert alert-light border mb-0">
+            Ao escolher <strong>PIX programado</strong>, o sistema registra o metodo como fluxo assistido e o time acompanha o status.
+          </div>
+        </div>
+        <div class="col-12">
+          <button type="button" class="ca-pill ca-primary w-100">Confirmar contratacao</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="ca-card p-4">
+      <span class="tag gold">Resumo</span>
+      <h2 class="h4 mt-3">{{ selected_plan.name }}</h2>
+      <p class="text-muted">{{ selected_plan.description }}</p>
+      <div class="display-6 fw-bold">R$ {{ "%.2f"|format(selected_plan.price)|replace('.', ',') }}</div>
+      <div class="text-muted mb-3">{{ selected_plan.monthly_units }} galoes por mes</div>
+      <ul class="text-muted">
+        <li>Entrega programada</li>
+        <li>Menos risco de ficar sem agua</li>
+        <li>Jornada preparada para app mobile</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

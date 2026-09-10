@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "emotions": {
+    "ALEGRIA": "emotions/alegria.webp",
+    "TRISTEZA": "emotions/tristeza.webp",
+    "SEDE": "emotions/sede.webp",
+    "RAIVA": "emotions/raiva.webp",
+    "CHATEADA": "emotions/chateada.webp",
+    "CONFUSAO": "emotions/confusao.webp",
+    "SUSTO": "emotions/susto.webp",
+    "CURIOSIDADE": "emotions/curiosidade.webp",
+    "DETERMINACAO": "emotions/determinacao.webp"
+  },
+  "transitions": {
+    "ALEGRIA>TRISTEZA": [
+      "transitions/alegria__tristeza/frame_01.webp",
+      "transitions/alegria__tristeza/frame_02.webp"
+    ],
+    "TRISTEZA>SEDE": [
+      "transitions/tristeza__sede/frame_01.webp",
+      "transitions/tristeza__sede/frame_02.webp"
+    ],
+    "SEDE>ALEGRIA": [
+      "transitions/sede__alegria/frame_01.webp",
+      "transitions/sede__alegria/frame_02.webp"
+    ],
+    "CONFUSAO>CURIOSIDADE": [
+      "transitions/confusao__curiosidade/frame_01.webp",
+      "transitions/confusao__curiosidade/frame_02.webp"
+    ],
+    "CHATEADA>RAIVA": [
+      "transitions/chateada__raiva/frame_01.webp",
+      "transitions/chateada__raiva/frame_02.webp"
+    ],
+    "CURIOSIDADE>DETERMINACAO": [
+      "transitions/curiosidade__determinacao/frame_01.webp",
+      "transitions/curiosidade__determinacao/frame_02.webp"
+    ]
+  }
+}

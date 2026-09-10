@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline" href="/app">Voltar ao app</a>
+  <a class="ca-pill ca-primary" href="/meu-cartao">Área do cliente</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .order-app-shell {
+    max-width: 430px;
+    margin: 0 auto;
+  }
+  .order-app-card {
+    overflow: hidden;
+    border: 1px solid rgba(11, 76, 203, 0.12);
+    border-radius: 28px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(15, 45, 92, 0.12);
+  }
+  .order-app-top {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 18px;
+    background: #0b4ccb;
+    color: #fff;
+  }
+  .order-check {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 1.25rem;
+  }
+  .order-app-top span {
+    display: block;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .order-app-top strong {
+    display: block;
+    margin-top: 3px;
+    color: #fff;
+    font: 800 1.02rem/1.1 "Montserrat", Arial, sans-serif;
+  }
+  .order-app-body {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    background: linear-gradient(180deg, rgba(179, 229, 255, 0.18), #fff 32%);
+  }
+  .order-title {
+    display: grid;
+    gap: 8px;
+  }
+  .order-title h1 {
+    margin: 0;
+    color: #101828;
+    font: 800 1.48rem/1.05 "Montserrat", Arial, sans-serif;
+    letter-spacing: 0;
+  }
+  .order-title p {
+    margin: 0;
+    color: #53627a;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+  .order-pill {
+    width: fit-content;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #e8f6ff;
+    color: #0b4ccb;
+    font-size: 0.76rem;
+    font-weight: 800;
+  }
+  .order-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid rgba(11, 76, 203, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.92);
+  }
+  .order-panel-title {
+    margin: 0;
+    color: #0b4ccb;
+    font: 800 0.88rem/1.1 "Montserrat", Arial, sans-serif;
+  }
+  .order-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: start;
+    padding-top: 10px;
+    border-top: 1px solid rgba(16, 24, 40, 0.08);
+    color: #101828;
+    font-size: 0.88rem;
+  }
+  .order-line:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+  }
+  .order-line span {
+    min-width: 0;
+    color: #53627a;
+  }
+  .order-line strong {
+    color: #101828;
+    text-align: right;
+  }
+  .order-line.address-line {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .order-line.address-line strong {
+    text-align: left;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  .order-total {
+    margin-top: 2px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(16, 24, 40, 0.1);
+    font-size: 1rem;
+  }
+  .order-total strong {
+    color: #0b4ccb;
+    font-size: 1.08rem;
+  }
+  .order-flow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .order-step {
+    min-height: 74px;
+    display: grid;
+    align-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border: 1px solid rgba(11, 76, 203, 0.12);
+    border-radius: 16px;
+    background: #f7fbff;
+    text-align: center;
+  }
+  .order-step i {
+    color: #0b4ccb;
+    font-size: 1.05rem;
+  }
+  .order-step span {
+    color: #344054;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .order-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .order-actions .ca-pill {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  @media (max-width: 520px) {
+    .order-app-shell {
+      max-width: none;
+    }
+    .order-app-card {
+      border-radius: 22px;
+    }
+    .order-actions {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<section class="order-app-shell">
+  <article class="order-app-card">
+    <div class="order-app-top">
+      <span class="order-check"><i class="bi bi-check2"></i></span>
+      <div>
+        <span>Pedido {{ order.code }}</span>
+        <strong>Recebido pela Central Águas</strong>
+      </div>
+    </div>
+
+    <div class="order-app-body">
+      <div class="order-title">
+        <span class="order-pill">Pedido enviado</span>
+        <h1>Agora é com a nossa equipe.</h1>
+        <p>A atendente já consegue visualizar sua solicitação e confirmar os detalhes pelo atendimento.</p>
+      </div>
+
+      <div class="order-flow" aria-label="Status do pedido">
+        <div class="order-step"><i class="bi bi-send-check"></i><span>Solicitação recebida</span></div>
+        <div class="order-step"><i class="bi bi-headset"></i><span>Confirmação da equipe</span></div>
+        <div class="order-step"><i class="bi bi-truck"></i><span>{{ 'Retirada' if order.fulfillment == 'pickup' else 'Entrega' }}</span></div>
+      </div>
+
+      <section class="order-panel" aria-label="Resumo do pedido">
+        <h2 class="order-panel-title">Resumo do pedido</h2>
+        {% for item in summary_items %}
+          <div class="order-line">
+            <span>{{ item.name }} x{{ item.qty }}</span>
+            <strong>R$ {{ '%.2f'|format(item.subtotal)|replace('.', ',') }}</strong>
+          </div>
+        {% else %}
+          <div class="order-line">
+            <span>Itens do pedido</span>
+            <strong>A confirmar</strong>
+          </div>
+        {% endfor %}
+        <div class="order-line order-total">
+          <span>Total estimado</span>
+          <strong>R$ {{ '%.2f'|format(order.total_estimate)|replace('.', ',') }}</strong>
+        </div>
+      </section>
+
+      <section class="order-panel" aria-label="Dados confirmados">
+        <h2 class="order-panel-title">Dados confirmados</h2>
+        <div class="order-line"><span>Cliente</span><strong>{{ order.customer_name }}</strong></div>
+        <div class="order-line"><span>WhatsApp</span><strong>{{ order.customer_phone or 'A confirmar' }}</strong></div>
+        <div class="order-line"><span>Recebimento</span><strong>{{ 'Retirada' if order.fulfillment == 'pickup' else 'Entrega' }}</strong></div>
+        <div class="order-line"><span>Pagamento</span><strong>{{ order.payment_method.replace('_', ' ') }}</strong></div>
+        <div class="order-line address-line">
+          <span>Endereço</span>
+          <strong>
+            {% if order.fulfillment == 'pickup' %}
+              Retirada na loja
+            {% else %}
+              {{ order.street or 'Rua não informada' }}, {{ order.number or 's/n' }}{% if order.complement %} - {{ order.complement }}{% endif %} - {{ order.neighborhood or 'Bairro não informado' }}
+            {% endif %}
+          </strong>
+        </div>
+      </section>
+
+      <div class="order-actions">
+        <a class="ca-pill ca-primary" href="/app">Voltar ao app</a>
+        <a class="ca-pill ca-outline" href="/loja">Novo pedido</a>
+      </div>
+    </div>
+  </article>
+</section>
+{% endblock %}

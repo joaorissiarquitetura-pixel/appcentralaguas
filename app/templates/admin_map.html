@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/admin">Voltar</a>
+  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+  <div>
+    <span class="eyebrow">Mapa comercial</span>
+    <h1 class="h3 mt-2 mb-1">Clientes por bairro e concentracao</h1>
+    <p class="text-muted mb-0">Base legada aproveitada para leitura geografica e futuras campanhas.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="tag">Total {{ total }}</span>
+    <span class="tag">Com coordenadas {{ with_coords }}</span>
+    <span class="tag gold">Pendentes {{ missing }}</span>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="ca-card p-3">
+      <div id="map" style="height: 560px; border-radius: 8px;"></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="ca-card p-4 mb-4">
+      <h2 class="h5 mb-3">Bairros com maior base</h2>
+      {% for item in neighborhoods %}
+      <div class="d-flex justify-content-between py-2 border-bottom">
+        <div>
+          <strong>{{ item.neighborhood }}</strong>
+          <div class="small text-muted">{{ item.city }}</div>
+        </div>
+        <div class="text-end">
+          <strong>{{ item.customers }}</strong>
+          <div class="small text-muted">{{ item.with_coordinates }} com pin</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="ca-card p-4">
+      <h2 class="h5 mb-3">Zonas para impulsionamento</h2>
+      {% for zone in campaign_zones %}
+      <div class="border rounded p-3 mb-3">
+        <div class="tag {% if zone.signal == 'forte' %}gold{% endif %}">{{ zone.signal|capitalize }}</div>
+        <div class="fw-bold mt-2">{{ zone.neighborhood }}</div>
+        <div class="small text-muted">{{ zone.reason }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+const map = L.map('map').setView([-20.42, -49.97], 12);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const customers = {{ customers_json | safe }};
+const markers = [];
+customers.forEach((customer) => {
+  if (customer.lat && customer.lon) {
+    const marker = L.marker([customer.lat, customer.lon]).addTo(map);
+    marker.bindPopup(`<strong>${customer.name}</strong><br>${customer.neighborhood || ''}<br>${customer.points || 0} pts`);
+    markers.push(marker);
+  }
+});
+
+if (markers.length > 0) {
+  const group = L.featureGroup(markers);
+  map.fitBounds(group.getBounds().pad(0.1));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/atendente">Ir para vendas</a>
+  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .admin-grid { display: grid; gap: 24px; }
+  .stats-grid,
+  .module-grid,
+  .summary-grid { display: grid; gap: 18px; }
+  .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .summary-grid { grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr); align-items: start; }
+  .admin-card {
+    padding: 24px;
+    border: 1px solid var(--ca-line);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: var(--ca-shadow);
+  }
+  .admin-card h2 {
+    margin: 0 0 10px;
+    color: var(--ca-navy);
+    font-size: 1.2rem;
+  }
+  .metric-label { color: var(--ca-text); font-size: 0.9rem; }
+  .metric-value { margin-top: 6px; color: var(--ca-navy); font-size: 2rem; font-weight: 800; line-height: 1; }
+  .small-muted { color: var(--ca-text); font-size: 0.88rem; }
+  .module-card {
+    display: grid;
+    gap: 14px;
+    padding: 26px;
+    border-radius: 20px;
+    border: 1px solid var(--ca-line);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: var(--ca-shadow);
+  }
+  .module-card .tag { width: fit-content; }
+  .module-card p { margin: 0; color: var(--ca-text); }
+  .module-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .quick-list { display: grid; gap: 12px; }
+  .quick-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ca-line);
+  }
+  @media (max-width: 1100px) {
+    .stats-grid,
+    .module-grid,
+    .summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="admin-grid">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <span class="section-label">Admin Central Águas</span>
+      <h1 class="display-serif mt-2 mb-1">Painel gerencial</h1>
+      <p class="small-muted mb-0">Separei a operação por áreas para ficar mais claro o que é fidelidade, loja e acompanhamento comercial.</p>
+    </div>
+    <span class="tag">Olá, {{ admin.name }}</span>
+  </div>
+
+  {% if err %}
+    <div class="alert alert-danger mb-0">{{ err }}</div>
+  {% endif %}
+  {% if success %}
+    <div class="alert alert-success mb-0">{{ success }}</div>
+  {% endif %}
+  {% if temp_password %}
+    <div class="alert alert-warning mb-0">
+      <strong>Senha temporária gerada.</strong><br>
+      Usuário: {{ temp_email }}<br>
+      Senha: <strong>{{ temp_password }}</strong>
+    </div>
+  {% endif %}
+
+  <div class="stats-grid">
+    <div class="admin-card">
+      <div class="metric-label">Clientes fidelidade</div>
+      <div class="metric-value">{{ total_customers }}</div>
+    </div>
+    <div class="admin-card">
+      <div class="metric-label">Assinantes</div>
+      <div class="metric-value">{{ subscriber_total }}</div>
+    </div>
+    <div class="admin-card">
+      <div class="metric-label">Conversão</div>
+      <div class="metric-value">{{ conversion_percent }}%</div>
+    </div>
+    <div class="admin-card">
+      <div class="metric-label">Pedidos da loja em aberto</div>
+      <div class="metric-value">{{ open_shop_orders }}</div>
+    </div>
+  </div>
+
+  <div class="module-grid">
+    <section class="module-card">
+      <span class="tag">Fidelidade</span>
+      <h2>Clientes, pontos e relacionamento</h2>
+      <p>Área dedicada para base de clientes, ranking, mapa comercial e alertas da recorrência.</p>
+      <div class="module-actions">
+        <a class="ca-pill ca-primary text-decoration-none" href="/admin/customers">Clientes e ranking</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/map">Mapa comercial</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/alerts">Alertas</a>
+      </div>
+    </section>
+
+    <section class="module-card">
+      <span class="tag gold">Loja</span>
+      <h2>Produtos, promoções e operação do site</h2>
+      <p>Área separada para cadastro de produto, preços, destaque de ofertas e controle da frente digital.</p>
+      <div class="module-actions">
+        <a class="ca-pill ca-primary text-decoration-none" href="/admin/site">Abrir gestão da loja</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/atendente">Ver pedidos no painel de vendas</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="summary-grid">
+    <div class="admin-card">
+      <h2>Top clientes por pontuação</h2>
+      <div class="quick-list">
+        {% for customer in top_customers %}
+          <div class="quick-item">
+            <span>{{ customer.name }}</span>
+            <strong>{{ customer.points }}</strong>
+          </div>
+        {% else %}
+          <div class="small-muted">Sem dados ainda.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Resumo operacional</h2>
+      <div class="quick-list">
+        <div class="quick-item">
+          <span class="small-muted">Clientes com compra registrada</span>
+          <strong>{{ customers_with_purchases }}</strong>
+        </div>
+        <div class="quick-item">
+          <span class="small-muted">Vendas lançadas</span>
+          <strong>{{ total_tx }}</strong>
+        </div>
+        <div class="quick-item">
+          <span class="small-muted">Alertas em aberto</span>
+          <strong>{{ open_alerts }}</strong>
+        </div>
+        <div class="quick-item">
+          <span class="small-muted">Sem geolocalização</span>
+          <strong>{{ without_geo }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

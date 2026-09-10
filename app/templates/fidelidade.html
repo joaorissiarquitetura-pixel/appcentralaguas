@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline" href="/meu-cartao">Ver meus pontos</a>
+  <a class="ca-pill ca-primary" href="/cadastrar">Entrar no fidelidade</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .fidelidade-page {
+    display: grid;
+    gap: 28px;
+  }
+  .hero-shell,
+  .section-shell {
+    padding: 26px;
+  }
+  .hero-shell {
+    overflow: hidden;
+    background:
+      linear-gradient(105deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.96) 48%, rgba(232, 242, 255, 0.9) 100%),
+      url("/static/img/hero_delivery.png") center right / auto 100% no-repeat;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(280px, 0.75fr);
+    gap: 24px;
+    align-items: center;
+  }
+  .hero-copy {
+    padding: 8px 10px 8px 6px;
+  }
+  .hero-copy h1 {
+    margin: 14px 0 16px;
+    font-size: clamp(2.55rem, 4vw, 4.2rem);
+    line-height: 0.96;
+    max-width: 12ch;
+    color: var(--ca-navy);
+  }
+  .hero-copy p {
+    margin: 0 0 26px;
+    color: var(--ca-text);
+    max-width: 52ch;
+    font-size: 1.02rem;
+  }
+  .hero-actions,
+  .final-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .rule-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+    max-width: 720px;
+  }
+  .rule-pill {
+    min-height: 92px;
+    padding: 16px;
+    border: 1px solid var(--ca-line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.86);
+  }
+  .rule-pill strong {
+    display: block;
+    color: var(--ca-navy);
+    font-size: 1.35rem;
+    line-height: 1.1;
+  }
+  .rule-pill span {
+    display: block;
+    margin-top: 6px;
+    color: var(--ca-text);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+  .hero-side {
+    padding: 24px;
+    border: 1px solid var(--ca-line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.95);
+    display: grid;
+    gap: 16px;
+    box-shadow: var(--ca-shadow);
+  }
+  .hero-side img {
+    width: 110px;
+    justify-self: end;
+  }
+  .hero-side h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--ca-navy);
+  }
+  .hero-side p {
+    margin: 0;
+    color: var(--ca-text);
+  }
+  .section-shell {
+    display: grid;
+    gap: 24px;
+  }
+  .steps-grid,
+  .benefit-grid,
+  .portal-grid,
+  .comparison,
+  .app-grid {
+    display: grid;
+    gap: 18px;
+  }
+  .steps-grid,
+  .benefit-grid,
+  .portal-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .comparison {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+  .step-card,
+  .benefit-card,
+  .portal-card,
+  .comparison-card,
+  .app-card,
+  .app-form {
+    padding: 22px;
+    border: 1px solid var(--ca-line);
+    border-radius: 16px;
+    background: #fff;
+  }
+  .step-card,
+  .benefit-card,
+  .portal-card {
+    text-align: center;
+  }
+  .step-card h3,
+  .benefit-card h3,
+  .portal-card h3,
+  .comparison-card h3,
+  .app-card h3,
+  .app-form h3 {
+    margin: 16px 0 10px;
+    font-size: 1.08rem;
+    color: var(--ca-navy);
+  }
+  .app-form h3 {
+    margin-top: 0;
+  }
+  .step-card p,
+  .benefit-card p,
+  .portal-card p,
+  .comparison-card p,
+  .comparison-card li,
+  .app-card p,
+  .app-card li,
+  .rule-note {
+    color: var(--ca-text);
+  }
+  .comparison-card ul,
+  .app-card ul {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 8px;
+  }
+  .app-card {
+    background: #f8fafc;
+  }
+  .rule-note {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  @media (max-width: 992px) {
+    .hero-grid,
+    .steps-grid,
+    .benefit-grid,
+    .portal-grid,
+    .comparison,
+    .app-grid {
+      grid-template-columns: 1fr;
+    }
+    .hero-shell {
+      background: #fff;
+      padding: 22px;
+    }
+    .hero-copy h1 {
+      font-size: clamp(2.35rem, 11vw, 3.15rem);
+      max-width: 11ch;
+    }
+    .hero-copy p {
+      margin-bottom: 20px;
+    }
+    .rule-strip {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .rule-pill {
+      min-height: 0;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .rule-pill strong {
+      font-size: 1.08rem;
+      flex: 0 0 auto;
+    }
+    .rule-pill span {
+      margin-top: 0;
+      font-size: 0.84rem;
+      text-align: right;
+    }
+    .hero-side {
+      display: none;
+    }
+    .hero-actions .ca-pill,
+    .final-actions .ca-pill {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="fidelidade-page">
+  <section class="surface-card hero-shell">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="section-label">Cartão Fidelidade</span>
+        <h1 class="display-serif">Comprou, juntou, resgatou.</h1>
+        <p>
+          O Cartão Fidelidade da Central Águas troca compras avulsas por selos digitais.
+          Ao completar {{ loyalty_target }} selos, você libera {{ loyalty_reward }} no próximo resgate.
+        </p>
+        <div class="hero-actions">
+          <a class="ca-pill ca-primary" href="/cadastrar">Entrar no programa</a>
+          <a class="ca-pill ca-outline" href="/meu-cartao">Ver meus pontos</a>
+        </div>
+        <div class="rule-strip" aria-label="Resumo das regras do fidelidade">
+          <div class="rule-pill">
+            <strong>{{ loyalty_target }} selos</strong>
+            <span>completam um cartão digital</span>
+          </div>
+          <div class="rule-pill">
+            <strong>{{ loyalty_reward }}</strong>
+            <span>para usar no resgate</span>
+          </div>
+          <div class="rule-pill">
+            <strong>100% online</strong>
+            <span>sem cartão de papel</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="hero-side">
+        <span class="tag gold">Central Águas</span>
+        <h2>Seu saldo fica registrado no portal do cliente.</h2>
+        <p>
+          Depois de entrar, você acompanha saldo, histórico, indicações e resgates em um só lugar.
+        </p>
+        <img src="/static/img/mascote_clube.png" alt="Mascote Central Águas">
+      </aside>
+    </div>
+  </section>
+
+  <section class="surface-card section-shell">
+    <div class="section-heading">
+      <span class="section-label">Como funciona</span>
+      <h2 class="display-serif">Seu cartão digital em três passos.</h2>
+      <p>Compre normalmente, acumule selos no cadastro e acompanhe tudo pela área do cliente.</p>
+    </div>
+
+    <div class="steps-grid">
+      <article class="step-card">
+        <span class="icon-circle"><i class="bi bi-cart-check"></i></span>
+        <h3>Faça sua compra</h3>
+        <p>Os produtos participantes somam selos no seu Cartão Fidelidade.</p>
+      </article>
+      <article class="step-card">
+        <span class="icon-circle"><i class="bi bi-award"></i></span>
+        <h3>Acompanhe os selos</h3>
+        <p>O saldo fica salvo no portal, junto com o histórico de movimentações.</p>
+      </article>
+      <article class="step-card">
+        <span class="icon-circle"><i class="bi bi-gift"></i></span>
+        <h3>Resgate o benefício</h3>
+        <p>Ao completar {{ loyalty_target }} selos, solicite {{ loyalty_reward }}.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="surface-card section-shell">
+    <div class="section-heading">
+      <span class="section-label">Vantagens</span>
+      <h2 class="display-serif">Tudo fica registrado para você consultar quando quiser.</h2>
+      <p>Sem cartão de papel: seus selos, histórico e resgates ficam organizados no sistema.</p>
+    </div>
+
+    <div class="benefit-grid">
+      <article class="benefit-card">
+        <span class="icon-circle"><i class="bi bi-phone"></i></span>
+        <h3>Selo digital</h3>
+        <p>O controle acontece no sistema e fica disponível pelo portal do cliente.</p>
+      </article>
+      <article class="benefit-card">
+        <span class="icon-circle"><i class="bi bi-stars"></i></span>
+        <h3>Recompensa real</h3>
+        <p>{{ loyalty_target }} selos liberam {{ loyalty_reward }}, conforme os produtos participantes.</p>
+      </article>
+      <article class="benefit-card">
+        <span class="icon-circle"><i class="bi bi-list-check"></i></span>
+        <h3>Leitura simples</h3>
+        <p>Saldo, histórico e progresso ficam no mesmo ambiente.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="surface-card section-shell">
+    <div class="section-heading">
+      <span class="section-label">Comparação</span>
+      <h2 class="display-serif">Assinatura e fidelidade atendem momentos diferentes.</h2>
+      <p>O fidelidade é para compra livre. A assinatura é para rotina programada.</p>
+    </div>
+
+    <div class="comparison">
+      <article class="comparison-card">
+        <h3>Quando o fidelidade faz mais sentido</h3>
+        <ul>
+          <li>Quando a compra acontece conforme a necessidade</li>
+          <li>Quando o cliente prefere liberdade total de data e volume</li>
+          <li>Quando quer transformar compras avulsas em benefício acumulado</li>
+        </ul>
+      </article>
+      <article class="comparison-card">
+        <h3>Quando a assinatura faz mais sentido</h3>
+        <ul>
+          <li>Quando há consumo recorrente em casa ou na empresa</li>
+          <li>Quando faltar água gera correria ou perda de tempo</li>
+          <li>Quando o cliente quer uma rotina mais previsível</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="surface-card section-shell">
+    <div class="section-heading">
+      <span class="section-label">Portal do cliente</span>
+      <h2 class="display-serif">O programa continua vivo dentro da área do cliente.</h2>
+      <p>Clientes antigos seguem consultando os pontos normalmente, agora com uma experiência mais direta.</p>
+    </div>
+
+    <div class="portal-grid">
+      <article class="portal-card">
+        <span class="icon-circle"><i class="bi bi-graph-up"></i></span>
+        <h3>Saldo e progresso</h3>
+        <p>Veja quantos selos faltam para o próximo resgate.</p>
+      </article>
+      <article class="portal-card">
+        <span class="icon-circle"><i class="bi bi-clock-history"></i></span>
+        <h3>Histórico organizado</h3>
+        <p>Consulte movimentações, resgates e relação com a Central.</p>
+      </article>
+      <article class="portal-card">
+        <span class="icon-circle"><i class="bi bi-bell"></i></span>
+        <h3>Ofertas no contexto certo</h3>
+        <p>Quando fizer sentido, o portal também apresenta a assinatura.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="surface-card section-shell">
+    <div class="section-heading">
+      <span class="section-label">Acesse agora</span>
+      <h2 class="display-serif">Entre no fidelidade ou consulte seu cartão.</h2>
+      <p>Escolha o caminho certo para o seu momento. Cliente antigo pode ir direto para os pontos; cliente novo pode criar o cartão digital.</p>
+    </div>
+
+    <div class="app-grid">
+      <article class="app-card">
+        <h3>O que fica disponível no portal</h3>
+        <ul>
+          <li>Consultar saldo, histórico e progresso do cartão</li>
+          <li>Solicitar resgate quando houver saldo suficiente</li>
+          <li>Compartilhar indicações e acompanhar bônus</li>
+        </ul>
+      </article>
+
+      <article class="app-form">
+        <h3>Próximo passo</h3>
+        <p class="rule-note">Use o mesmo telefone cadastrado para entrar e consultar seus selos.</p>
+        <div class="final-actions mt-3">
+          <a class="ca-pill ca-primary" href="/cadastrar">Criar meu cartão</a>
+          <a class="ca-pill ca-outline" href="/meu-cartao">Já tenho cadastro</a>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>
+{% endblock %}

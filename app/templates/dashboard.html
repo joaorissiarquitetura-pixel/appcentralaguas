@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="ca-pill ca-outline" href="/logout">
+    <i class="bi bi-box-arrow-right me-2"></i> Sair
+  </a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .client-app {
+    display: grid;
+    gap: 24px;
+  }
+  .client-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 24px;
+    align-items: stretch;
+  }
+  .hello-card {
+    padding: 24px;
+    display: grid;
+    gap: 22px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(179, 229, 255, 0.42) 100%);
+  }
+  .hello-copy h1 {
+    margin: 10px 0 10px;
+    color: var(--ca-primary);
+    font-size: clamp(2rem, 4vw, 3.1rem);
+    line-height: 1.05;
+  }
+  .hello-copy p {
+    margin: 0;
+    color: var(--ca-text);
+    max-width: 58ch;
+  }
+  .pillar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .pillar-card {
+    min-height: 148px;
+    padding: 16px;
+    border: 1px solid var(--ca-line);
+    border-radius: var(--ca-radius-card);
+    background: var(--ca-white);
+    display: grid;
+    align-content: space-between;
+    color: var(--ca-graphite);
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .pillar-card:hover,
+  .pillar-card:focus {
+    transform: translateY(-2px);
+    border-color: var(--ca-aqua);
+    box-shadow: 0 16px 26px rgba(11, 76, 203, 0.1);
+  }
+  .pillar-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ca-accent-soft);
+    color: var(--ca-primary);
+  }
+  .pillar-card strong {
+    display: block;
+    margin-top: 12px;
+    color: var(--ca-primary);
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 1.05rem;
+  }
+  .pillar-card span {
+    display: block;
+    margin-top: 4px;
+    color: var(--ca-text);
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+  .gotinha-companion {
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    min-height: 100%;
+    background: linear-gradient(180deg, rgba(179, 229, 255, 0.46) 0%, var(--ca-white) 78%);
+  }
+  .gotinha-companion::after {
+    content: "";
+    position: absolute;
+    inset: auto -20px -34px auto;
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    background: rgba(0, 180, 240, 0.12);
+  }
+  .gotinha-companion-copy {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 10px;
+  }
+  .gotinha-companion h2 {
+    margin: 0;
+    color: var(--ca-primary);
+    font-size: 1.45rem;
+  }
+  .gotinha-companion p {
+    margin: 0;
+    color: var(--ca-text);
+  }
+  .gotinha-avatar {
+    position: relative;
+    z-index: 1;
+    width: min(78%, 230px);
+    margin: 22px auto 6px;
+    animation: clientGotinhaFloat 4.8s ease-in-out infinite;
+  }
+  .gotinha-avatar img {
+    width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 24px rgba(11, 76, 203, 0.16));
+  }
+  .content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.55fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .loyalty-card,
+  .side-card {
+    padding: 22px;
+  }
+  .loyalty-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    align-items: start;
+    margin-bottom: 18px;
+  }
+  .loyalty-head h2,
+  .side-card h2 {
+    margin: 0;
+    color: var(--ca-primary);
+    font-size: 1.35rem;
+  }
+  .loyalty-head p,
+  .side-card p {
+    margin: 6px 0 0;
+    color: var(--ca-text);
+  }
+  .savings-pill {
+    min-width: 134px;
+    padding: 12px;
+    border-radius: var(--ca-radius-card);
+    background: rgba(255, 198, 41, 0.18);
+    border: 1px solid rgba(255, 198, 41, 0.38);
+    text-align: right;
+  }
+  .savings-pill span {
+    display: block;
+    color: var(--ca-text);
+    font-size: 0.78rem;
+  }
+  .savings-pill strong {
+    display: block;
+    color: var(--ca-graphite);
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 1.35rem;
+  }
+  .progress-scene {
+    display: grid;
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    padding: 18px;
+    border-radius: var(--ca-radius-card);
+    background: rgba(179, 229, 255, 0.28);
+    border: 1px solid var(--ca-line);
+  }
+  .bottle-progress {
+    width: 108px;
+    height: 146px;
+    margin: 0 auto;
+    border: 4px solid var(--ca-primary);
+    border-radius: 16px 16px 26px 26px;
+    position: relative;
+    overflow: hidden;
+    background: var(--ca-white);
+    box-shadow: inset 0 0 0 1px rgba(11, 76, 203, 0.08);
+  }
+  .bottle-progress-fill {
+    position: absolute;
+    inset: auto 0 0;
+    height: {{ (progress / target) * 100 }}%;
+    background: linear-gradient(180deg, var(--ca-aqua) 0%, var(--ca-primary) 100%);
+    transition: height 1.2s ease;
+  }
+  .bottle-progress-label {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: {% if progress > 5 %}var(--ca-white){% else %}var(--ca-primary){% endif %};
+    font-family: "Montserrat", Arial, sans-serif;
+    font-weight: 700;
+  }
+  .progress-copy strong {
+    display: block;
+    color: var(--ca-primary);
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    line-height: 1.1;
+  }
+  .progress-copy span {
+    display: block;
+    margin-top: 8px;
+    color: var(--ca-text);
+  }
+  .stamp-grid {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .stamp-dot {
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 2px solid var(--ca-line-strong);
+    background: var(--ca-white);
+    display: grid;
+    place-items: center;
+    color: var(--ca-text);
+    font-size: 0.78rem;
+  }
+  .stamp-dot.is-filled {
+    border-color: var(--ca-primary);
+    background: rgba(179, 229, 255, 0.46);
+    color: var(--ca-primary);
+  }
+  .reward-card {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: var(--ca-radius-card);
+    background: var(--ca-primary);
+    color: var(--ca-white);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+  }
+  .reward-card span {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.88rem;
+  }
+  .reward-card strong {
+    display: block;
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 1.35rem;
+  }
+  .share-card {
+    background: var(--ca-white);
+  }
+  .share-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .history-card {
+    padding: 0;
+    overflow: hidden;
+  }
+  .history-card .nav-tabs {
+    padding: 12px 14px 0;
+    border-bottom-color: var(--ca-line);
+  }
+  .history-card .nav-link.active {
+    color: var(--ca-primary) !important;
+    font-weight: 700;
+    border-bottom: 2px solid var(--ca-primary);
+  }
+  .history-body {
+    padding: 18px;
+  }
+  .history-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ca-line);
+  }
+  .history-row:last-child {
+    border-bottom: 0;
+  }
+  .history-row strong {
+    color: var(--ca-graphite);
+  }
+  .history-row small {
+    color: var(--ca-text);
+  }
+  @keyframes clientGotinhaFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-9px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gotinha-avatar {
+      animation: none;
+    }
+    .pillar-card,
+    .bottle-progress-fill {
+      transition: none;
+    }
+  }
+  @media (max-width: 992px) {
+    .client-hero,
+    .content-grid,
+    .progress-scene {
+      grid-template-columns: 1fr;
+    }
+    .pillar-grid {
+      grid-template-columns: 1fr;
+    }
+    .savings-pill {
+      text-align: left;
+    }
+  }
+  @media (max-width: 520px) {
+    .loyalty-head,
+    .reward-card,
+    .share-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    .stamp-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<div class="client-app">
+  <section class="client-hero">
+    <div class="surface-card hello-card">
+      <div class="hello-copy">
+        <span class="section-label">Área do Cliente</span>
+        <h1 class="display-serif">Oi, {{ customer.name.split(' ')[0] }}.</h1>
+        <p>
+          Seu app Central Águas está organizado para pedir rápido, acompanhar seus selos e cuidar da Gotinha com calma.
+        </p>
+      </div>
+
+      <div class="pillar-grid" aria-label="Pilares do app">
+        <a class="pillar-card" href="/loja">
+          <div>
+            <span class="pillar-icon"><i class="bi bi-bag-check"></i></span>
+            <strong>Loja</strong>
+            <span>Peça água quando precisar.</span>
+          </div>
+        </a>
+        <a class="pillar-card" href="/meu-cartao">
+          <div>
+            <span class="pillar-icon"><i class="bi bi-award"></i></span>
+            <strong>Fidelidade</strong>
+            <span>Veja selos, saldo e histórico.</span>
+          </div>
+        </a>
+        <a class="pillar-card" href="/gotinha">
+          <div>
+            <span class="pillar-icon"><i class="bi bi-droplet"></i></span>
+            <strong>Gotinha</strong>
+            <span>Preview da mascote e emoções.</span>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <aside class="surface-card gotinha-companion">
+      <div class="gotinha-companion-copy">
+        <span class="section-label">Gotinha</span>
+        <h2 class="display-serif">Ela fica por perto.</h2>
+        <p>
+          Por enquanto, a Gotinha está em modo visual. As regras automáticas de sentimentos entram só quando forem definidas.
+        </p>
+      </div>
+      <div class="gotinha-avatar">
+        <img src="/static/img/mascote_novo.png" onerror="this.onerror=null;this.src='/static/img/mascote_clube.png';" alt="Gotinha Central Águas">
+      </div>
+    </aside>
+  </section>
+
+  <section class="content-grid">
+    <article class="surface-card loyalty-card">
+      <div class="loyalty-head">
+        <div>
+          <span class="section-label">Fidelidade</span>
+          <h2 class="display-serif mt-2">Seu cartão está andando.</h2>
+          <p>
+            {% if completed > 0 %}
+              Você já tem recompensa disponível para resgate.
+            {% else %}
+              Só falta um pouquinho: acompanhe seus selos sem cartão de papel.
+            {% endif %}
+          </p>
+        </div>
+        <div class="savings-pill">
+          <span>Economia total</span>
+          <strong>R$ {{ "%.2f"|format(total_savings)|replace('.', ',') }}</strong>
+        </div>
+      </div>
+
+      <div class="progress-scene">
+        <div class="bottle-progress" aria-label="Progresso do cartão fidelidade">
+          <div class="bottle-progress-fill"></div>
+          <div class="bottle-progress-label">{{ ((progress / target) * 100)|int }}%</div>
+        </div>
+        <div class="progress-copy">
+          {% if completed > 0 %}
+            <strong>{{ completed }} cartão{% if completed != 1 %}s{% endif %} completo{% if completed != 1 %}s{% endif %}</strong>
+            <span>Você pode solicitar o resgate quando quiser.</span>
+          {% else %}
+            <strong>Faltam {{ target - progress }} selos</strong>
+            <span>Ao completar {{ target }}, você libera seu próximo benefício.</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="stamp-grid" aria-label="Selos do cartão atual">
+        {% for i in range(target) %}
+        <div class="stamp-dot {% if i < progress %}is-filled{% endif %}">
+          {% if i < progress %}
+            <i class="bi bi-droplet-fill"></i>
+          {% else %}
+            {{ i + 1 }}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if completed > 0 %}
+      <div class="reward-card">
+        <div>
+          <span>Saldo disponível</span>
+          <strong>R$ {{ "%.2f"|format(current_savings)|replace('.', ',') }}</strong>
+        </div>
+        <a href="{{ redeem_link }}" target="_blank" class="ca-pill ca-outline">
+          <i class="bi bi-whatsapp me-2"></i> Resgatar
+        </a>
+      </div>
+      {% endif %}
+    </article>
+
+    <aside class="surface-card side-card share-card">
+      <span class="section-label">Indicação</span>
+      <h2 class="display-serif mt-2">Chame alguém e ganhe +{{ ref_bonus }} selos.</h2>
+      <p>Envie seu convite. Quando seu amigo comprar, o bônus entra no seu histórico.</p>
+      <div class="share-actions">
+        <a href="https://wa.me/?text=Oi!%20Estou%20usando%20o%20Fidelidade%20Central%20Águas.%20Cadastre-se%20e%20ganhe%20pontos:%20{{ referral_link }}"
+           target="_blank"
+           class="ca-pill ca-primary">
+          <i class="bi bi-whatsapp me-2"></i> Enviar
+        </a>
+        <button class="ca-pill ca-outline" type="button" onclick="copyLink('{{ referral_link }}')" aria-label="Copiar link de indicação">
+          <i class="bi bi-clipboard"></i>
+        </button>
+      </div>
+    </aside>
+  </section>
+
+  <section class="surface-card history-card">
+    <ul class="nav nav-tabs" id="historyTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="points-tab" data-bs-toggle="tab" data-bs-target="#points" type="button" role="tab">
+          Extrato de Pontos
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="referrals-tab" data-bs-toggle="tab" data-bs-target="#referrals" type="button" role="tab">
+          Minhas Indicações
+        </button>
+      </li>
+    </ul>
+    <div class="history-body">
+      <div class="tab-content" id="historyTabContent">
+        <div class="tab-pane fade show active" id="points" role="tabpanel">
+          {% for entry in ledger %}
+          <div class="history-row">
+            <div>
+              <strong>{{ entry.reason }}</strong><br>
+              <small>{{ entry.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+            </div>
+            <strong class="{% if entry.delta_points > 0 %}text-success{% else %}text-danger{% endif %}">
+              {% if entry.delta_points > 0 %}+{% endif %}{{ entry.delta_points }}
+            </strong>
+          </div>
+          {% else %}
+            <div class="text-center text-muted small py-3">Nenhuma movimentação ainda.</div>
+          {% endfor %}
+        </div>
+
+        <div class="tab-pane fade" id="referrals" role="tabpanel">
+          {% for ref in referral_rows %}
+          <div class="history-row">
+            <div>
+              <strong>{{ ref.name }}</strong><br>
+              <small>{{ ref.created_at.strftime('%d/%m/%Y') }} · {{ ref.status }}</small>
+            </div>
+            {% if "Ganhou" in ref.bonus %}
+              <span class="badge rounded-pill" style="background: var(--ca-gold); color: var(--ca-graphite);">+{{ ref_bonus }} pts</span>
+            {% else %}
+              <span class="badge rounded-pill text-bg-secondary">Pendente</span>
+            {% endif %}
+          </div>
+          {% else %}
+            <div class="text-center text-muted small py-3">
+              Você ainda não indicou ninguém.<br>
+              Use o botão acima para convidar.
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal fade" id="birthDateModal" tabindex="-1" aria-labelledby="birthDateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-primary" id="birthDateModalLabel">Complete seu cadastro</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <form method="post" action="/meu-cartao/data-nascimento">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Informe sua data de nascimento para manter seu cadastro atualizado e participar das ações de aniversário.
+          </p>
+
+          {% if birth_date_error %}
+          <div class="alert alert-danger small py-2">
+            Data de nascimento invalida.
+          </div>
+          {% endif %}
+
+          <label class="form-label small fw-bold">Data de nascimento</label>
+          <input type="date" name="birth_date" class="form-control rounded-3" required>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Depois</button>
+          <button type="submit" class="btn btn-primary rounded-pill px-4">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function copyLink(link) {
+    navigator.clipboard.writeText(link).then(function() {
+      alert('Link copiado! Cole no WhatsApp ou Instagram.');
+    }, function(err) {
+      console.error('Erro:', err);
+    });
+  }
+
+  {% if not customer.birth_date or birth_date_error %}
+  document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('birthDateModal');
+    if (modalElement) {
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    }
+  });
+  {% endif %}
+</script>
+{% endblock %}

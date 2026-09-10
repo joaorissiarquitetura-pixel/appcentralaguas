@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/admin">Voltar ao painel</a>
+  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .admin-grid { display: grid; gap: 24px; }
+  .content-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr); gap: 18px; align-items: start; }
+  .admin-card {
+    padding: 24px;
+    border: 1px solid var(--ca-line);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: var(--ca-shadow);
+  }
+  .admin-card h2 { margin: 0 0 16px; color: var(--ca-navy); font-size: 1.2rem; }
+  .form-grid { display: grid; gap: 14px; }
+  .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .table-wrap { overflow-x: auto; }
+  .product-table { width: 100%; border-collapse: collapse; }
+  .product-table th, .product-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--ca-line);
+    vertical-align: top;
+    text-align: left;
+    font-size: 0.94rem;
+  }
+  .product-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    background: #f4f7fb;
+    border: 1px solid var(--ca-line);
+  }
+  .small-muted { color: var(--ca-text); font-size: 0.88rem; }
+  .product-row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .preview-box {
+    width: 100%;
+    min-height: 180px;
+    border-radius: 16px;
+    border: 1px dashed var(--ca-line-strong);
+    background: linear-gradient(180deg, #f8fbff 0%, #eef5fc 100%);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: 18px;
+  }
+  .preview-box img { max-height: 220px; width: auto; object-fit: contain; }
+  .upload-hint { margin-top: 8px; color: var(--ca-text); font-size: 0.85rem; }
+  .preview-empty { text-align: center; color: var(--ca-text); }
+  .preview-empty strong { display: block; margin-bottom: 6px; color: var(--ca-navy); }
+  .quick-list { display: grid; gap: 12px; }
+  .quick-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ca-line);
+  }
+  @media (max-width: 1100px) {
+    .content-grid,
+    .form-grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="admin-grid">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <span class="section-label">Admin da loja</span>
+      <h1 class="display-serif mt-2 mb-1">Produtos, promoções e operação do site</h1>
+      <p class="small-muted mb-0">Aqui fica só o que pertence à frente digital da Central Águas.</p>
+    </div>
+    <span class="tag">Olá, {{ admin.name }}</span>
+  </div>
+
+  {% if err %}
+    <div class="alert alert-danger mb-0">{{ err }}</div>
+  {% endif %}
+  {% if success %}
+    <div class="alert alert-success mb-0">{{ success }}</div>
+  {% endif %}
+  {% if temp_password %}
+    <div class="alert alert-warning mb-0">
+      <strong>Senha temporária gerada.</strong><br>
+      Usuário: {{ temp_email }}<br>
+      Senha: <strong>{{ temp_password }}</strong>
+    </div>
+  {% endif %}
+
+  <div class="content-grid">
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h2>Produtos e promoção do site</h2>
+        <p class="small-muted">Cadastre nome, foto, disponibilidade, preços e promoção. Isso alimenta a loja e a vitrine da home.</p>
+        <form class="form-grid" method="post" action="/admin/products" enctype="multipart/form-data">
+          <input type="hidden" name="product_id" value="{{ editing_product.id if editing_product else 0 }}">
+
+          <div class="preview-box">
+            {% if editing_product and editing_product.image_url %}
+              <img id="product-preview-image" src="{{ editing_product.image_url }}" alt="{{ editing_product.name }}">
+            {% else %}
+              <div class="preview-empty" id="product-preview-empty">
+                <strong>Prévia da foto do produto</strong>
+                Envie uma imagem para mostrar como o item vai aparecer na loja.
+              </div>
+              <img id="product-preview-image" src="" alt="Prévia da imagem do produto" style="display:none;">
+            {% endif %}
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Nome do produto</label>
+              <input class="form-control" type="text" name="name" placeholder="Ex.: Galão Vanágua 20L" value="{{ editing_product.name if editing_product else '' }}" required>
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Badge promocional</label>
+              <input class="form-control" type="text" name="promo_badge" placeholder="Ex.: Oferta do site" value="{{ editing_product.promo_badge if editing_product and editing_product.promo_badge else '' }}">
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label fw-semibold">Descrição</label>
+            <input class="form-control" type="text" name="description" placeholder="Texto curto para a vitrine do site" value="{{ editing_product.description if editing_product and editing_product.description else '' }}">
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Preço retirada</label>
+              <input class="form-control" type="number" step="0.01" name="pickup_price" placeholder="14.00" value="{{ editing_product.pickup_price if editing_product and editing_product.pickup_price is not none else '' }}">
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Preço entrega</label>
+              <input class="form-control" type="number" step="0.01" name="delivery_price" placeholder="16.00" value="{{ editing_product.delivery_price if editing_product and editing_product.delivery_price is not none else '' }}">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Preço promocional retirada</label>
+              <input class="form-control" type="number" step="0.01" name="promo_pickup_price" placeholder="8.99" value="{{ editing_product.promo_pickup_price if editing_product and editing_product.promo_pickup_price is not none else '' }}">
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Preço promocional entrega</label>
+              <input class="form-control" type="number" step="0.01" name="promo_delivery_price" placeholder="11.99" value="{{ editing_product.promo_delivery_price if editing_product and editing_product.promo_delivery_price is not none else '' }}">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Status de disponibilidade</label>
+              <select class="form-select" name="stock_status">
+                <option value="disponivel" {% if editing_product and editing_product.stock_status == 'disponivel' %}selected{% endif %}>Disponível</option>
+                <option value="baixo_estoque" {% if editing_product and editing_product.stock_status == 'baixo_estoque' %}selected{% endif %}>Baixo estoque</option>
+                <option value="sob_encomenda" {% if editing_product and editing_product.stock_status == 'sob_encomenda' %}selected{% endif %}>Sob encomenda</option>
+                <option value="indisponivel" {% if editing_product and editing_product.stock_status == 'indisponivel' %}selected{% endif %}>Indisponível</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Ordem de exibição</label>
+              <input class="form-control" type="number" name="display_order" value="{{ editing_product.display_order if editing_product else 0 }}">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Foto do produto</label>
+              <input class="form-control" type="file" name="image_file" id="image_file" accept=".jpg,.jpeg,.png,.webp,.gif,image/*">
+              <div class="upload-hint">Formatos aceitos: JPG, PNG, WEBP ou GIF.</div>
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Imagem do produto (URL opcional)</label>
+              <input class="form-control" type="text" name="image_url" placeholder="https://... ou /static/img/vanagua-20l.png" value="{{ editing_product.image_url if editing_product and editing_product.image_url else '' }}">
+              <div class="upload-hint">Se enviar um arquivo acima, ele terá prioridade sobre esta URL.</div>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Pontos por unidade</label>
+              <input class="form-control" type="number" name="points_per_unit" value="{{ editing_product.points_per_unit if editing_product else 1 }}">
+            </div>
+            <div></div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="featured_on_home" id="featured_on_home" {% if not editing_product or editing_product.featured_on_home %}checked{% endif %}>
+              <label class="form-check-label" for="featured_on_home">Mostrar na home</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="active" id="active" {% if not editing_product or editing_product.active %}checked{% endif %}>
+              <label class="form-check-label" for="active">Produto ativo</label>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <button class="ca-pill ca-primary" type="submit">{% if editing_product %}Atualizar produto{% else %}Salvar produto{% endif %}</button>
+            {% if editing_product %}
+              <a class="ca-pill ca-outline text-decoration-none" href="/admin/site">Novo cadastro</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <h2>Produtos cadastrados</h2>
+        <div class="table-wrap">
+          <table class="product-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Preços</th>
+                <th>Status</th>
+                <th>Site</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for product in products %}
+              <tr>
+                <td>
+                  <div class="d-flex gap-3">
+                    {% if product.image_url %}
+                      <img class="product-thumb" src="{{ product.image_url }}" alt="{{ product.name }}">
+                    {% endif %}
+                    <div>
+                      <strong>{{ product.name }}</strong>
+                      {% if product.promo_badge %}<div class="small-muted">{{ product.promo_badge }}</div>{% endif %}
+                      {% if product.description %}<div class="small-muted mt-1">{{ product.description }}</div>{% endif %}
+                      <div class="product-row-actions">
+                        <a class="ca-pill ca-outline text-decoration-none" href="/admin/site?edit_product_id={{ product.id }}">Editar</a>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div>Retirada: R$ {{ '%.2f'|format(product.promo_pickup_price or product.pickup_price or 0)|replace('.', ',') }}</div>
+                  <div>Entrega: R$ {{ '%.2f'|format(product.promo_delivery_price or product.delivery_price or 0)|replace('.', ',') }}</div>
+                </td>
+                <td>
+                  <div>{{ product.stock_status or 'disponivel' }}</div>
+                  <div class="small-muted">{{ 'Ativo' if product.active else 'Inativo' }}</div>
+                </td>
+                <td>
+                  <div>{{ 'Destaque' if product.featured_on_home else 'Oculto' }}</div>
+                  <div class="small-muted">Ordem {{ product.display_order or 0 }}</div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="small-muted">Nenhum produto cadastrado ainda.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <div class="admin-card">
+        <h2>Operação da loja</h2>
+        <div class="quick-list">
+          <div class="quick-item">
+            <span class="small-muted">Pedidos em aberto</span>
+            <strong>{{ open_shop_orders }}</strong>
+          </div>
+          {% for order in latest_shop_orders %}
+            <div class="quick-item">
+              <span>{{ order.customer_name }}</span>
+              <strong>{{ order.status }}</strong>
+            </div>
+          {% else %}
+            <div class="small-muted">Nenhum pedido recente na loja.</div>
+          {% endfor %}
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <a class="ca-pill ca-outline text-decoration-none" href="/atendente">Ver pedidos no painel de vendas</a>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2>Acesso do admin</h2>
+        <p class="small-muted">Se o login não entrar, gere uma senha temporária por aqui para um usuário administrador existente.</p>
+        {% for attendant in attendants %}
+          {% if attendant.role == 'admin' %}
+          <form class="d-flex align-items-center justify-content-between gap-3 py-2 border-bottom" method="post" action="/admin/attendants/reset-password">
+            <div>
+              <strong>{{ attendant.name }}</strong>
+              <div class="small-muted">{{ attendant.email }}</div>
+            </div>
+            <input type="hidden" name="attendant_id" value="{{ attendant.id }}">
+            <button class="ca-pill ca-outline" type="submit">Gerar senha</button>
+          </form>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (() => {
+    const fileInput = document.getElementById("image_file");
+    const previewImage = document.getElementById("product-preview-image");
+    const previewEmpty = document.getElementById("product-preview-empty");
+
+    if (!fileInput || !previewImage) return;
+
+    fileInput.addEventListener("change", (event) => {
+      const [file] = event.target.files || [];
+      if (!file) return;
+      previewImage.src = URL.createObjectURL(file);
+      previewImage.style.display = "block";
+      if (previewEmpty) previewEmpty.style.display = "none";
+    });
+  })();
+</script>
+{% endblock %}

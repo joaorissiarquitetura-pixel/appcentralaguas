@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="btn btn-outline-secondary btn-sm" href="/admin">Voltar</a>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h4 mb-0">Monitor de Consumo (IA)</h1>
+    <p class="text-muted small mb-0">Baseado no histórico de pedidos de cada cliente</p>
+  </div>
+  <form method="post" action="/admin/alerts/generate">
+    <button class="btn btn-primary"><i class="bi bi-arrow-clockwise"></i> Atualizar Análise</button>
+  </form>
+</div>
+
+{% if not alerts %}
+  <div class="alert alert-info shadow-sm">
+    <h4 class="h6"><i class="bi bi-info-circle"></i> Nenhum alerta hoje!</h4>
+    <p class="mb-0">Ou seus clientes estão abastecidos, ou precisamos de mais histórico de pedidos (mínimo 2 entregas por cliente) para a IA aprender.</p>
+  </div>
+{% else %}
+
+<div class="row">
+  {% for item in alerts %}
+  <div class="col-12 col-md-6 col-lg-4 mb-3">
+    <div class="card shadow-sm border-start border-5 {% if item.status == 'critico' %}border-danger{% else %}border-warning{% endif %}">
+      <div class="card-body position-relative">
+        <div class="position-absolute top-0 end-0 p-3">
+          {% if item.status == 'critico' %}
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+          {% else %}
+            <i class="bi bi-hourglass-split text-warning fs-4"></i>
+          {% endif %}
+        </div>
+
+        <h5 class="card-title text-truncate pe-4">{{ item.customer.name }}</h5>
+        <h6 class="card-subtitle mb-2 text-muted small">
+          Média: 1 galão a cada {{ item.avg }} dias
+        </h6>
+        
+        <p class="card-text mt-3 mb-1">
+          <span class="d-block text-secondary small">Último pedido: <strong>{{ item.last_date }}</strong></span>
+          <span class="d-block fw-bold {% if item.status == 'critico' %}text-danger{% else %}text-dark{% endif %}">
+            Previsão de fim: {{ item.next_date }}
+          </span>
+          <span class="badge {% if item.status == 'critico' %}text-bg-danger{% else %}text-bg-warning{% endif %} mt-2">
+            {{ item.msg }}
+          </span>
+        </p>
+
+        <div class="d-grid mt-3">
+          <a href="https://wa.me/55{{ item.customer.phone }}?text=Olá {{ item.customer.name }}, a Central Águas percebeu que seu galão deve estar acabando. Deseja pedir um novo?" 
+             target="_blank" class="btn btn-sm btn-outline-success">
+             <i class="bi bi-whatsapp"></i> Oferecer Água
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  {% if is_admin %}
+    <a class="btn btn-sm btn-outline-secondary me-2" href="/admin">Painel Admin</a>
+  {% endif %}
+  <a class="btn btn-sm btn-outline-danger" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 col-md-4 mb-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Buscar Cliente</h5>
+        
+        <form method="get" class="mb-3">
+            <div class="input-group">
+                <input type="text" class="form-control" name="q" placeholder="Nome ou Telefone..." value="{{ q }}" autofocus>
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </form>
+
+        <div class="list-group list-group-flush overflow-auto" style="max-height: 500px;">
+            {% for c in customers %}
+            <a href="/atendente?customer_id={{ c.id }}&q={{ q }}" 
+               class="list-group-item list-group-item-action {% if selected_customer and c.id == selected_customer.id %}active{% endif %}">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ c.name }}</h6>
+                </div>
+                <small class="{% if selected_customer and c.id == selected_customer.id %}text-light{% else %}text-muted{% endif %}">
+                    {{ c.phone }}
+                </small>
+            </a>
+            {% else %}
+                {% if q %}
+                <div class="text-center text-muted mt-3">
+                    Nenhum cliente encontrado.<br>
+                    <a href="/cadastrar" target="_blank" class="btn btn-sm btn-outline-success mt-2">Cadastrar Novo</a>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="card-title mb-0">Pedidos da Loja</h5>
+          <span class="badge text-bg-primary">{{ pending_shop_orders|length }}</span>
+        </div>
+
+        <div class="vstack gap-3">
+          {% for order in pending_shop_orders %}
+          <div class="border rounded-4 p-3 bg-light-subtle">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+              <div>
+                <strong>{{ order.customer_name }}</strong>
+                <div class="small text-muted">{{ order.code }} • {{ order.customer_phone }}</div>
+              </div>
+              <span class="badge {% if order.status == 'novo' %}text-bg-warning{% elif order.status == 'em_atendimento' %}text-bg-primary{% else %}text-bg-success{% endif %}">
+                {{ order.status.replace('_', ' ') }}
+              </span>
+            </div>
+            <div class="small text-muted mb-2">
+              {{ 'Retirada' if order.fulfillment == 'pickup' else 'Entrega' }} • {{ order.payment_method.replace('_', ' ') }} • R$ {{ '%.2f'|format(order.total_estimate)|replace('.', ',') }}
+            </div>
+            {% if order.neighborhood %}
+            <div class="small mb-3">{{ order.neighborhood }}{% if order.street %} • {{ order.street }}{% if order.number %}, {{ order.number }}{% endif %}{% endif %}</div>
+            {% endif %}
+            <div class="d-flex gap-2">
+              <form method="post" action="/atendente/pedidos/atualizar">
+                <input type="hidden" name="order_id" value="{{ order.id }}">
+                <input type="hidden" name="status" value="em_atendimento">
+                <button type="submit" class="btn btn-sm btn-outline-primary">Assumir</button>
+              </form>
+              <form method="post" action="/atendente/pedidos/atualizar">
+                <input type="hidden" name="order_id" value="{{ order.id }}">
+                <input type="hidden" name="status" value="concluido">
+                <button type="submit" class="btn btn-sm btn-outline-success">Concluir</button>
+              </form>
+            </div>
+          </div>
+          {% else %}
+          <div class="text-muted small">Nenhum pedido novo da loja no momento.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-8">
+    {% if selected_customer %}
+    
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="card-title mb-0 fw-bold">{{ selected_customer.name }}</h4>
+                <div class="text-muted small">{{ selected_customer.phone }}</div>
+                {% if selected_subscription and selected_subscription.has_subscription %}
+                <div class="mt-2">
+                    <span class="badge text-bg-success">Assinante {{ selected_subscription.plan_name }}</span>
+                    <span class="badge text-bg-light border">{{ selected_subscription.payment_method }}</span>
+                </div>
+                {% else %}
+                <div class="mt-2">
+                    <a href="/assine" target="_blank" class="badge text-bg-warning text-decoration-none">Oferecer assinatura</a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="text-end">
+                <div class="small text-uppercase text-muted">Saldo Atual</div>
+                <div class="h2 mb-0 fw-bold text-primary">{{ selected_balance }} pts</div>
+            </div>
+        </div>
+    </div>
+
+    {% if err %}
+    <div class="alert alert-danger shadow-sm mb-4">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ err }}
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-cart-plus-fill me-2"></i> Lançar Venda (Pontuar)
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/atendente/lancar">
+                        <input type="hidden" name="customer_id" value="{{ selected_customer.id }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Produto</label>
+                            <select class="form-select" name="product_id" required>
+                                {% for p in products %}
+                                <option value="{{ p.id }}">{{ p.name }} (+{{ p.points_per_unit }} pts)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Qtd.</label>
+                                <input type="number" class="form-control" name="qty" value="1" min="1" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Canal</label>
+                                <select class="form-select" name="channel">
+                                    <option value="entrega">Entrega</option>
+                                    <option value="balcao">Retira</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Confirmar Venda</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100 {% if selected_balance < target %}opacity-75 bg-light{% endif %}">
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-gift-fill me-2"></i> Resgatar Prêmios
+                </div>
+                <div class="card-body">
+                    {% if selected_balance >= target %}
+                        <div class="alert alert-success py-2 small">
+                            <i class="bi bi-check-circle me-1"></i> Cliente pode resgatar!
+                        </div>
+                        <form method="post" action="/atendente/resgatar" onsubmit="return confirm('Confirmar o resgate e debitar pontos?');">
+                            <input type="hidden" name="customer_id" value="{{ selected_customer.id }}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Quantos cartões usar?</label>
+                                <select class="form-select" name="cards">
+                                    {% for i in range(1, (selected_balance // target) + 1) %}
+                                    <option value="{{ i }}">{{ i }} Cartão(ões) (-{{ i * target }} pts)</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Observação (Opcional)</label>
+                                <input type="text" class="form-control form-control-sm" name="notes" placeholder="Ex: Entregue galão grátis">
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-warning">Realizar Resgate</button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-lock fs-1 mb-2"></i><br>
+                            Saldo insuficiente para resgate.<br>
+                            Faltam <strong>{{ target - (selected_balance % target) }}</strong> pontos.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card shadow-sm border-0 bg-light">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-person-badge text-secondary opacity-50" style="font-size: 5rem;"></i>
+            <h3 class="mt-3 text-secondary">Selecione um cliente</h3>
+            <p class="text-muted">Use a busca ao lado para encontrar o cliente e lançar vendas ou resgates.</p>
+        </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal fade" id="saleSuccessModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-body p-5 text-center">
+        <div class="mb-4 animate__animated animate__bounceIn">
+            <div class="rounded-circle bg-success d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                <i class="bi bi-check-lg text-white" style="font-size: 3rem;"></i>
+            </div>
+        </div>
+        
+        <h2 class="fw-bold text-success mb-3">Venda Lançada!</h2>
+        
+        <p class="fs-5 text-muted mb-4">
+          Os pontos foram creditados para:<br>
+          <strong class="text-dark fs-3 d-block mt-2">
+            {{ selected_customer.name.split()[0] if selected_customer else 'Cliente' }}
+          </strong>
+        </p>
+
+        <button type="button" class="btn btn-success btn-lg w-100 rounded-pill shadow fw-bold" data-bs-dismiss="modal">
+            OK, Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if success_message %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Mostrar o Modal
+        var myModal = new bootstrap.Modal(document.getElementById('saleSuccessModal'));
+        myModal.show();
+
+        // 2. Limpar a URL (Tira o ?success=... mas mantém o cliente selecionado)
+        const newUrl = window.location.pathname + "?customer_id={{ selected_customer.id if selected_customer else '' }}&q={{ q }}";
+        window.history.replaceState(null, null, newUrl);
+    });
+</script>
+{% endif %}
+
+{% endblock %}

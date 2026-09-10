@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ business_name }} | Central Águas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --ca-primary: #0B4CCB;
+      --ca-aqua: #00B4F0;
+      --ca-sky: #B3E5FF;
+      --ca-white: #FFFFFF;
+      --ca-graphite: #2E2E2E;
+      --ca-gold: #FFC629;
+      --ca-navy: var(--ca-primary);
+      --ca-navy-deep: #083A9A;
+      --ca-ink: var(--ca-graphite);
+      --ca-text: #526070;
+      --ca-line: rgba(11, 76, 203, 0.14);
+      --ca-line-strong: rgba(11, 76, 203, 0.26);
+      --ca-surface: var(--ca-white);
+      --ca-surface-soft: #F6FBFE;
+      --ca-accent-soft: rgba(179, 229, 255, 0.42);
+      --ca-shadow: 0 12px 28px rgba(11, 76, 203, 0.07);
+      --ca-radius-button: 16px;
+      --ca-radius-card: 16px;
+      --ca-radius-featured: 24px;
+      --ca-radius-pill: 999px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(179, 229, 255, 0.28) 0%, rgba(246, 251, 254, 0) 320px),
+        #F6FBFE;
+      color: var(--ca-ink);
+      font-family: "Inter", Arial, sans-serif;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+    img {
+      max-width: 100%;
+      display: block;
+    }
+    .display-serif {
+      font-family: "Montserrat", Arial, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .navbar {
+      background: rgba(255, 255, 255, 0.97);
+      border-bottom: 1px solid var(--ca-line);
+      backdrop-filter: blur(10px);
+    }
+    .navbar-brand img {
+      height: 50px;
+      object-fit: contain;
+    }
+    .navbar .nav-link {
+      color: var(--ca-ink);
+      font-size: 0.95rem;
+      font-family: "Montserrat", Arial, sans-serif;
+      font-weight: 600;
+      padding-left: 0.85rem;
+      padding-right: 0.85rem;
+      border-radius: var(--ca-radius-pill);
+    }
+    .navbar .nav-link:hover,
+    .navbar .nav-link:focus {
+      color: var(--ca-navy);
+      background: var(--ca-accent-soft);
+    }
+    .ca-pill {
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: var(--ca-radius-button);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.96rem;
+      font-family: "Montserrat", Arial, sans-serif;
+      font-weight: 600;
+      transition: transform .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
+      gap: 8px;
+    }
+    .ca-pill:hover,
+    .ca-pill:focus {
+      transform: translateY(-1px);
+    }
+    .ca-primary {
+      background: var(--ca-navy);
+      color: white;
+      border: 1px solid var(--ca-navy);
+      box-shadow: 0 12px 22px rgba(11, 76, 203, 0.18);
+    }
+    .ca-primary:hover,
+    .ca-primary:focus {
+      background: var(--ca-navy-deep);
+      border-color: var(--ca-navy-deep);
+      color: white;
+    }
+    .ca-outline {
+      background: white;
+      color: var(--ca-navy);
+      border: 1px solid var(--ca-line-strong);
+    }
+    .ca-outline:hover,
+    .ca-outline:focus {
+      border-color: #bfcddb;
+      color: var(--ca-navy);
+    }
+    .section-label,
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      width: fit-content;
+      justify-self: start;
+    }
+    .section-label {
+      background: var(--ca-accent-soft);
+      color: var(--ca-primary);
+    }
+    .tag {
+      min-height: 30px;
+      padding: 0 12px;
+      background: rgba(22, 52, 91, 0.06);
+      color: var(--ca-navy);
+      font-size: 0.78rem;
+    }
+    .tag.gold {
+      background: rgba(182, 150, 94, 0.12);
+      color: var(--ca-graphite);
+      border: 1px solid rgba(255, 198, 41, 0.35);
+    }
+    .surface-card {
+      border: 1px solid var(--ca-line);
+      border-radius: var(--ca-radius-featured);
+      background: var(--ca-surface);
+      box-shadow: var(--ca-shadow);
+    }
+    .human-note {
+      border: 1px solid var(--ca-line);
+      border-radius: var(--ca-radius-card);
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--ca-text);
+    }
+    .section-heading {
+      display: grid;
+      gap: 10px;
+      max-width: 760px;
+      margin-bottom: 26px;
+    }
+    .section-heading h2 {
+      margin: 0;
+      font-size: clamp(2rem, 3.2vw, 3.3rem);
+      line-height: 1.02;
+      color: var(--ca-navy);
+      font-family: "Montserrat", Arial, sans-serif;
+    }
+    .section-heading p {
+      margin: 0;
+      color: var(--ca-text);
+      font-size: 1rem;
+    }
+    .icon-circle {
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      background: var(--ca-accent-soft);
+      color: var(--ca-navy);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 0 1px rgba(22, 52, 91, 0.04);
+    }
+    .icon-circle i {
+      font-size: 1.85rem;
+      line-height: 1;
+    }
+    .mini-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #edf4fd;
+      color: var(--ca-aqua);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+    .mini-icon i {
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .form-control,
+    .form-select {
+      min-height: 50px;
+      border-radius: 12px;
+      border-color: #ced8e5;
+      font-size: 0.97rem;
+      box-shadow: none;
+    }
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #9eb1c6;
+      box-shadow: 0 0 0 4px rgba(22, 52, 91, 0.06);
+    }
+    main.container {
+      max-width: 1380px;
+    }
+    .mobile-bottom-nav {
+      display: none;
+    }
+    footer {
+      max-width: 1380px;
+      border-top: 1px solid var(--ca-line);
+      color: var(--ca-text);
+      background: rgba(255, 255, 255, 0.62);
+      border-radius: var(--ca-radius-featured) var(--ca-radius-featured) 0 0;
+    }
+    body.app-chrome-hidden {
+      min-height: 100vh;
+      padding-bottom: 0;
+    }
+    body.app-chrome-hidden main {
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+    @media (max-width: 991.98px) {
+      body {
+        padding-bottom: 86px;
+      }
+      body.app-chrome-hidden {
+        padding-bottom: 0;
+      }
+      .navbar .ca-pill {
+        width: 100%;
+      }
+      .navbar .ms-lg-3 {
+        margin-top: 12px;
+      }
+      .navbar-brand img {
+        height: 44px;
+      }
+      .mobile-bottom-nav {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 10px;
+        z-index: 1040;
+        min-height: 64px;
+        padding: 8px;
+        border: 1px solid var(--ca-line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 18px 34px rgba(11, 76, 203, 0.14);
+        backdrop-filter: blur(12px);
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+      }
+      .mobile-bottom-nav a {
+        min-width: 0;
+        min-height: 48px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 2px;
+        color: var(--ca-text);
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+      .mobile-bottom-nav i {
+        color: var(--ca-primary);
+        font-size: 1.15rem;
+        line-height: 1;
+      }
+      .mobile-bottom-nav a:focus,
+      .mobile-bottom-nav a:hover {
+        background: var(--ca-accent-soft);
+        color: var(--ca-primary);
+      }
+    }
+  </style>
+</head>
+{% set current_path = request.url.path if request.url is defined else "" %}
+{% set chrome_hidden = hide_chrome|default(false) or current_path in ["/login", "/cadastrar", "/privacidade", "/meu-cartao", "/cliente", "/loja/finalizar", "/alterar-senha-obrigatoria"] %}
+<body class="{% if chrome_hidden %}app-chrome-hidden{% endif %}">
+{% if not chrome_hidden %}
+<nav class="navbar navbar-expand-lg sticky-top">
+  <div class="container py-2">
+    <a class="navbar-brand d-flex align-items-center" href="/">
+      <img src="/static/img/logo_central.jpg" alt="Central Águas">
+    </a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Abrir navegação">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMain">
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
+        <li class="nav-item"><a class="nav-link" href="/loja">Loja</a></li>
+        <li class="nav-item"><a class="nav-link" href="/fidelidade">Fidelidade</a></li>
+        <li class="nav-item"><a class="nav-link" href="/gotinha">Gotinha</a></li>
+        <li class="nav-item"><a class="nav-link" href="/meu-cartao">Área do Cliente</a></li>
+      </ul>
+      <div class="ms-lg-3 d-flex gap-2">
+        {% block nav_right %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+<main class="{% if chrome_hidden %}container-fluid px-0 my-0{% else %}container my-4 my-lg-5{% endif %}">
+  {% block content %}{% endblock %}
+</main>
+
+{% if not chrome_hidden %}
+<footer class="container py-4 text-center small">
+  Central Águas. Água mineral, pedido rápido e atendimento com cuidado em cada entrega.
+</footer>
+
+<nav class="mobile-bottom-nav" aria-label="Navegação principal mobile">
+  <a href="/"><i class="bi bi-house"></i><span>Home</span></a>
+  <a href="/loja"><i class="bi bi-bag-check"></i><span>Loja</span></a>
+  <a href="/meu-cartao"><i class="bi bi-award"></i><span>Fidelidade</span></a>
+  <a href="/gotinha"><i class="bi bi-droplet"></i><span>Gotinha</span></a>
+</nav>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

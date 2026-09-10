@@ -1,0 +1,1742 @@
+{% extends "base.html" %}
+
+{% block nav_right %}
+  <a class="store-account-link" href="/login" aria-label="Entrar na área do cliente">
+    <span class="store-account-icon"><i class="bi bi-person-fill"></i></span>
+  </a>
+  <a class="store-nav-cart" href="#sacola">
+    <span>Minha sacola</span>
+    <i class="bi bi-bag"></i>
+    <span class="store-nav-cart-badge" data-cart-count-badge>0</span>
+  </a>
+{% endblock %}
+
+{% block content %}
+<style>
+  footer.container {
+    max-width: none !important;
+    width: 100%;
+    margin-top: 0 !important;
+    padding: 18px 40px !important;
+    background: #10263f;
+    color: rgba(255, 255, 255, 0.78);
+    border-top: 0;
+  }
+  .store-account-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .store-account-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e2ef;
+    background: linear-gradient(180deg, #ffffff 0%, #eff5fb 100%);
+    color: var(--ca-navy);
+    box-shadow: 0 10px 24px rgba(17, 35, 56, 0.08);
+  }
+  .store-account-icon i {
+    font-size: 1.12rem;
+  }
+  .store-nav-cart {
+    position: relative;
+    min-height: 46px;
+    padding: 0 18px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    background: #18375c;
+    color: #fff;
+    font-weight: 800;
+    box-shadow: 0 12px 28px rgba(17, 35, 56, 0.14);
+  }
+  .store-nav-cart:hover,
+  .store-nav-cart:focus {
+    color: #fff;
+    background: #122b49;
+  }
+  .store-nav-cart-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #5aa9f4;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    border: 2px solid #fff;
+  }
+  .store-page {
+    display: grid;
+    gap: 24px;
+    padding-bottom: 12px;
+  }
+
+  /* ---- CABEÇALHO HERO COMPACTO (SEM ESPAÇOS VAZIOS) ---- */
+  .store-hero-banner {
+    justify-self: center; /* Centraliza a caixa inteira na página */
+    width: 100%;
+    max-width: 980px; /* Evita que estique até as bordas da tela e gere os espaços vazios */
+    background: linear-gradient(180deg, #f8fbff 0%, #eef4fa 100%);
+    border: 1px solid #d7e2ef;
+    border-radius: 24px;
+    padding: 40px 24px;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(17, 35, 56, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(33, 177, 107, 0.1);
+    color: #1b8a53;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+  .hero-kicker .dot { 
+    width: 8px; 
+    height: 8px; 
+    background: #21b16b; 
+    border-radius: 50%; 
+    box-shadow: 0 0 0 0 rgba(33, 177, 107, 0.45);
+    animation: storePulse 1.8s infinite;
+  }
+  .store-hero-banner h1 {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    color: var(--ca-navy);
+    font-weight: 800;
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  .store-hero-banner h1 span { 
+    color: var(--ca-primary); 
+  }
+  .store-hero-banner > p {
+    color: var(--ca-text);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto 40px;
+  }
+  
+  /* ---- ANIMAÇÃO SEQUENCIAL DOS PASSOS ---- */
+  @keyframes stepPopIn {
+    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes drawLineAnim {
+    0% { width: 0; opacity: 0; }
+    100% { width: 66%; opacity: 1; }
+  }
+
+  .hero-steps-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    position: relative;
+  }
+  
+  /* A linha de conexão que aparece por trás */
+  .hero-steps-container::before {
+    content: "";
+    position: absolute;
+    left: 17%;
+    top: 50px; /* Alinhado ao meio dos ícones */
+    width: 0;
+    opacity: 0;
+    height: 0;
+    border-top: 4px dotted #c1d2e4;
+    z-index: 0;
+    animation: drawLineAnim 0.7s ease-out forwards;
+    animation-delay: 0.7s; /* Inicia depois que o último passo pular */
+  }
+
+  .hero-step-item {
+    background: #fff;
+    border: 1px solid #d7e2ef;
+    border-radius: 20px;
+    padding: 30px 16px 20px;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(17,35,56,0.03);
+    z-index: 1; /* Fica por cima da linha */
+    opacity: 0; /* Começa invisível para a animação */
+    animation: stepPopIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  /* O pulinho um após o outro */
+  .hero-step-item:nth-child(1) { animation-delay: 0.1s; }
+  .hero-step-item:nth-child(2) { animation-delay: 0.3s; }
+  .hero-step-item:nth-child(3) { animation-delay: 0.5s; }
+
+  .hero-step-number {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 44px;
+    background: var(--ca-navy);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 4px solid #f8fbff;
+    box-shadow: 0 8px 16px rgba(17, 35, 56, 0.15);
+  }
+  .hero-step-icon {
+    font-size: 2rem;
+    color: var(--ca-primary);
+    margin-bottom: 12px;
+  }
+  .hero-step-item h3 { 
+    font-size: 1.05rem; 
+    color: var(--ca-navy); 
+    font-weight: 800; 
+    margin-bottom: 6px;
+  }
+  .hero-step-item p { 
+    font-size: 0.9rem; 
+    color: var(--ca-text); 
+    margin: 0; 
+    line-height: 1.4;
+    max-width: 18ch;
+    margin: 0 auto;
+  }
+
+  .store-easy-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+    justify-content: center;
+  }
+  .store-easy-pill {
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #d8e2ef;
+    color: #16345b;
+    font-size: 0.82rem;
+    font-weight: 800;
+    box-shadow: 0 10px 22px rgba(17, 35, 56, 0.04);
+  }
+  .store-easy-pill i {
+    color: #5aa9f4;
+  }
+
+  /* ---- LAYOUT PRINCIPAL DA LOJA ---- */
+  .store-shell {
+    padding: 18px 18px 22px;
+    border-radius: 22px;
+    border: 1px solid #d7e2ef;
+    background:
+      radial-gradient(circle at top right, rgba(91, 169, 244, 0.18) 0%, rgba(91, 169, 244, 0) 28%),
+      linear-gradient(180deg, #f8fbff 0%, #eef4fa 100%);
+    box-shadow: 0 22px 42px rgba(17, 35, 56, 0.08);
+  }
+  .store-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    align-items: start;
+  }
+  .store-main {
+    display: grid;
+    gap: 14px;
+  }
+  .store-toolbar {
+    padding: 0 0 14px;
+    border-bottom: 1px solid #d9e3ee;
+    background: transparent;
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: end;
+  }
+  .store-toolbar h2 {
+    margin: 0;
+    color: var(--ca-navy);
+    font-size: 1.55rem;
+    font-weight: 800;
+  }
+  .store-toolbar p {
+    margin: 4px 0 0;
+    color: var(--ca-text);
+    font-size: 0.98rem;
+  }
+  .store-toolbar-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: end;
+  }
+  .filter-chip {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid #c9d7e5;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ca-navy);
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+  .filter-chip.is-active {
+    background: linear-gradient(180deg, #234a77 0%, #173558 100%);
+    border-color: #173558;
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(23, 53, 88, 0.18);
+  }
+  .product-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .product-card {
+    padding: 14px;
+    border: 1px solid #d7e2ef;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(17, 35, 56, 0.07);
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  }
+  .product-card:hover {
+    border-color: #c8d7e8;
+    box-shadow: 0 18px 34px rgba(17, 35, 56, 0.10);
+    transform: translateY(-1px);
+  }
+  .product-card.is-hidden {
+    display: none;
+  }
+  .product-media {
+    min-height: 104px;
+    border-radius: 12px;
+    background:
+      radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 58%),
+      linear-gradient(180deg, #f7fbff 0%, #edf5fc 100%);
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #e4edf6;
+  }
+  .product-media img {
+    max-height: 98px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 22px rgba(22, 52, 91, 0.16));
+  }
+  .product-placeholder {
+    width: 50px;
+    height: 72px;
+    border-radius: 24px 24px 13px 13px;
+    background: linear-gradient(180deg, #d7f2ff 0%, #8fd3f5 100%);
+    box-shadow: inset 0 0 0 1px rgba(22, 52, 91, 0.08), 0 16px 24px rgba(22, 52, 91, 0.12);
+    position: relative;
+  }
+  .product-placeholder::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 16px;
+    width: 18px;
+    height: 16px;
+    border-radius: 8px 8px 4px 4px;
+    background: #5fb7e8;
+  }
+  .stock-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--ca-navy);
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+  .stock-badge.low {
+    color: #8b6a35;
+  }
+  .stock-badge.off {
+    color: #8b2f2f;
+  }
+  .product-info {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+  .product-topline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    color: #c28c12;
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+  .product-topline-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .product-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .product-rating.pending {
+    color: #6d7f95;
+  }
+  .product-rating-count {
+    color: var(--ca-text);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .review-trigger,
+  .review-login-link {
+    border: 0;
+    background: transparent;
+    color: var(--ca-primary);
+    font-size: 0.8rem;
+    font-weight: 800;
+    padding: 0;
+    text-decoration: none;
+  }
+  .review-trigger:hover,
+  .review-login-link:hover {
+    color: var(--ca-navy);
+  }
+  .product-info h3 {
+    margin: 0;
+    color: var(--ca-navy);
+    font-size: 1.18rem;
+    line-height: 1.1;
+  }
+  .product-info p {
+    margin: 0;
+    color: var(--ca-text);
+    font-size: 0.94rem;
+    line-height: 1.35;
+  }
+  .product-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: end;
+    margin-top: 2px;
+  }
+  .product-price {
+    display: grid;
+    gap: 3px;
+  }
+  .product-price span {
+    color: var(--ca-text);
+    font-size: 0.82rem;
+  }
+  .product-price strong {
+    color: #122d4c;
+    font-size: 1.12rem;
+    line-height: 1;
+  }
+  .buy-box {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 156px;
+    gap: 12px;
+    align-items: center;
+  }
+  .buy-hint {
+    color: var(--ca-text);
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .buy-controls {
+    display: grid;
+    gap: 8px;
+  }
+  .quantity-bar {
+    display: grid;
+    grid-template-columns: 32px 1fr 32px;
+    align-items: center;
+    border: 1px solid var(--ca-line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    min-height: 32px;
+  }
+  .quantity-bar button {
+    height: 32px;
+    border: 0;
+    background: #f3f8ff;
+    color: var(--ca-navy);
+    font-weight: 900;
+  }
+  .quantity-bar span {
+    text-align: center;
+    color: var(--ca-navy);
+    font-weight: 900;
+  }
+  .add-button {
+    min-height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #234a77 0%, #173558 100%);
+    color: #fff;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 12px 24px rgba(23, 53, 88, 0.18);
+  }
+  .add-button:hover,
+  .add-button:focus {
+    background: linear-gradient(180deg, #1f436d 0%, #112a47 100%);
+  }
+  .cart-card {
+    position: sticky;
+    top: 96px;
+    padding: 16px;
+    border: 1px solid #d7e2ef;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 16px 34px rgba(17, 35, 56, 0.08);
+    display: grid;
+    gap: 12px;
+  }
+  .cart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+  }
+  .cart-head h2 {
+    margin: 0;
+    color: var(--ca-navy);
+    font-size: 1.25rem;
+  }
+  .cart-head p {
+    margin: 2px 0 0;
+    color: var(--ca-text);
+    font-size: 0.88rem;
+  }
+  .cart-count {
+    min-width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f8ff;
+    color: var(--ca-navy);
+    font-weight: 900;
+  }
+  .cart-items {
+    display: grid;
+    gap: 8px;
+  }
+  .cart-empty {
+    padding: 18px;
+    border: 1px dashed var(--ca-line-strong);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--ca-text);
+    background: #fbfdff;
+  }
+  .cart-item {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--ca-line);
+    align-items: center;
+  }
+  .cart-item-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: linear-gradient(180deg, #f6fbff 0%, #edf5fc 100%);
+    border: 1px solid #e1e9f2;
+  }
+  .cart-item-thumb img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+  }
+  .cart-item-thumb span {
+    font-size: 1.1rem;
+    color: #5fb7e8;
+  }
+  .cart-item-copy strong {
+    display: block;
+    color: var(--ca-navy);
+    font-size: 0.98rem;
+  }
+  .cart-item-copy small {
+    color: var(--ca-text);
+  }
+  .delivery-toggle {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .delivery-toggle label {
+    min-height: 44px;
+    padding: 0 10px;
+    border: 1px solid var(--ca-line);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ca-navy);
+    font-weight: 800;
+    background: #fff;
+    cursor: pointer;
+  }
+  .delivery-toggle input {
+    margin: 0;
+  }
+  .cart-payment {
+    display: grid;
+    gap: 8px;
+  }
+  .cart-payment-label {
+    color: #10263f;
+    font-size: 0.92rem;
+    font-weight: 800;
+  }
+  .payment-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .payment-preview-chip {
+    min-height: 34px;
+    border-radius: 8px;
+    border: 1px solid #d7e2ef;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #2f6fd6;
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+  .payment-preview-chip.pix {
+    color: #2ea488;
+  }
+  .payment-preview-chip.bar {
+    color: #38495d;
+  }
+  .cart-total {
+    padding: 14px;
+    border-radius: 8px;
+    background: var(--ca-navy);
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: end;
+  }
+  .cart-total span {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.84rem;
+  }
+  .cart-total strong {
+    font-size: 1.8rem;
+    line-height: 1;
+  }
+  .checkout-button {
+    min-height: 50px;
+    border: 0;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #1b9a73 0%, #117859 100%);
+    color: #fff;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 14px 30px rgba(17, 120, 89, 0.24);
+    animation: ctaBreath 2.4s ease-in-out infinite;
+  }
+  .checkout-button:hover,
+  .checkout-button:focus {
+    background: linear-gradient(180deg, #168767 0%, #0d6249 100%);
+  }
+  .cart-note {
+    text-align: center;
+    color: var(--ca-text);
+    font-size: 0.82rem;
+  }
+  .hidden-form {
+    display: none;
+  }
+  .modal-shop-list {
+    display: grid;
+    gap: 8px;
+  }
+  #chooseModal,
+  #reviewModal,
+  #confirmModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1060;
+    overflow: auto;
+    padding: 24px;
+    background: rgba(7, 24, 43, 0.48);
+  }
+  #chooseModal.show,
+  #reviewModal.show,
+  #confirmModal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #chooseModal .modal-dialog,
+  #reviewModal .modal-dialog,
+  #confirmModal .modal-dialog {
+    width: min(100%, 760px);
+    margin: auto;
+  }
+  #confirmModal .modal-dialog {
+    width: min(100%, 540px);
+  }
+  #chooseModal .modal-content,
+  #reviewModal .modal-content,
+  #confirmModal .modal-content {
+    background: #fff;
+  }
+  body.modal-open {
+    overflow: hidden;
+  }
+  .d-none {
+    display: none !important;
+  }
+  .modal-shop-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--ca-line);
+  }
+  .modal-total {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 8px;
+    background: #f3f8ff;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .payment-option {
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid var(--ca-line);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ca-navy);
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .quick-login-box {
+    padding: 16px;
+    border-radius: 14px;
+    background: #f7fbff;
+    border: 1px solid rgba(22, 52, 91, 0.1);
+  }
+  .quick-login-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .quick-login-status {
+    margin-top: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .quick-login-status.is-error { color: #b02a37; }
+  .quick-login-status.is-success { color: #1b8a53; }
+  .confirm-box {
+    padding: 14px;
+    border-radius: 8px;
+    background: #f7fbff;
+    border: 1px solid rgba(22, 52, 91, 0.08);
+  }
+  .rating-stars {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .rating-stars input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .rating-stars label {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    border: 1px solid #d7e2ef;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: #fff;
+    color: #a7b5c8;
+    font-size: 1.2rem;
+    transition: transform .18s ease, border-color .18s ease, color .18s ease, background .18s ease;
+  }
+  .rating-stars label:hover {
+    transform: translateY(-1px);
+    border-color: #9cc4ef;
+    color: #f5b400;
+  }
+  .rating-stars input:checked + label {
+    border-color: #f5d36a;
+    background: #fff8de;
+    color: #f0b400;
+    box-shadow: 0 10px 18px rgba(240, 180, 0, 0.16);
+  }
+  .is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #fff8f8 !important;
+  }
+  @keyframes storePulse {
+    0% { box-shadow: 0 0 0 0 rgba(33, 177, 107, 0.45); }
+    70% { box-shadow: 0 0 0 10px rgba(33, 177, 107, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(33, 177, 107, 0); }
+  }
+  @keyframes storeGlow {
+    0%, 100% { opacity: 0.55; transform: scaleX(0.96); }
+    50% { opacity: 1; transform: scaleX(1); }
+  }
+  @keyframes ctaBreath {
+    0%, 100% { box-shadow: 0 14px 30px rgba(17, 120, 89, 0.18); }
+    50% { box-shadow: 0 18px 34px rgba(17, 120, 89, 0.30); }
+  }
+
+  @media (max-width: 1100px) {
+    .store-layout {
+      grid-template-columns: 1fr;
+    }
+    .cart-card {
+      position: static;
+      min-width: 0;
+    }
+  }
+  @media (max-width: 900px) {
+    .product-list {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 800px) {
+    footer.container {
+      padding: 18px 22px !important;
+    }
+    .store-shell {
+      padding: 16px;
+    }
+    .store-hero-banner {
+      padding: 30px 16px;
+    }
+    .hero-steps-container {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .hero-steps-container::before {
+      display: none; /* Esconde a linha no mobile para não quebrar o layout */
+    }
+    .store-toolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .store-toolbar-actions {
+      justify-content: start;
+    }
+    .product-card {
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 12px;
+    }
+    .product-media {
+      min-height: 88px;
+    }
+    .product-media img {
+      max-height: 82px;
+    }
+    .buy-box {
+      grid-template-columns: 1fr;
+    }
+    .payment-grid,
+    .delivery-toggle,
+    .payment-preview-grid {
+      grid-template-columns: 1fr;
+    }
+    .store-nav-cart {
+      padding: 0 14px;
+    }
+  }
+</style>
+
+<div class="store-page">
+  {% if rating_error %}
+    <div class="alert alert-danger mb-0">{{ rating_error }}</div>
+  {% endif %}
+  {% if rating_success %}
+    <div class="alert alert-success mb-0">{{ rating_success }}</div>
+  {% endif %}
+  {% if catalog_error %}
+    <div class="alert alert-warning mb-0">{{ catalog_error }}</div>
+  {% endif %}
+
+  <section class="store-hero-banner">
+    <div class="hero-kicker">
+      <span class="dot"></span> Pedido rápido e sem complicação
+    </div>
+    
+    
+    <div class="hero-steps-container">
+      <article class="hero-step-item">
+        <div class="hero-step-number">1</div>
+        <div class="hero-step-icon">
+          <i class="bi bi-search"></i>
+        </div>
+        <h3>1. ESCOLHER</h3>
+        <p>Selecione os melhores galões e águas para sua rotina.</p>
+      </article>
+      
+      <article class="hero-step-item">
+        <div class="hero-step-number">2</div>
+        <div class="hero-step-icon">
+          <i class="bi bi-ui-checks-grid"></i>
+        </div>
+        <h3>2. REVISAR</h3>
+        <p>Confira itens, valores e escolha a entrega.</p>
+      </article>
+      
+      <article class="hero-step-item">
+        <div class="hero-step-number">3</div>
+        <div class="hero-step-icon">
+          <i class="bi bi-whatsapp"></i>
+        </div>
+        <h3>3. PEDIR</h3>
+        <p>Finalize com segurança e pague como preferir.</p>
+      </article>
+    </div>
+
+    <div class="store-easy-row">
+      <span class="store-easy-pill"><i class="bi bi-lightning-charge-fill"></i> Muito fácil pedir água</span>
+      <span class="store-easy-pill"><i class="bi bi-bag-check"></i> Sacola organizada</span>
+      <span class="store-easy-pill"><i class="bi bi-whatsapp"></i> Atendimento rápido</span>
+    </div>
+  </section>
+
+  <section class="store-layout">
+    <div class="store-main store-shell">
+      <div class="store-toolbar" id="produtos">
+        <div>
+          <h2>Produtos disponíveis</h2>
+          <p>Vitrine limpa, preços visíveis e pedido sem enrolação.</p>
+        </div>
+        <div class="store-toolbar-actions" aria-label="Filtros da loja">
+          <button class="filter-chip is-active" type="button" data-filter="all">Todos</button>
+          <button class="filter-chip" type="button" data-filter="promo">Promoções</button>
+          <button class="filter-chip" type="button" data-filter="20l">20L</button>
+        </div>
+      </div>
+
+      <div class="product-list">
+        {% for offer in quick_offers %}
+        <article
+          class="product-card {% if loop.first %}is-featured{% endif %}"
+          data-product-card
+          data-slug="{{ offer.slug }}"
+          data-name="{{ offer.name }}"
+          data-pickup="{{ offer.pickup_price }}"
+          data-delivery="{{ offer.delivery_price }}"
+          data-badge="{{ offer.badge }}"
+          data-image="{{ offer.image_url or '' }}"
+          data-preselect="{{ 'true' if preselected_product == offer.slug else 'false' }}"
+        >
+          <div class="product-media">
+            {% if offer.image_url %}
+              <img src="{{ offer.image_url }}" alt="{{ offer.name }}">
+            {% else %}
+              <div class="product-placeholder" aria-label="{{ offer.name }}"></div>
+            {% endif %}
+            <span class="stock-badge {% if offer.stock_status == 'baixo_estoque' %}low{% elif offer.stock_status == 'indisponivel' %}off{% endif %}">
+              {% if offer.stock_status == 'baixo_estoque' %}
+                Baixo estoque
+              {% elif offer.stock_status == 'sob_encomenda' %}
+                Sob encomenda
+              {% elif offer.stock_status == 'indisponivel' %}
+                Indisponível
+              {% else %}
+                Disponível
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="product-info">
+            <div class="product-topline">
+              <div class="product-topline-main">
+                {% if offer.rating_count %}
+                  <span class="product-rating"><i class="bi bi-star-fill"></i> {{ '%.1f'|format(offer.rating_average)|replace('.', ',') }}</span>
+                  <span class="product-rating-count">{{ offer.rating_count }} avaliação{% if offer.rating_count != 1 %}es{% endif %}</span>
+                {% else %}
+                  <span class="product-rating pending"><i class="bi bi-star"></i> Novo</span>
+                  <span class="product-rating-count">Sem avaliações ainda</span>
+                {% endif %}
+              </div>
+              {% if customer_logged_in and offer.product_id %}
+                <button
+                  class="review-trigger"
+                  type="button"
+                  data-open-rating
+                  data-product-id="{{ offer.product_id }}"
+                  data-product-name="{{ offer.name }}"
+                  data-current-rating="{{ offer.customer_rating or '' }}"
+                >
+                  {% if offer.customer_rating %}Sua nota: {{ offer.customer_rating }}★{% else %}Avaliar{% endif %}
+                </button>
+              {% elif offer.product_id %}
+                <a class="review-login-link" href="/login?next=/loja">Entrar para avaliar</a>
+              {% endif %}
+            </div>
+            <h3>{{ offer.name }}</h3>
+            <p>{{ offer.description }}</p>
+            <div class="product-meta">
+              <div class="product-price">
+                <span>Retirada</span>
+                <strong>R$ {{ '%.2f'|format(offer.pickup_price)|replace('.', ',') }}</strong>
+              </div>
+              <div class="product-price">
+                <span>Entrega</span>
+                <strong>R$ {{ '%.2f'|format(offer.delivery_price)|replace('.', ',') }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="buy-box">
+            <div class="buy-hint">
+              {{ offer.badge }}. Escolha a quantidade e adicione direto na sacola.
+            </div>
+            <div class="buy-controls">
+              <div class="quantity-bar">
+                <button type="button" data-qty-down aria-label="Diminuir quantidade">-</button>
+                <span data-qty-value>1</span>
+                <button type="button" data-qty-up aria-label="Aumentar quantidade">+</button>
+              </div>
+              <button class="add-button" type="button" data-add-cart>
+                <i class="bi bi-plus-lg"></i>
+                <span>Adicionar</span>
+              </button>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+
+    <aside class="cart-card" id="sacola">
+      <div class="cart-head">
+        <div>
+          <h2>Sacola</h2>
+          <p>Revise antes de finalizar.</p>
+        </div>
+        <span class="cart-count" data-cart-count>0</span>
+      </div>
+
+      <div class="cart-items" data-cart-items>
+        <div class="cart-empty" data-cart-empty>Adicione um produto para começar.</div>
+      </div>
+
+      <div>
+        <label class="form-label fw-semibold">Recebimento</label>
+        <div class="delivery-toggle">
+          <label>
+            <input type="radio" name="fulfillment_display" value="delivery" {% if customer_prefill.buy_mode != 'pickup' %}checked{% endif %}>
+            <span>Entrega</span>
+          </label>
+          <label>
+            <input type="radio" name="fulfillment_display" value="pickup" {% if customer_prefill.buy_mode == 'pickup' %}checked{% endif %}>
+            <span>Retirada</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="cart-payment">
+        <div class="cart-payment-label">Métodos de pagamento</div>
+        <div class="payment-preview-grid">
+          <span class="payment-preview-chip">VISA</span>
+          <span class="payment-preview-chip">MASTER</span>
+          <span class="payment-preview-chip pix">PIX</span>
+          <span class="payment-preview-chip bar">Boleto</span>
+        </div>
+      </div>
+
+      <div class="cart-total">
+        <div>
+          <span>Total estimado</span>
+          <strong data-cart-total>R$ 0,00</strong>
+        </div>
+        <i class="bi bi-bag-check fs-4"></i>
+      </div>
+
+      <button class="checkout-button" type="button" data-open-choose-modal>
+        <i class="bi bi-arrow-right-circle"></i>
+        <span>Revisar e pedir</span>
+      </button>
+      <div class="cart-note">Você confirma dados e pagamento antes de enviar.</div>
+
+      <form class="hidden-form" method="post" action="/loja/finalizar" data-shop-form>
+        <input type="hidden" name="items_json" value="[]" data-items-json>
+        <input type="hidden" name="fulfillment" value="{{ customer_prefill.buy_mode or 'delivery' }}" data-fulfillment-hidden>
+        <input type="hidden" name="payment_method" value="{{ customer_prefill.payment_method or 'pix' }}" data-payment-hidden>
+        <input type="hidden" name="name" value="{{ customer_prefill.name }}" data-name-hidden>
+        <input type="hidden" name="phone" value="{{ customer_prefill.phone }}" data-phone-hidden>
+        <input type="hidden" name="neighborhood" value="{{ customer_prefill.neighborhood }}" data-neighborhood-hidden>
+        <input type="hidden" name="street" value="{{ customer_prefill.street }}" data-street-hidden>
+        <input type="hidden" name="number" value="{{ customer_prefill.number }}" data-number-hidden>
+        <input type="hidden" name="complement" value="{{ customer_prefill.complement }}" data-complement-hidden>
+        <input type="hidden" name="notes" value="" data-notes-hidden>
+      </form>
+    </aside>
+  </section>
+</div>
+
+<div class="modal fade" id="chooseModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4 shadow-lg">
+      <div class="modal-body p-4 p-lg-5">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+          <div>
+            <span class="section-label">Escolher</span>
+            <h3 class="display-serif mt-3 mb-2">Confira sua sacola.</h3>
+            <p class="text-muted mb-0">Veja produtos, quantidade e modalidade antes de revisar seus dados.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-shop-list" data-modal-choose-list></div>
+        <div class="modal-total">
+          <span>Total estimado</span>
+          <strong data-modal-choose-total>R$ 0,00</strong>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="ca-pill ca-outline" data-bs-dismiss="modal">Voltar</button>
+          <button type="button" class="ca-pill ca-primary" data-continue-review>Revisar dados</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 rounded-4 shadow-lg">
+      <div class="modal-body p-4 p-lg-5">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+          <div>
+            <span class="section-label">Revisar</span>
+            <h3 class="display-serif mt-3 mb-2">Dados e pagamento.</h3>
+            <p class="text-muted mb-0">Confirme as informações para a equipe receber o pedido completo.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="quick-login-box mb-4">
+          <div class="quick-login-head">
+            <div>
+              <strong class="d-block mb-1">Já tenho cadastro</strong>
+              <span class="small text-muted">Entre aqui para carregar seus dados do cadastro automaticamente.</span>
+            </div>
+            {% if customer_logged_in %}
+              <span class="tag">Cliente conectado</span>
+            {% endif %}
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Telefone ou e-mail</label>
+              <input class="form-control" type="text" value="{{ customer_prefill.phone }}" data-prefill-identifier placeholder="Seu telefone ou e-mail">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Senha</label>
+              <input class="form-control" type="password" data-prefill-password placeholder="Sua senha">
+            </div>
+            <div class="col-md-2 d-grid">
+              <label class="form-label fw-semibold d-none d-md-block">&nbsp;</label>
+              <button type="button" class="ca-pill ca-outline w-100 justify-content-center" data-prefill-login-button>Entrar</button>
+            </div>
+          </div>
+          <div class="quick-login-status {% if customer_logged_in %}is-success{% endif %}" data-prefill-status>
+            {% if customer_logged_in %}Dados do seu cadastro já estão carregados.{% endif %}
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Recebimento</label>
+            <div class="delivery-toggle">
+              <label>
+                <input type="radio" name="fulfillment_review" value="delivery" {% if customer_prefill.buy_mode != 'pickup' %}checked{% endif %}>
+                <span>Entrega</span>
+              </label>
+              <label>
+                <input type="radio" name="fulfillment_review" value="pickup" {% if customer_prefill.buy_mode == 'pickup' %}checked{% endif %}>
+                <span>Retirada</span>
+              </label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Nome</label>
+            <input class="form-control" type="text" value="{{ customer_prefill.name }}" data-review-name placeholder="Seu nome">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">WhatsApp</label>
+            <input class="form-control" type="text" value="{{ customer_prefill.phone }}" data-review-phone placeholder="Seu WhatsApp">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Bairro</label>
+            <input class="form-control" type="text" value="{{ customer_prefill.neighborhood }}" data-review-neighborhood placeholder="Seu bairro">
+          </div>
+          <div class="col-md-6" data-review-address-wrap>
+            <label class="form-label fw-semibold">Rua</label>
+            <input class="form-control" type="text" value="{{ customer_prefill.street }}" data-review-street placeholder="Rua">
+          </div>
+          <div class="col-md-4" data-review-address-wrap>
+            <label class="form-label fw-semibold">Número</label>
+            <input class="form-control" type="text" value="{{ customer_prefill.number }}" data-review-number placeholder="Nº">
+          </div>
+          <div class="col-md-8" data-review-address-wrap>
+            <label class="form-label fw-semibold">Complemento</label>
+            <input class="form-control" type="text" value="{{ customer_prefill.complement }}" data-review-complement placeholder="Complemento">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Forma de pagamento</label>
+            <div class="payment-grid">
+              <label class="payment-option"><input type="radio" name="payment_review" value="pix" checked><span>PIX</span></label>
+              <label class="payment-option"><input type="radio" name="payment_review" value="dinheiro"><span>Dinheiro</span></label>
+              <label class="payment-option"><input type="radio" name="payment_review" value="cartao_credito"><span>Cartão de crédito</span></label>
+              <label class="payment-option"><input type="radio" name="payment_review" value="cartao_debito"><span>Cartão de débito</span></label>
+            </div>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Observações</label>
+            <input class="form-control" type="text" value="" data-review-notes placeholder="Ex.: deixar na portaria">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="ca-pill ca-outline" data-back-choose>Voltar</button>
+          <button type="button" class="ca-pill ca-primary" data-open-confirm>Confirmar pedido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow-lg">
+      <div class="modal-body p-4 p-lg-5">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+          <div>
+            <span class="section-label">Pedir</span>
+            <h3 class="display-serif mt-3 mb-2">Enviar pedido.</h3>
+            <p class="text-muted mb-0">A atendente recebe a solicitação organizada no painel interno.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="d-grid gap-3">
+          <div class="confirm-box" data-confirm-items></div>
+          <div class="confirm-box" data-confirm-customer></div>
+        </div>
+        <button class="checkout-button w-100 mt-4" type="button" data-submit-order>
+          <i class="bi bi-send-check"></i>
+          <span>Enviar pedido</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="ratingModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow-lg">
+      <div class="modal-body p-4 p-lg-5">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+          <div>
+            <span class="section-label">Avaliação</span>
+            <h3 class="display-serif mt-3 mb-2">Como foi sua experiência?</h3>
+            <p class="text-muted mb-0" data-rating-product-name>Escolha de 1 a 5 estrelas.</p>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <form method="post" action="/loja/avaliar" class="d-grid gap-3" data-rating-form>
+          <input type="hidden" name="product_id" value="" data-rating-product-id>
+          <div>
+            <label class="form-label fw-semibold">Sua nota</label>
+            <div class="rating-stars">
+              <input type="radio" name="rating" id="rating-1" value="1" required><label for="rating-1"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" name="rating" id="rating-2" value="2"><label for="rating-2"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" name="rating" id="rating-3" value="3"><label for="rating-3"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" name="rating" id="rating-4" value="4"><label for="rating-4"><i class="bi bi-star-fill"></i></label>
+              <input type="radio" name="rating" id="rating-5" value="5"><label for="rating-5"><i class="bi bi-star-fill"></i></label>
+            </div>
+          </div>
+          <div>
+            <label class="form-label fw-semibold">Comentário opcional</label>
+            <textarea class="form-control" name="comment" rows="3" placeholder="Conte rapidinho o que achou da água ou do atendimento."></textarea>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="ca-pill ca-outline" data-bs-dismiss="modal">Fechar</button>
+            <button type="submit" class="ca-pill ca-primary">Salvar avaliação</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const cards = Array.from(document.querySelectorAll('[data-product-card]'));
+    const cartItemsRoot = document.querySelector('[data-cart-items]');
+    const cartEmpty = document.querySelector('[data-cart-empty]');
+    const totalRoot = document.querySelector('[data-cart-total]');
+    const countRoots = document.querySelectorAll('[data-cart-count], [data-cart-count-badge]');
+    const itemsJsonInput = document.querySelector('[data-items-json]');
+    const form = document.querySelector('[data-shop-form]');
+    if (!cards.length || !cartItemsRoot || !totalRoot || !itemsJsonInput || !form) return;
+
+    const chooseModalEl = document.getElementById('chooseModal');
+    const reviewModalEl = document.getElementById('reviewModal');
+    const confirmModalEl = document.getElementById('confirmModal');
+    const ratingModalEl = document.getElementById('ratingModal');
+    const makeModal = (modalEl) => {
+      if (!modalEl) return null;
+      if (window.bootstrap?.Modal) return new window.bootstrap.Modal(modalEl);
+      return {
+        show() {
+          modalEl.classList.add('show');
+          modalEl.removeAttribute('aria-hidden');
+          modalEl.setAttribute('aria-modal', 'true');
+          document.body.classList.add('modal-open');
+        },
+        hide() {
+          modalEl.classList.remove('show');
+          modalEl.setAttribute('aria-hidden', 'true');
+          modalEl.removeAttribute('aria-modal');
+          if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+          }
+        },
+      };
+    };
+    const chooseModal = makeModal(chooseModalEl);
+    const reviewModal = makeModal(reviewModalEl);
+    const confirmModal = makeModal(confirmModalEl);
+    const ratingModal = makeModal(ratingModalEl);
+    const chooseListRoot = document.querySelector('[data-modal-choose-list]');
+    const chooseTotalRoot = document.querySelector('[data-modal-choose-total]');
+    const confirmItemsRoot = document.querySelector('[data-confirm-items]');
+    const confirmCustomerRoot = document.querySelector('[data-confirm-customer]');
+    const openChooseButton = document.querySelector('[data-open-choose-modal]');
+    const continueReviewButton = document.querySelector('[data-continue-review]');
+    const openConfirmButton = document.querySelector('[data-open-confirm]');
+    const submitOrderButton = document.querySelector('[data-submit-order]');
+    const ratingProductIdInput = document.querySelector('[data-rating-product-id]');
+    const ratingProductName = document.querySelector('[data-rating-product-name]');
+    const ratingForm = document.querySelector('[data-rating-form]');
+    const ratingInputs = document.querySelectorAll('input[name="rating"]');
+    const ratingComment = ratingForm?.querySelector('textarea[name="comment"]');
+    const fulfillmentDisplayInputs = document.querySelectorAll('input[name="fulfillment_display"]');
+    const fulfillmentReviewInputs = document.querySelectorAll('input[name="fulfillment_review"]');
+    const paymentReviewInputs = document.querySelectorAll('input[name="payment_review"]');
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const hiddenFulfillment = document.querySelector('[data-fulfillment-hidden]');
+    const hiddenPayment = document.querySelector('[data-payment-hidden]');
+    const hiddenName = document.querySelector('[data-name-hidden]');
+    const hiddenPhone = document.querySelector('[data-phone-hidden]');
+    const hiddenNeighborhood = document.querySelector('[data-neighborhood-hidden]');
+    const hiddenStreet = document.querySelector('[data-street-hidden]');
+    const hiddenNumber = document.querySelector('[data-number-hidden]');
+    const hiddenComplement = document.querySelector('[data-complement-hidden]');
+    const hiddenNotes = document.querySelector('[data-notes-hidden]');
+    const reviewName = document.querySelector('[data-review-name]');
+    const reviewPhone = document.querySelector('[data-review-phone]');
+    const reviewNeighborhood = document.querySelector('[data-review-neighborhood]');
+    const reviewStreet = document.querySelector('[data-review-street]');
+    const reviewNumber = document.querySelector('[data-review-number]');
+    const reviewComplement = document.querySelector('[data-review-complement]');
+    const reviewNotes = document.querySelector('[data-review-notes]');
+    const reviewAddressWraps = document.querySelectorAll('[data-review-address-wrap]');
+    const prefillIdentifier = document.querySelector('[data-prefill-identifier]');
+    const prefillPassword = document.querySelector('[data-prefill-password]');
+    const prefillLoginButton = document.querySelector('[data-prefill-login-button]');
+    const prefillStatus = document.querySelector('[data-prefill-status]');
+    const cart = new Map();
+    const modalById = {
+      chooseModal,
+      reviewModal,
+      confirmModal,
+      ratingModal,
+    };
+
+    const money = (value) => `R$ ${Number(value || 0).toFixed(2).replace('.', ',')}`;
+    const mode = () => hiddenFulfillment?.value || 'delivery';
+    const payment = () => hiddenPayment?.value || 'pix';
+    const cartArray = () => Array.from(cart.values());
+    const cartQty = () => cartArray().reduce((sum, item) => sum + item.qty, 0);
+    const currentUnit = (item) => mode() === 'pickup' ? item.pickup : item.delivery;
+    const cartTotal = () => cartArray().reduce((sum, item) => sum + currentUnit(item) * item.qty, 0);
+
+    const serializeCart = () => cartArray().map((item) => ({
+      slug: item.slug,
+      qty: item.qty,
+      mode: mode(),
+    }));
+
+    const renderCart = () => {
+      const items = cartArray();
+      cartItemsRoot.innerHTML = '';
+      cartEmpty?.classList.toggle('d-none', items.length > 0);
+      if (!items.length && cartEmpty) {
+        cartItemsRoot.appendChild(cartEmpty);
+      }
+      items.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'cart-item';
+        row.innerHTML = `
+          <div class="cart-item-thumb">
+            ${item.image ? `<img src="${item.image}" alt="${item.name}">` : '<span><i class="bi bi-droplet-fill"></i></span>'}
+          </div>
+          <div class="cart-item-copy">
+            <strong>${item.name}</strong>
+            <small>${item.qty}x ${mode() === 'pickup' ? 'Retirada' : 'Entrega'}</small>
+          </div>
+          <strong>${money(currentUnit(item) * item.qty)}</strong>
+        `;
+        cartItemsRoot.appendChild(row);
+      });
+      totalRoot.textContent = money(cartTotal());
+      countRoots.forEach((root) => {
+        root.textContent = String(cartQty());
+      });
+      itemsJsonInput.value = JSON.stringify(serializeCart());
+    };
+
+    const syncAddressVisibility = () => {
+      reviewAddressWraps.forEach((node) => node.classList.toggle('d-none', mode() === 'pickup'));
+    };
+
+    const renderChooseModal = () => {
+      chooseListRoot.innerHTML = '';
+      cartArray().forEach((item) => {
+        const subtotal = currentUnit(item) * item.qty;
+        const row = document.createElement('div');
+        row.className = 'modal-shop-item';
+        row.innerHTML = `
+          <div>
+            <strong>${item.name}</strong>
+            <div class="small text-muted">x${item.qty} • ${mode() === 'pickup' ? 'Retirada' : 'Entrega'}</div>
+          </div>
+          <strong>${money(subtotal)}</strong>
+        `;
+        chooseListRoot.appendChild(row);
+      });
+      chooseTotalRoot.textContent = money(cartTotal());
+    };
+
+    const syncReviewFromHidden = () => {
+      reviewName.value = hiddenName.value || '';
+      reviewPhone.value = hiddenPhone.value || '';
+      reviewNeighborhood.value = hiddenNeighborhood.value || '';
+      reviewStreet.value = hiddenStreet.value || '';
+      reviewNumber.value = hiddenNumber.value || '';
+      reviewComplement.value = hiddenComplement.value || '';
+      reviewNotes.value = hiddenNotes.value || '';
+      fulfillmentReviewInputs.forEach((input) => input.checked = input.value === mode());
+      paymentReviewInputs.forEach((input) => input.checked = input.value === payment());
+      fulfillmentDisplayInputs.forEach((input) => input.checked = input.value === mode());
+      syncAddressVisibility();
+    };
+
+    const syncHiddenFromReview = () => {
+      hiddenName.value = reviewName.value.trim();
+      hiddenPhone.value = reviewPhone.value.trim();
+      hiddenNeighborhood.value = reviewNeighborhood.value.trim();
+      hiddenStreet.value = reviewStreet.value.trim();
+      hiddenNumber.value = reviewNumber.value.trim();
+      hiddenComplement.value = reviewComplement.value.trim();
+      hiddenNotes.value = reviewNotes.value.trim();
+      hiddenFulfillment.value = Array.from(fulfillmentReviewInputs).find((input) => input.checked)?.value || 'delivery';
+      hiddenPayment.value = Array.from(paymentReviewInputs).find((input) => input.checked)?.value || 'pix';
+      fulfillmentDisplayInputs.forEach((input) => input.checked = input.value === mode());
+      syncAddressVisibility();
+      renderCart();
+    };
+
+    const setPrefillStatus = (message, type = '') => {
+      if (!prefillStatus) return;
+      prefillStatus.textContent = message || '';
+      prefillStatus.classList.remove('is-error', 'is-success');
+      if (type) prefillStatus.classList.add(type);
+    };
+
+    const renderConfirmModal = () => {
+      syncHiddenFromReview();
+      const labels = {
+        pix: 'PIX',
+        dinheiro: 'Dinheiro',
+        cartao_credito: 'Cartão de crédito',
+        cartao_debito: 'Cartão de débito',
+      };
+      const itemsHtml = cartArray().map((item) => {
+        const subtotal = currentUnit(item) * item.qty;
+        return `<div class="d-flex justify-content-between py-2 border-bottom"><span>${item.name} x${item.qty}</span><strong>${money(subtotal)}</strong></div>`;
+      }).join('');
+      confirmItemsRoot.innerHTML = `
+        <strong class="d-block mb-2">Itens do pedido</strong>
+        ${itemsHtml}
+        <div class="d-flex justify-content-between pt-3"><span>Total</span><strong>${money(cartTotal())}</strong></div>
+      `;
+      const address = mode() === 'pickup'
+        ? 'Retirada na loja'
+        : `${hiddenStreet.value || 'Rua não informada'}, ${hiddenNumber.value || 's/n'}${hiddenComplement.value ? ` • ${hiddenComplement.value}` : ''} • ${hiddenNeighborhood.value || 'Bairro não informado'}`;
+      confirmCustomerRoot.innerHTML = `
+        <strong class="d-block mb-2">Dados confirmados</strong>
+        <div class="small text-muted">Cliente</div>
+        <div class="mb-2">${hiddenName.value}</div>
+        <div class="small text-muted">WhatsApp</div>
+        <div class="mb-2">${hiddenPhone.value}</div>
+        <div class="small text-muted">Recebimento</div>
+        <div class="mb-2">${mode() === 'pickup' ? 'Retirada' : 'Entrega'}</div>
+        <div class="small text-muted">Pagamento</div>
+        <div class="mb-2">${labels[payment()] || 'PIX'}</div>
+        <div class="small text-muted">Endereço</div>
+        <div>${address}</div>
+      `;
+    };
+
+    const applyFilter = (filter) => {
+      cards.forEach((card) => {
+        const name = (card.dataset.name || '').toLowerCase();
+        const badge = (card.dataset.badge || '').toLowerCase();
+        const isPromo = badge.includes('promo') || badge.includes('oferta') || card.classList.contains('is-featured');
+        const visible = filter === 'all'
+          || (filter === 'promo' && isPromo)
+          || (filter === '20l' && name.includes('20'));
+        card.classList.toggle('is-hidden', !visible);
+      });
+    };
+
+    cards.forEach((card) => {
+      const qtyValue = card.querySelector('[data-qty-value]');
+      let qty = Number(qtyValue?.textContent || 1);
+      const slug = card.dataset.slug;
+      const name = card.dataset.name;
+      const pickup = Number(card.dataset.pickup || 0);
+      const delivery = Number(card.dataset.delivery || 0);
+      const image = card.dataset.image || '';
+
+      card.querySelector('[data-qty-down]')?.addEventListener('click', () => {
+        qty = Math.max(1, qty - 1);
+        qtyValue.textContent = String(qty);
+      });
+      card.querySelector('[data-qty-up]')?.addEventListener('click', () => {
+        qty += 1;
+        qtyValue.textContent = String(qty);
+      });
+      card.querySelector('[data-add-cart]')?.addEventListener('click', () => {
+        cart.set(slug, { slug, name, qty, pickup, delivery, image });
+        renderCart();
+        document.getElementById('sacola')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      if (card.dataset.preselect === 'true') {
+        cart.set(slug, { slug, name, qty: 1, pickup, delivery, image });
+      }
+    });
+
+    fulfillmentDisplayInputs.forEach((input) => {
+      input.addEventListener('change', () => {
+        hiddenFulfillment.value = input.value;
+        syncReviewFromHidden();
+        renderCart();
+      });
+    });
+    fulfillmentReviewInputs.forEach((input) => {
+      input.addEventListener('change', () => {
+        hiddenFulfillment.value = input.value;
+        syncAddressVisibility();
+      });
+    });
+    filterButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        filterButtons.forEach((item) => item.classList.remove('is-active'));
+        button.classList.add('is-active');
+        applyFilter(button.dataset.filter || 'all');
+      });
+    });
+    document.querySelectorAll('[data-bs-dismiss="modal"]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const modalEl = button.closest('.modal');
+        modalById[modalEl?.id]?.hide();
+      });
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      ratingModal?.hide();
+      confirmModal?.hide();
+      reviewModal?.hide();
+      chooseModal?.hide();
+    });
+    openChooseButton?.addEventListener('click', () => {
+      if (!cart.size) return;
+      renderChooseModal();
+      chooseModal?.show();
+    });
+    continueReviewButton?.addEventListener('click', () => {
+      chooseModal?.hide();
+      syncReviewFromHidden();
+      reviewModal?.show();
+    });
+    document.querySelector('[data-back-choose]')?.addEventListener('click', () => {
+      reviewModal?.hide();
+      renderChooseModal();
+      chooseModal?.show();
+    });
+    openConfirmButton?.addEventListener('click', () => {
+      let valid = true;
+      [reviewName, reviewPhone].forEach((input) => input.classList.remove('is-invalid'));
+      if (!reviewName.value.trim()) {
+        reviewName.classList.add('is-invalid');
+        valid = false;
+      }
+      if (!reviewPhone.value.trim()) {
+        reviewPhone.classList.add('is-invalid');
+        valid = false;
+      }
+      if (!valid) return;
+      reviewModal?.hide();
+      renderConfirmModal();
+      confirmModal?.show();
+    });
+    submitOrderButton?.addEventListener('click', () => {
+      syncHiddenFromReview();
+      form.submit();
+    });
+
+    prefillLoginButton?.addEventListener('click', async () => {
+      const identifier = prefillIdentifier?.value.trim() || '';
+      const password = prefillPassword?.value || '';
+      if (!identifier || !password) {
+        setPrefillStatus('Preencha telefone ou e-mail e a senha para carregar seus dados.', 'is-error');
+        return;
+      }
+
+      prefillLoginButton.disabled = true;
+      setPrefillStatus('Carregando dados do cadastro...', '');
+
+      try {
+        const body = new URLSearchParams();
+        body.set('identifier', identifier);
+        body.set('password', password);
+
+        const response = await fetch('/loja/prefill-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'fetch',
+          },
+          body: body.toString(),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          setPrefillStatus(data.message || 'Não foi possível carregar o cadastro.', 'is-error');
+          return;
+        }
+
+        const customer = data.customer || {};
+        reviewName.value = customer.name || '';
+        reviewPhone.value = customer.phone || '';
+        reviewNeighborhood.value = customer.neighborhood || '';
+        reviewStreet.value = customer.street || '';
+        reviewNumber.value = customer.number || '';
+        reviewComplement.value = customer.complement || '';
+        hiddenFulfillment.value = customer.buy_mode || hiddenFulfillment.value || 'delivery';
+        fulfillmentDisplayInputs.forEach((input) => input.checked = input.value === hiddenFulfillment.value);
+        fulfillmentReviewInputs.forEach((input) => input.checked = input.value === hiddenFulfillment.value);
+        syncHiddenFromReview();
+        setPrefillStatus('Dados carregados com sucesso.', 'is-success');
+      } catch (error) {
+        setPrefillStatus('Ocorreu um erro ao carregar o cadastro.', 'is-error');
+      } finally {
+        prefillLoginButton.disabled = false;
+      }
+    });
+
+    document.querySelectorAll('[data-open-rating]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!ratingModal || !ratingProductIdInput || !ratingProductName) return;
+        ratingProductIdInput.value = button.dataset.productId || '';
+        ratingProductName.textContent = `Produto: ${button.dataset.productName || 'Água mineral'}`;
+        const currentRating = Number(button.dataset.currentRating || 0);
+        ratingInputs.forEach((input) => {
+          input.checked = Number(input.value) === currentRating;
+        });
+        if (ratingComment) ratingComment.value = '';
+        ratingModal.show();
+      });
+    });
+
+    syncReviewFromHidden();
+    renderCart();
+  });
+</script>
+{% endblock %}
