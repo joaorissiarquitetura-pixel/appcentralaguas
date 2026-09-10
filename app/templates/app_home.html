@@ -938,8 +938,8 @@
       <div class="screen-inner">
         <header class="app-topbar home">
           <img class="top-logo" src="/static/img/logo_central.jpg" alt="Central Águas">
-          <a class="icon-button" href="/meu-cartao" aria-label="Notificações"><i class="bi bi-bell-fill"></i></a>
-          <a class="icon-button" href="{% if customer_logged_in %}/meu-cartao{% else %}/login{% endif %}" aria-label="Perfil"><i class="bi bi-person-fill"></i></a>
+          <button class="icon-button" type="button" data-go="gotinha" aria-label="Notificações"><i class="bi bi-bell-fill"></i></button>
+          <button class="icon-button" type="button" data-go="{% if customer_logged_in %}menu{% else %}login{% endif %}" aria-label="Perfil"><i class="bi bi-person-fill"></i></button>
         </header>
         {% if catalog_error %}
           <div class="location-status">{{ catalog_error }}</div>
@@ -1048,7 +1048,7 @@
         <header class="app-topbar">
           <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
           <h1>Loja</h1>
-          <a class="icon-button" href="/loja" aria-label="Carrinho"><i class="bi bi-cart3"></i></a>
+          <button class="icon-button" type="button" data-go="checkout" aria-label="Carrinho"><i class="bi bi-cart3"></i></button>
         </header>
         <input class="search-field" type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
         <div class="chip-row" aria-label="Categorias da loja">
@@ -1154,19 +1154,19 @@
         <header class="app-topbar">
           <button class="icon-button" type="button" data-go="home" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
           <h1>Meu Cartão</h1>
-          <a class="icon-button" href="/meu-cartao" aria-label="Abrir cartão completo"><i class="bi bi-person-fill"></i></a>
+          <button class="icon-button" type="button" data-go="menu" aria-label="Abrir perfil"><i class="bi bi-person-fill"></i></button>
         </header>
         <article class="loyalty-card">
           <div class="small"><i class="bi bi-award-fill"></i> Cliente Central</div>
           <h2>{{ loyalty.progress if loyalty.available else 0 }} de {{ loyalty_target }} pontos</h2>
           <div class="progress-track"><span></span></div>
           <p class="small">Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.</p>
-          <a class="primary-button" href="/meu-cartao">Ver benefícios</a>
+          <button class="primary-button" type="button" data-go="store">Usar na próxima compra</button>
         </article>
         <h2 class="section-title">Histórico de pontos</h2>
         <div class="history-row"><span class="blue-icon"><i class="bi bi-bag-check"></i></span><span class="row-copy"><strong>Compra na loja</strong><span>Última movimentação</span></span><strong>+1 ponto</strong></div>
         <div class="history-row"><span class="blue-icon"><i class="bi bi-cart3"></i></span><span class="row-copy"><strong>Compra online</strong><span>Pedido pelo app</span></span><strong>+2 pontos</strong></div>
-        <a class="secondary-button" href="/fidelidade">Conhecer fidelidade</a>
+        <button class="secondary-button" type="button" data-go="home">Voltar para o app</button>
       </div>
     </section>
 
@@ -1279,7 +1279,7 @@
         </section>
         <button class="menu-row" type="button" data-water-done><span class="blue-icon"><i class="bi bi-plus-circle"></i></span><span class="row-copy"><strong>Hidratação</strong><span>Registrar agora</span></span><i class="bi bi-chevron-right"></i></button>
         <button class="menu-row" type="button" data-go="house"><span class="blue-icon"><i class="bi bi-house-fill"></i></span><span class="row-copy"><strong>Minha casa</strong><span>Acompanhar galões</span></span><i class="bi bi-chevron-right"></i></button>
-        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-star-fill"></i></span><span class="row-copy"><strong>Minhas conquistas</strong><span>Ver progresso</span></span><i class="bi bi-chevron-right"></i></a>
+        <button class="menu-row" type="button" data-go="loyalty"><span class="blue-icon"><i class="bi bi-star-fill"></i></span><span class="row-copy"><strong>Minhas conquistas</strong><span>Ver progresso</span></span><i class="bi bi-chevron-right"></i></button>
       </div>
     </section>
 
@@ -1290,19 +1290,19 @@
           <h1>Mais</h1>
           <span></span>
         </header>
-        <a class="app-card profile-head" href="{% if customer_logged_in %}/meu-cartao{% else %}/login{% endif %}">
+        <button class="app-card profile-head" type="button" data-go="{% if customer_logged_in %}loyalty{% else %}login{% endif %}">
           <span class="avatar"><i class="bi bi-person"></i></span>
           <span class="row-copy">
             <strong>{% if customer_logged_in %}{{ customer.name }}{% else %}Entrar ou criar conta{% endif %}</strong>
             <span>{% if customer_logged_in %}Cliente Central{% else %}Acesse seus dados e pedidos{% endif %}</span>
           </span>
           <i class="bi bi-chevron-right"></i>
-        </a>
-        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></a>
+        </button>
+        <button class="menu-row" type="button" data-go="checkout"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></button>
         <button class="menu-row" type="button" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></button>
-        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
-        <a class="menu-row" href="/meu-cartao"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></a>
-        <a class="menu-row" href="/gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></a>
+        <button class="menu-row" type="button" data-go="checkout"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></button>
+        <button class="menu-row" type="button" data-go="address"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></button>
+        <button class="menu-row" type="button" data-go="gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></button>
         {% if customer_logged_in %}
           <a class="menu-row" href="/logout"><span class="blue-icon"><i class="bi bi-box-arrow-right"></i></span><span class="row-copy"><strong>Sair</strong></span><i class="bi bi-chevron-right"></i></a>
         {% endif %}
@@ -2021,6 +2021,11 @@
     updateLocationDisplay();
     renderHydration();
     renderNotificationStatus();
+    const initialScreen = new URLSearchParams(window.location.search).get("screen");
+    const allowedInitialScreens = ["home", "store", "delivery", "checkout", "loyalty", "house", "gotinha", "menu", "address"];
+    if (initialScreen && allowedInitialScreens.includes(initialScreen)) {
+      showScreen(initialScreen);
+    }
     {% if not customer_logged_in %}
       showScreen("login");
     {% endif %}

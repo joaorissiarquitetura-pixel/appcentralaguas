@@ -341,41 +341,12 @@ def shop_page(
     rating_success: str = "",
     db: Session = Depends(get_db),
 ):
-    customer = None
-    cid = get_current_customer_id(request)
-    if cid:
-        customer = db.scalar(select(Customer).where(Customer.id == int(cid)))
-
-    offers, catalog_error = _shop_catalog(db)
-
-    return templates.TemplateResponse(
-        request=request,
-        name="loja.html",
-        context={
-            "business_name": settings.BUSINESS_NAME,
-            "quick_offers": offers,
-            "catalog_error": catalog_error,
-            "customer_logged_in": customer is not None,
-            "customer_prefill": _customer_prefill(customer),
-            "preselected_product": produto.strip().lower(),
-            "rating_error": rating_error,
-            "rating_success": rating_success,
-            "marca": marca,
-        },
-    )
+    return RedirectResponse("/app?screen=store", status_code=307)
 
 
 @router.get("/fidelidade", response_class=HTMLResponse)
 def loyalty_page(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="fidelidade.html",
-        context={
-            "business_name": settings.BUSINESS_NAME,
-            "loyalty_target": settings.CARD_TARGET_POINTS,
-            "loyalty_reward": _money_reward(),
-        },
-    )
+    return RedirectResponse("/app?screen=loyalty", status_code=307)
 
 
 @router.get("/assine", response_class=HTMLResponse)
@@ -481,7 +452,7 @@ def shop_prefill_login(
 
 @router.post("/loja/avaliar")
 def shop_rating_placeholder():
-    return RedirectResponse("/loja?rating_success=1", status_code=303)
+    return RedirectResponse("/app?screen=store", status_code=303)
 
 
 # --- LOGIN ---
@@ -515,7 +486,7 @@ def login_action(
     login_customer(request, customer.id)
     if customer.must_change_password:
         return RedirectResponse("/alterar-senha-obrigatoria", status_code=303)
-    return RedirectResponse("/meu-cartao", status_code=303)
+    return RedirectResponse("/app", status_code=303)
 
 
 @router.get("/alterar-senha-obrigatoria", response_class=HTMLResponse)
@@ -569,7 +540,7 @@ def change_password_action(
     customer.pin_hash = hash_password(password)
     customer.must_change_password = False
     db.commit()
-    return RedirectResponse("/meu-cartao", status_code=303)
+    return RedirectResponse("/app", status_code=303)
 
 
 @router.get("/logout")
@@ -702,7 +673,7 @@ def register_action(
     db.commit()
 
     login_customer(request, new_customer.id)
-    return RedirectResponse("/meu-cartao", status_code=303)
+    return RedirectResponse("/app", status_code=303)
 
 
 # --- API PROXY BLINDADA (User-Agent + SSL Ignore) ---

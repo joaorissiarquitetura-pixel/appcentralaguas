@@ -26,11 +26,18 @@ class SmokeRoutesTests(unittest.TestCase):
         self.assertEqual(home_response.status_code, 307)
         self.assertEqual(home_response.headers["location"], "/app")
 
+        loyalty_response = public.loyalty_page(request)
+        self.assertEqual(loyalty_response.status_code, 307)
+        self.assertEqual(loyalty_response.headers["location"], "/app?screen=loyalty")
+
+        shop_response = public.shop_page(request)
+        self.assertEqual(shop_response.status_code, 307)
+        self.assertEqual(shop_response.headers["location"], "/app?screen=store")
+
         responses = [
             public.app_home(request),
             public.login_page(request),
             public.subscribe_page(request),
-            public.loyalty_page(request),
             attendant.attendant_login_page(request),
         ]
         for response in responses:

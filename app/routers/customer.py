@@ -39,12 +39,12 @@ def render_customer_dashboard(request: Request, db: Session, birth_date_error: s
 
 @router.get("/meu-cartao", response_class=HTMLResponse)
 def my_card(request: Request, birth_date_error: str = "", db: Session = Depends(get_db)):
-    return render_customer_dashboard(request, db, birth_date_error=birth_date_error)
+    return RedirectResponse("/app?screen=loyalty", status_code=307)
 
 
 @router.get("/cliente", response_class=HTMLResponse)
 def cliente_dashboard(request: Request, birth_date_error: str = "", db: Session = Depends(get_db)):
-    return render_customer_dashboard(request, db, birth_date_error=birth_date_error)
+    return RedirectResponse("/app", status_code=307)
 
 
 @router.post("/meu-cartao/data-nascimento")
@@ -60,10 +60,10 @@ def update_birth_date(request: Request, birth_date: str = Form(...), db: Session
     try:
         customer.birth_date = date.fromisoformat(birth_date)
     except ValueError:
-        return RedirectResponse("/meu-cartao?birth_date_error=1", status_code=303)
+        return RedirectResponse("/app?screen=loyalty", status_code=303)
 
     db.commit()
-    return RedirectResponse("/meu-cartao", status_code=303)
+    return RedirectResponse("/app?screen=loyalty", status_code=303)
 
 
 @router.get("/qr", response_class=HTMLResponse)
