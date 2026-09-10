@@ -1290,19 +1290,19 @@
           <h1>Mais</h1>
           <span></span>
         </header>
-        <button class="app-card profile-head" type="button" data-go="{% if customer_logged_in %}loyalty{% else %}login{% endif %}">
+        <a class="app-card profile-head" href="{% if customer_logged_in %}/app?screen=loyalty{% else %}/login{% endif %}" data-go="{% if customer_logged_in %}loyalty{% else %}login{% endif %}">
           <span class="avatar"><i class="bi bi-person"></i></span>
           <span class="row-copy">
             <strong>{% if customer_logged_in %}{{ customer.name }}{% else %}Entrar ou criar conta{% endif %}</strong>
             <span>{% if customer_logged_in %}Cliente Central{% else %}Acesse seus dados e pedidos{% endif %}</span>
           </span>
           <i class="bi bi-chevron-right"></i>
-        </button>
-        <button class="menu-row" type="button" data-go="checkout"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></button>
-        <button class="menu-row" type="button" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></button>
-        <button class="menu-row" type="button" data-go="checkout"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></button>
-        <button class="menu-row" type="button" data-go="address"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></button>
-        <button class="menu-row" type="button" data-go="gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></button>
+        </a>
+        <a class="menu-row" href="/app?screen=checkout" data-go="checkout"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=checkout" data-go="checkout"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=gotinha" data-go="gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></a>
         {% if customer_logged_in %}
           <a class="menu-row" href="/logout"><span class="blue-icon"><i class="bi bi-box-arrow-right"></i></span><span class="row-copy"><strong>Sair</strong></span><i class="bi bi-chevron-right"></i></a>
         {% endif %}
