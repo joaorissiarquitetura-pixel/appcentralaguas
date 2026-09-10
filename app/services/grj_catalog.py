@@ -123,6 +123,7 @@ def product_to_public_dict(product: GRJCatalogProduct) -> dict[str, Any]:
         "stock_quantity": product.stock_quantity,
         "stock_status": product.stock_status,
         "image_url": product.image_url,
+        "api_image_url": product.image_url,
         "active": product.active,
         "source": "grj_api",
     }
@@ -143,14 +144,52 @@ def _normalize_api_product(row: dict[str, Any]) -> GRJCatalogProduct:
 
 
 def _image_url_from_row(row: dict[str, Any]) -> str:
-    for field_name in ("image_url", "imagem_url", "imagem", "foto_url", "url_imagem", "produto_imagem", "img"):
+    for field_name in (
+        "image_url",
+        "imagem_url",
+        "imagem",
+        "foto_url",
+        "url_imagem",
+        "produto_imagem",
+        "img",
+        "foto",
+        "foto_produto",
+        "imagem_produto",
+        "thumbnail",
+        "thumb",
+    ):
         image_url = _normalize_image_url(row.get(field_name))
         if image_url:
             return image_url
+
+    for collection_name in ("images", "imagens", "fotos", "produto_imagens"):
+        collection = row.get(collection_name)
+        if isinstance(collection, list):
+            for item in collection:
+                image_url = _normalize_image_url(item)
+                if image_url:
+                    return image_url
     return ""
 
 
 def _normalize_image_url(value: Any) -> str:
+    if isinstance(value, dict):
+        for field_name in (
+            "url",
+            "src",
+            "href",
+            "image_url",
+            "imagem_url",
+            "foto_url",
+            "url_imagem",
+            "path",
+            "caminho",
+        ):
+            image_url = _normalize_image_url(value.get(field_name))
+            if image_url:
+                return image_url
+        return ""
+
     text = _clean_text(value)
     if not text:
         return ""

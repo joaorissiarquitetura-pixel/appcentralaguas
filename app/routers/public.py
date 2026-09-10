@@ -6,7 +6,7 @@ import urllib.request
 from datetime import date
 from types import SimpleNamespace
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -129,7 +129,7 @@ def _shop_offer_from_grj_product(product: GRJCatalogProduct) -> SimpleNamespace:
         pickup_price=product.pickup_price,
         delivery_price=product.delivery_price,
         badge="Sistema GRJ",
-        image_url=product.image_url or _catalog_image_for_name(product.name),
+        image_url=_grj_product_image_proxy_url(product) or _catalog_image_for_name(product.name),
         stock_status=product.stock_status,
         category=_product_category(product.name, product.description),
         rating_count=0,
@@ -137,6 +137,12 @@ def _shop_offer_from_grj_product(product: GRJCatalogProduct) -> SimpleNamespace:
         customer_rating=None,
         source="grj",
     )
+
+
+def _grj_product_image_proxy_url(product: GRJCatalogProduct) -> str | None:
+    if not product.image_url or not product.external_id:
+        return None
+    return f"/api/grj/produtos/{urllib.parse.quote(product.external_id, safe='')}/imagem"
 
 
 def _customer_prefill(customer: Customer | None) -> SimpleNamespace:
@@ -342,11 +348,51 @@ def api_grj_products(db: Session = Depends(get_db)):
             "products": [_local_product_to_public_dict(product) for product in local_products],
         }
 
+    products = []
+    for product in grj_products:
+        product_dict = product_to_public_dict(product)
+        product_dict["image_url"] = _grj_product_image_proxy_url(product)
+        products.append(product_dict)
+
     return {
         "ok": True,
         "source": "grj_api",
-        "products": [product_to_public_dict(product) for product in grj_products],
+        "products": products,
     }
+
+
+@router.get("/api/grj/produtos/{external_id}/imagem")
+def api_grj_product_image(external_id: str):
+    try:
+        grj_products = fetch_grj_products(limit=500)
+    except GRJCatalogUnavailable as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
+
+    product = next((item for item in grj_products if item.external_id == external_id), None)
+    if not product or not product.image_url:
+        return JSONResponse({"ok": False, "error": "product_image_not_found"}, status_code=404)
+
+    request = urllib.request.Request(
+        product.image_url,
+        headers={
+            "Authorization": f"Bearer {settings.CENTRAL_AGUAS_APP_TOKEN.strip()}",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "User-Agent": "CentralAguasFidelidade/1.0",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            content_type = response.headers.get("content-type", "image/jpeg").split(";", 1)[0]
+            image_body = response.read(8_000_000)
+    except Exception as exc:
+        reason = getattr(exc, "reason", exc)
+        return JSONResponse({"ok": False, "error": f"product_image_fetch_failed: {reason}"}, status_code=502)
+
+    return Response(
+        content=image_body,
+        media_type=content_type if content_type.startswith("image/") else "image/jpeg",
+        headers={"Cache-Control": "public, max-age=900"},
+    )
 
 
 @router.get("/api/grj/diagnostico")
@@ -424,6 +470,29 @@ def api_grj_diagnostics():
                 "nome": str(item.get("nome", "")),
                 "preco_venda": item.get("preco_venda"),
                 "estoque_disponivel": item.get("estoque_disponivel"),
+                "image_fields": [
+                    field_name
+                    for field_name in (
+                        "image_url",
+                        "imagem_url",
+                        "imagem",
+                        "foto_url",
+                        "url_imagem",
+                        "produto_imagem",
+                        "img",
+                        "foto",
+                        "foto_produto",
+                        "imagem_produto",
+                        "thumbnail",
+                        "thumb",
+                        "images",
+                        "imagens",
+                        "fotos",
+                        "produto_imagens",
+                    )
+                    if item.get(field_name)
+                ],
+                "raw_keys": sorted(str(key) for key in item.keys()),
             }
             for item in data[:5]
             if isinstance(item, dict)

@@ -96,6 +96,31 @@ class GRJCatalogApiTests(unittest.TestCase):
         self.assertEqual(products[0].nome, "Acquatuba 10L")
         self.assertEqual(products[0].stock_status, "indisponivel")
 
+    def test_fetch_products_maps_nested_image_fields(self):
+        def fake_urlopen(request, timeout):
+            return FakeResponse(
+                {
+                    "status": "ok",
+                    "data": [
+                        {
+                            "id": 44,
+                            "codigo": "44",
+                            "nome": "Fardo Aragua",
+                            "preco_venda": 18.0,
+                            "estoque_disponivel": 6.0,
+                            "fotos": [{"url": "imagens/fardo-aragua.webp"}],
+                        }
+                    ],
+                }
+            )
+
+        with patch.object(settings, "CENTRAL_AGUAS_APP_TOKEN", "token-test"):
+            with patch.object(settings, "CENTRAL_AGUAS_PRODUCTS_API_URL", "https://example.test/api/v1/central-aguas/products"):
+                with patch("app.services.grj_catalog.urllib.request.urlopen", fake_urlopen):
+                    products = grj_catalog.fetch_grj_products()
+
+        self.assertEqual(products[0].image_url, "https://example.test/api/v1/central-aguas/imagens/fardo-aragua.webp")
+
 
 if __name__ == "__main__":
     unittest.main()
