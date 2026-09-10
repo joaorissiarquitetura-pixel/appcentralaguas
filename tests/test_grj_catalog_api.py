@@ -40,6 +40,7 @@ class GRJCatalogApiTests(unittest.TestCase):
                             "preco_venda": 17.0,
                             "estoque_disponivel": 10.0,
                             "apelido": "Galão retornável",
+                            "imagem_url": "/uploads/produtos/hidroleve-20l.png",
                         }
                     ],
                 }
@@ -61,6 +62,11 @@ class GRJCatalogApiTests(unittest.TestCase):
         self.assertEqual(products[0].preco_venda, 17.0)
         self.assertEqual(products[0].estoque_disponivel, 10.0)
         self.assertEqual(products[0].apelido, "Galão retornável")
+        self.assertEqual(products[0].image_url, "https://example.test/uploads/produtos/hidroleve-20l.png")
+        self.assertEqual(
+            grj_catalog.product_to_public_dict(products[0])["image_url"],
+            "https://example.test/uploads/produtos/hidroleve-20l.png",
+        )
 
     def test_fetch_products_keeps_negative_stock_as_indisponivel_for_testing(self):
         def fake_urlopen(request, timeout):

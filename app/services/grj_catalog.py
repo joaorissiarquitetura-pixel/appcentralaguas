@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
@@ -20,6 +21,7 @@ class GRJCatalogProduct:
     preco_venda: float
     estoque_disponivel: float
     apelido: str
+    imagem_url: str
     raw: dict[str, Any]
 
     @property
@@ -59,8 +61,8 @@ class GRJCatalogProduct:
         return "disponivel"
 
     @property
-    def image_url(self) -> None:
-        return None
+    def image_url(self) -> str | None:
+        return self.imagem_url or None
 
     @property
     def active(self) -> bool:
@@ -135,8 +137,38 @@ def _normalize_api_product(row: dict[str, Any]) -> GRJCatalogProduct:
         preco_venda=_to_float(row.get("preco_venda")),
         estoque_disponivel=_to_float(row.get("estoque_disponivel")),
         apelido=_clean_text(row.get("apelido")) or "",
+        imagem_url=_image_url_from_row(row),
         raw=row,
     )
+
+
+def _image_url_from_row(row: dict[str, Any]) -> str:
+    for field_name in ("image_url", "imagem_url", "imagem", "foto_url", "url_imagem", "produto_imagem", "img"):
+        image_url = _normalize_image_url(row.get(field_name))
+        if image_url:
+            return image_url
+    return ""
+
+
+def _normalize_image_url(value: Any) -> str:
+    text = _clean_text(value)
+    if not text:
+        return ""
+    if text.startswith("data:"):
+        return text
+    if text.startswith("//"):
+        return f"https:{text}"
+    if text.startswith(("http://", "https://")):
+        return text
+
+    api_url = settings.CENTRAL_AGUAS_PRODUCTS_API_URL.strip()
+    parsed_api_url = urllib.parse.urlparse(api_url)
+    if text.startswith("/") and parsed_api_url.scheme and parsed_api_url.netloc:
+        base_origin = f"{parsed_api_url.scheme}://{parsed_api_url.netloc}/"
+        return urllib.parse.urljoin(base_origin, text)
+
+    base_path = api_url.rsplit("/", 1)[0] + "/" if "/" in api_url else api_url
+    return urllib.parse.urljoin(base_path, text)
 
 
 def _clean_text(value: Any) -> str | None:
