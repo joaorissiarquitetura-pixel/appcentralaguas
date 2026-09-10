@@ -62,6 +62,34 @@ class GRJCatalogApiTests(unittest.TestCase):
         self.assertEqual(products[0].estoque_disponivel, 10.0)
         self.assertEqual(products[0].apelido, "Galão retornável")
 
+    def test_fetch_products_keeps_negative_stock_as_indisponivel_for_testing(self):
+        def fake_urlopen(request, timeout):
+            return FakeResponse(
+                {
+                    "status": "ok",
+                    "data": [
+                        {
+                            "id": 13,
+                            "codigo": "13",
+                            "nome": "Acquatuba 10L",
+                            "unidade": "UN",
+                            "preco_venda": 13.0,
+                            "estoque_disponivel": -17.0,
+                            "apelido": "",
+                        }
+                    ],
+                }
+            )
+
+        with patch.object(settings, "CENTRAL_AGUAS_APP_TOKEN", "token-test"):
+            with patch.object(settings, "CENTRAL_AGUAS_PRODUCTS_API_URL", "https://example.test/products"):
+                with patch("app.services.grj_catalog.urllib.request.urlopen", fake_urlopen):
+                    products = grj_catalog.fetch_grj_products()
+
+        self.assertEqual(len(products), 1)
+        self.assertEqual(products[0].nome, "Acquatuba 10L")
+        self.assertEqual(products[0].stock_status, "indisponivel")
+
 
 if __name__ == "__main__":
     unittest.main()

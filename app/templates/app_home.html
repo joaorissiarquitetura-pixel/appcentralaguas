@@ -386,6 +386,11 @@
       font-weight: 700;
       cursor: pointer;
     }
+    .mini-add:disabled {
+      background: #D0D5DD;
+      color: #667085;
+      cursor: not-allowed;
+    }
     .choice-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
     .choice-card {
       min-height: 66px;
@@ -1207,7 +1212,11 @@
                   <output>1</output>
                   <button type="button" data-step="1" aria-label="Aumentar quantidade">+</button>
                 </div>
-                <button class="mini-add" type="button" data-product="{{ offer.name }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}" data-go="delivery">Adicionar</button>
+                {% if offer.stock_status == "indisponivel" %}
+                  <button class="mini-add" type="button" disabled>Indisponível</button>
+                {% else %}
+                  <button class="mini-add" type="button" data-product="{{ offer.name }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}" data-go="delivery">Adicionar</button>
+                {% endif %}
               </div>
             </div>
           </article>

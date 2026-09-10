@@ -64,7 +64,7 @@ class GRJCatalogProduct:
 
     @property
     def active(self) -> bool:
-        return self.estoque_disponivel > 0
+        return bool(self.name.strip() or self.external_id.strip())
 
 
 class GRJCatalogUnavailable(RuntimeError):
