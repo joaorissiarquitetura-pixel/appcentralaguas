@@ -84,6 +84,7 @@
       background: var(--ca-white);
     }
     .app-screen.is-active { display: block; }
+    .is-hidden { display: none !important; }
     .screen-inner { width: min(100%, 460px); margin: 0 auto; }
     .app-topbar {
       min-height: 52px;
@@ -479,41 +480,24 @@
       box-shadow: var(--ca-shadow);
     }
     .location-map {
+      display: none;
       position: relative;
-      min-height: 154px;
+      min-height: 128px;
       overflow: hidden;
       border: 1px solid var(--ca-line);
       border-radius: 16px;
-      background:
-        linear-gradient(90deg, transparent 0 47%, rgba(11, 76, 203, 0.12) 48% 52%, transparent 53%),
-        linear-gradient(0deg, transparent 0 47%, rgba(11, 76, 203, 0.12) 48% 52%, transparent 53%),
-        radial-gradient(circle at 24% 30%, rgba(0, 180, 240, 0.24) 0 20px, transparent 21px),
-        radial-gradient(circle at 78% 72%, rgba(255, 198, 41, 0.22) 0 28px, transparent 29px),
-        linear-gradient(135deg, rgba(179, 229, 255, 0.5), rgba(247, 251, 255, 0.98));
+      background: linear-gradient(180deg, rgba(230, 246, 255, 0.78), rgba(255, 255, 255, 0.98));
     }
-    .location-map-placeholder {
-      min-height: 154px;
-      display: grid;
-      place-items: center;
-      padding: 18px;
-      color: var(--ca-muted);
-      text-align: center;
-      font-size: 0.82rem;
-      font-weight: 700;
-    }
-    .location-map.has-map .location-map-placeholder {
-      display: none;
+    .location-map.has-map {
+      display: block;
     }
     .location-map-preview {
-      display: none;
-      min-height: 154px;
+      min-height: 128px;
       padding: 18px;
+      display: grid;
       place-items: center;
       text-align: center;
       color: #101828;
-    }
-    .location-map.has-map .location-map-preview {
-      display: grid;
     }
     .location-pin {
       width: 42px;
@@ -572,6 +556,51 @@
       background: var(--ca-soft);
       color: #101828;
       font-weight: 700;
+    }
+    .saved-address-card,
+    .payment-card,
+    .order-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--ca-line);
+      border-radius: var(--ca-card);
+      background: var(--ca-white);
+      box-shadow: var(--ca-shadow);
+    }
+    .saved-address-top,
+    .payment-option-row,
+    .order-card-top {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .payment-option-row {
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+    .payment-option-row.is-selected {
+      border-color: rgba(11, 76, 203, 0.32);
+      background: rgba(230, 246, 255, 0.9);
+    }
+    .order-status {
+      padding: 5px 9px;
+      border-radius: var(--ca-pill);
+      background: rgba(179, 229, 255, 0.34);
+      color: var(--ca-primary);
+      font-size: 0.72rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .empty-state {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      padding: 24px 14px;
+      color: var(--ca-muted);
+      text-align: center;
     }
     .checkout-product {
       display: grid;
@@ -639,9 +668,85 @@
       margin: 16px 0 10px;
     }
     .house-reserve img { width: 64px; height: 92px; object-fit: contain; margin: 0 auto; }
+    .house-reserve img.in-use {
+      padding: 4px;
+      border: 2px solid var(--ca-primary);
+      border-radius: 16px;
+      background: rgba(230, 246, 255, 0.9);
+    }
     .house-reserve img.empty { opacity: 0.34; filter: grayscale(1); }
-    .house-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center; }
+    .house-counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
     .house-counts strong { display: block; color: var(--ca-primary); font: 700 1.45rem/1 "Montserrat", Arial, sans-serif; }
+    .stock-calibration {
+      display: grid;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid rgba(179, 229, 255, 0.62);
+      border-radius: var(--ca-card);
+      background: linear-gradient(180deg, rgba(179, 229, 255, 0.28), rgba(255, 255, 255, 0.96));
+      box-shadow: var(--ca-shadow);
+    }
+    .stock-calibration-head {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+    .stock-question {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+    }
+    .stock-stepper {
+      display: inline-grid;
+      grid-template-columns: 36px 42px 36px;
+      overflow: hidden;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-soft);
+    }
+    .stock-stepper button {
+      width: 36px;
+      height: 36px;
+      border: 0;
+      background: rgba(179, 229, 255, 0.42);
+      color: var(--ca-primary);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .stock-stepper output {
+      display: grid;
+      place-items: center;
+      color: #101828;
+      font-weight: 800;
+    }
+    .stock-help {
+      margin: 0;
+      color: var(--ca-muted);
+      font-size: 0.8rem;
+    }
+    .house-summary-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .compact-link {
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-white);
+      color: var(--ca-primary);
+      font-weight: 800;
+      cursor: pointer;
+    }
     .gotinha-hero {
       display: grid;
       justify-items: center;
@@ -979,7 +1084,7 @@
         {% if catalog_error %}
           <div class="location-status">{{ catalog_error }}</div>
         {% endif %}
-        <button class="address-strip" type="button" data-location-current data-go="address">
+        <button class="address-strip" type="button" data-go="address">
           <span class="blue-icon"><i class="bi bi-geo-alt-fill"></i></span>
           <span class="row-copy">
             <strong>{% if location.has_address %}Entregar em{% else %}Entrega em{% endif %}</strong>
@@ -1028,56 +1133,49 @@
           <h1>Endereço</h1>
           <span></span>
         </header>
-        <section class="location-search" aria-label="Buscar localização">
+        <article class="saved-address-card">
+          <div class="saved-address-top">
+            <span class="blue-icon"><i class="bi bi-house-door-fill"></i></span>
+            <span class="row-copy"><strong>Casa</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
+            <button class="text-button" type="button" data-address-edit>Alterar</button>
+          </div>
+          <button class="secondary-button" type="button" data-address-edit><i class="bi bi-plus-lg"></i> Adicionar outro endereço</button>
+        </article>
+        <section class="location-search {% if location.has_address %}is-hidden{% endif %}" aria-label="Alterar endereço" data-address-editor>
           <button class="period-row" type="button" data-location-current>
             <span class="blue-icon"><i class="bi bi-crosshair"></i></span>
-            <span class="row-copy"><strong>Buscar minha localização</strong><span>Usar a localização atual do aparelho</span></span>
+            <span class="row-copy"><strong>Usar localização atual</strong><span>Somente ao alterar ou incluir endereço</span></span>
             <i class="bi bi-chevron-right"></i>
           </button>
           <div class="location-search-row">
             <input type="text" inputmode="numeric" maxlength="9" placeholder="Digite seu CEP" aria-label="Digite seu CEP" data-location-cep>
             <button class="secondary-button" type="button" data-location-cep-search><i class="bi bi-search"></i></button>
           </div>
-          <div class="location-status" data-location-status>Toque para buscar automaticamente ou informe o CEP.</div>
+          <div class="location-status" data-location-status>Informe o CEP ou use a localização para preencher o endereço.</div>
+          <section class="location-complete" aria-label="Completar endereço">
+            <div class="location-map" data-location-map>
+              <div class="location-map-preview">
+                <span class="location-pin"><i class="bi bi-geo-alt-fill"></i></span>
+                <strong>Localização capturada</strong>
+                <span data-location-map-address>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span>
+              </div>
+            </div>
+            <div class="location-found">
+              <span class="blue-icon"><i class="bi bi-geo-alt-fill"></i></span>
+              <span class="row-copy"><strong>Endereço encontrado</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
+            </div>
+            <div class="location-input-grid">
+              <div class="location-field">
+                <label for="locationNumber">Número</label>
+                <input id="locationNumber" type="text" inputmode="numeric" placeholder="Ex.: 123" value="{{ customer.number if customer else '' }}" data-location-number>
+              </div>
+              <div class="location-field">
+                <label for="locationComplement">Complemento</label>
+                <input id="locationComplement" type="text" placeholder="Apto, bloco, referência" value="{{ customer.complement if customer else '' }}" data-location-complement>
+              </div>
+            </div>
+          </section>
         </section>
-        <section class="location-complete" aria-label="Completar endereço">
-          <div class="location-map" data-location-map>
-            <div class="location-map-placeholder">
-              Busque sua localização para ver o ponto no mapa.
-            </div>
-            <div class="location-map-preview">
-              <span class="location-pin"><i class="bi bi-geo-alt-fill"></i></span>
-              <strong>Localização atual capturada</strong>
-              <span data-location-map-address>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span>
-            </div>
-          </div>
-          <div class="location-found">
-            <span class="blue-icon"><i class="bi bi-geo-alt-fill"></i></span>
-            <span class="row-copy"><strong>Endereço encontrado</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
-          </div>
-          <div class="location-input-grid">
-            <div class="location-field">
-              <label for="locationNumber">Número</label>
-              <input id="locationNumber" type="text" inputmode="numeric" placeholder="Ex.: 123" value="{{ customer.number if customer else '' }}" data-location-number>
-            </div>
-            <div class="location-field">
-              <label for="locationComplement">Complemento</label>
-              <input id="locationComplement" type="text" placeholder="Apto, bloco, referência" value="{{ customer.complement if customer else '' }}" data-location-complement>
-            </div>
-          </div>
-        </section>
-        <h2 class="section-title">Endereços salvos</h2>
-        <button class="period-row is-selected" type="button" data-go="delivery">
-          <span class="radio-dot"></span>
-          <span class="row-copy"><strong>Casa</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span>
-          <i class="bi bi-chevron-right"></i>
-        </button>
-        <button class="period-row" type="button" data-go="delivery">
-          <span class="radio-dot"></span>
-          <span class="row-copy"><strong>Trabalho</strong><span>Cadastrar novo endereço</span></span>
-          <i class="bi bi-chevron-right"></i>
-        </button>
-        <a class="text-button" href="/cadastrar"><i class="bi bi-plus-lg"></i> Adicionar novo endereço</a>
         <button class="primary-button" type="button" data-go="delivery">Continuar</button>
       </div>
     </section>
@@ -1169,13 +1267,13 @@
           </div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Endereço</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span><button class="text-button" type="button" data-go="address">Alterar</button></div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-calendar-check"></i></span><span class="row-copy"><strong>Entrega</strong><span id="checkoutDelivery">{{ delivery_days[0].label }}, {{ delivery_days[0].date }} - Sem hora definida</span></span><button class="text-button" type="button" data-go="delivery">Alterar</button></div>
-          <div class="summary-row"><span class="blue-icon"><i class="bi bi-wallet2"></i></span><span class="row-copy"><strong>Pagamento</strong><span>Pix</span></span><span></span></div>
+          <div class="summary-row"><span class="blue-icon"><i class="bi bi-wallet2"></i></span><span class="row-copy"><strong>Pagamento</strong><span id="checkoutPayment">Pix</span></span><button class="text-button" type="button" data-go="payment">Alterar</button></div>
           <div class="total-row"><span>Total</span><strong id="checkoutTotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
         </article>
         <form method="post" action="/loja/finalizar" id="orderForm">
           <input type="hidden" name="items_json" id="itemsJson">
           <input type="hidden" name="fulfillment" value="delivery">
-          <input type="hidden" name="payment_method" value="pix">
+          <input type="hidden" name="payment_method" value="pix" id="paymentMethod">
           <input type="hidden" name="name" value="{{ customer.name if customer else '' }}">
           <input type="hidden" name="phone" value="{{ customer.phone if customer else '' }}">
           <input type="hidden" name="neighborhood" value="{{ customer.neighborhood if customer else '' }}">
@@ -1185,6 +1283,49 @@
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
           <button class="primary-button" type="submit">Finalizar pedido</button>
         </form>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="payment">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="checkout" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Pagamento</h1>
+          <span></span>
+        </header>
+        <p class="muted">Escolha a forma preferida para este pedido. Você pode alterar antes de finalizar.</p>
+        <button class="payment-card payment-option-row" type="button" data-payment-choice="dinheiro">
+          <span class="blue-icon"><i class="bi bi-cash-stack"></i></span>
+          <span class="row-copy"><strong>Dinheiro</strong><span>Pagar na entrega</span></span>
+          <span class="radio-dot"></span>
+        </button>
+        <button class="payment-card payment-option-row" type="button" data-payment-choice="cartao">
+          <span class="blue-icon"><i class="bi bi-credit-card"></i></span>
+          <span class="row-copy"><strong>Cartão</strong><span>Débito ou crédito na entrega</span></span>
+          <span class="radio-dot"></span>
+        </button>
+        <button class="payment-card payment-option-row" type="button" data-payment-choice="pix">
+          <span class="blue-icon"><i class="bi bi-qr-code"></i></span>
+          <span class="row-copy"><strong>Pix</strong><span>Preferência para pagamento instantâneo</span></span>
+          <span class="radio-dot"></span>
+        </button>
+        <button class="primary-button" type="button" data-go="checkout">Salvar e voltar</button>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="orders">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="menu" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Meus pedidos</h1>
+          <span></span>
+        </header>
+        <div class="chip-row" aria-label="Filtro de pedidos">
+          <button class="chip active" type="button" data-orders-filter="all">Todos</button>
+          <button class="chip" type="button" data-orders-filter="pending">Pendentes</button>
+          <button class="chip" type="button" data-orders-filter="done">Concluídos</button>
+        </div>
+        <div class="stack" data-orders-list></div>
       </div>
     </section>
 
@@ -1216,24 +1357,69 @@
           <h1>Água da sua casa</h1>
           <span></span>
         </header>
-        <article class="soft-card pad">
-          <div class="house-reserve">
-            <img src="/static/img/20.png" alt="">
-            <img src="/static/img/20.png" alt="">
-            <img src="/static/img/20.png" alt="">
-            <img class="empty" src="/static/img/20.png" alt="">
+        <section class="stock-calibration" data-stock-calibration>
+          <div class="stock-calibration-head">
+            <span class="blue-icon"><i class="bi bi-sliders"></i></span>
+            <span class="row-copy">
+              <strong>Calibração de estoque</strong>
+              <span>Configure uma vez quantos galões existem na sua casa.</span>
+            </span>
           </div>
+          <div class="stock-question">
+            <span class="row-copy">
+              <strong>Quantos galões você tem?</strong>
+              <span>Total de vasilhames em casa.</span>
+            </span>
+            <span class="stock-stepper" data-stock-stepper="total">
+              <button type="button" data-stock-step="-1" aria-label="Diminuir total">−</button>
+              <output data-stock-total>4</output>
+              <button type="button" data-stock-step="1" aria-label="Aumentar total">+</button>
+            </span>
+          </div>
+          <div class="stock-question">
+            <span class="row-copy">
+              <strong>Quantos estão cheios?</strong>
+              <span>Fora o galão que está em uso.</span>
+            </span>
+            <span class="stock-stepper" data-stock-stepper="full">
+              <button type="button" data-stock-step="-1" aria-label="Diminuir cheios">−</button>
+              <output data-stock-full>3</output>
+              <button type="button" data-stock-step="1" aria-label="Aumentar cheios">+</button>
+            </span>
+          </div>
+          <div class="stock-question">
+            <span class="row-copy">
+              <strong>Tem um galão em uso?</strong>
+              <span>O galão acoplado ao bebedouro ou suporte.</span>
+            </span>
+            <span class="stock-stepper" data-stock-stepper="inUse">
+              <button type="button" data-stock-step="-1" aria-label="Marcar sem galão em uso">−</button>
+              <output data-stock-in-use>1</output>
+              <button type="button" data-stock-step="1" aria-label="Marcar um galão em uso">+</button>
+            </span>
+          </div>
+          <p class="stock-help">A Gotinha usa essa base para mostrar sua reserva e sugerir reposição. Você pode recalibrar quando quiser.</p>
+          <button class="primary-button" type="button" data-stock-save>Salvar calibração</button>
+        </section>
+
+        <article class="soft-card pad" data-house-summary>
+          <div class="house-reserve" data-house-reserve></div>
           <div class="house-counts">
-            <div><strong>3</strong><span class="small muted">galões cheios</span></div>
-            <div><strong>1</strong><span class="small muted">galão vazio</span></div>
+            <div><strong data-house-full>0</strong><span class="small muted">galões cheios</span></div>
+            <div><strong data-house-in-use>0</strong><span class="small muted">em uso</span></div>
+            <div><strong data-house-empty>0</strong><span class="small muted">galões vazios</span></div>
+          </div>
+          <div class="house-summary-actions">
+            <span class="small muted" data-house-calibrated>Estoque ainda não calibrado.</span>
+            <button class="compact-link" type="button" data-stock-edit>Recalibrar</button>
           </div>
         </article>
         <div class="soft-card period-row">
           <span class="blue-icon"><i class="bi bi-calendar2-week"></i></span>
-          <span class="row-copy"><strong>Próxima reposição</strong><span>em cerca de 6 dias</span></span>
+          <span class="row-copy"><strong>Próxima reposição</strong><span data-house-replacement>Calibre o estoque para acompanhar.</span></span>
         </div>
         <div class="product-actions">
-          <button class="secondary-button" type="button">Troquei o galão</button>
+          <button class="secondary-button" type="button" data-stock-use>Troquei o galão</button>
           <button class="primary-button" type="button" data-go="store">Repor agora</button>
         </div>
       </div>
@@ -1337,9 +1523,9 @@
           </span>
           <i class="bi bi-chevron-right"></i>
         </a>
-        <a class="menu-row" href="/app?screen=checkout" data-go="checkout"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=orders" data-go="orders"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></a>
-        <a class="menu-row" href="/app?screen=checkout" data-go="checkout"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=payment" data-go="payment"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=gotinha" data-go="gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></a>
         {% if customer_logged_in %}
@@ -1381,6 +1567,7 @@
       city: "Votuporanga",
       lat: "",
       lng: "",
+      paymentMethod: "pix",
       notes: "Pedido iniciado pelo app Central Águas"
     };
     const hydrationDefaults = {
@@ -1393,12 +1580,115 @@
     const hydrationKey = "centralAguas.hydrationProfile";
     const notificationKey = "centralAguas.hydrationNotifications";
     const deliveryNotificationKey = "centralAguas.deliveryNotifications";
+    const houseStockKey = "centralAguas.houseStock";
+    const paymentPreferenceKey = "centralAguas.paymentPreference";
+    const ordersKey = "centralAguas.orders";
+    const houseStockDefaults = {
+      total: 4,
+      full: 3,
+      inUse: 1,
+      calibrated: false,
+      updatedAt: ""
+    };
     const hydrationCupMl = 300;
     let hydrationNotificationTimers = [];
     let deliveryNotificationTimer = null;
+    let ordersFilter = "all";
 
     function formatMoney(value) {
       return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function paymentLabel(value) {
+      return {
+        dinheiro: "Dinheiro",
+        cartao: "Cartão",
+        pix: "Pix"
+      }[value] || "Pix";
+    }
+
+    function normalizePayment(value) {
+      return ["dinheiro", "cartao", "pix"].includes(value) ? value : "pix";
+    }
+
+    function loadPaymentPreference() {
+      state.paymentMethod = normalizePayment(localStorage.getItem(paymentPreferenceKey) || state.paymentMethod);
+    }
+
+    function savePaymentPreference(value) {
+      state.paymentMethod = normalizePayment(value);
+      localStorage.setItem(paymentPreferenceKey, state.paymentMethod);
+      renderPayment();
+      updateCheckout();
+    }
+
+    function loadOrders() {
+      try {
+        const orders = JSON.parse(localStorage.getItem(ordersKey) || "[]");
+        return Array.isArray(orders) ? orders : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveOrderSnapshot() {
+      const orders = loadOrders();
+      const now = new Date();
+      orders.unshift({
+        id: `APP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`,
+        product: state.product,
+        qty: state.qty,
+        total: state.price * state.qty,
+        delivery: `${state.deliveryDay} - ${state.deliveryPeriod}`,
+        payment: state.paymentMethod,
+        status: "pending",
+        createdAt: now.toISOString()
+      });
+      localStorage.setItem(ordersKey, JSON.stringify(orders.slice(0, 20)));
+    }
+
+    function renderPayment() {
+      const label = paymentLabel(state.paymentMethod);
+      const checkoutPayment = document.getElementById("checkoutPayment");
+      const hiddenPayment = document.getElementById("paymentMethod");
+      if (checkoutPayment) checkoutPayment.textContent = label;
+      if (hiddenPayment) hiddenPayment.value = state.paymentMethod;
+      document.querySelectorAll("[data-payment-choice]").forEach((option) => {
+        option.classList.toggle("is-selected", option.dataset.paymentChoice === state.paymentMethod);
+      });
+    }
+
+    function renderOrders() {
+      const list = document.querySelector("[data-orders-list]");
+      if (!list) return;
+      const orders = loadOrders().filter((order) => {
+        if (ordersFilter === "pending") return order.status !== "done";
+        if (ordersFilter === "done") return order.status === "done";
+        return true;
+      });
+      if (!orders.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <span class="blue-icon"><i class="bi bi-receipt"></i></span>
+            <strong>Nenhum pedido por aqui ainda.</strong>
+            <span>Quando você finalizar um pedido pelo app, ele aparece nesta tela.</span>
+          </div>
+        `;
+        return;
+      }
+      list.innerHTML = orders.map((order) => `
+        <article class="order-card">
+          <div class="order-card-top">
+            <span class="blue-icon"><i class="bi bi-bag-check"></i></span>
+            <span class="row-copy">
+              <strong>${order.id || "Pedido do app"}</strong>
+              <span>${order.product || "Produto"} · ${order.qty || 1} un. · ${formatMoney(Number(order.total || 0))}</span>
+            </span>
+            <span class="order-status">${order.status === "done" ? "Concluído" : "Pendente"}</span>
+          </div>
+          <span class="small muted">${order.delivery || "Entrega a confirmar"} · ${paymentLabel(order.payment)}</span>
+        </article>
+      `).join("");
     }
 
     function localDateIso(date = new Date()) {
@@ -1525,6 +1815,81 @@
 
     function saveHydrationProfile(profile) {
       localStorage.setItem(hydrationKey, JSON.stringify(profile));
+    }
+
+    function loadHouseStock() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(houseStockKey) || "{}");
+        const total = Math.max(1, Math.min(12, Number(saved.total || houseStockDefaults.total)));
+        const inUse = Math.max(0, Math.min(1, total, Number(saved.inUse ?? houseStockDefaults.inUse)));
+        const full = Math.max(0, Math.min(total - inUse, Number(saved.full ?? houseStockDefaults.full)));
+        return {
+          ...houseStockDefaults,
+          ...saved,
+          total,
+          full,
+          inUse,
+          calibrated: Boolean(saved.calibrated)
+        };
+      } catch {
+        return { ...houseStockDefaults };
+      }
+    }
+
+    function saveHouseStock(stock) {
+      const total = Math.max(1, Math.min(12, Number(stock.total || 1)));
+      const inUse = Math.max(0, Math.min(1, total, Number(stock.inUse || 0)));
+      const full = Math.max(0, Math.min(total - inUse, Number(stock.full || 0)));
+      localStorage.setItem(houseStockKey, JSON.stringify({
+        total,
+        full,
+        inUse,
+        calibrated: Boolean(stock.calibrated),
+        updatedAt: stock.updatedAt || new Date().toISOString()
+      }));
+    }
+
+    function replacementText(stock) {
+      if (!stock.calibrated) return "Calibre o estoque para acompanhar.";
+      const available = stock.full + stock.inUse;
+      if (available <= 0) return "Reserva vazia. Melhor repor agora.";
+      if (stock.full <= 0 && stock.inUse === 1) return "Só o galão em uso. Vale repor.";
+      if (available <= Math.ceil(stock.total / 3)) return "Estoque baixo. Vale programar reposição.";
+      return "Reserva confortável no momento.";
+    }
+
+    function renderHouseStock() {
+      const stock = loadHouseStock();
+      const calibration = document.querySelector("[data-stock-calibration]");
+      const summary = document.querySelector("[data-house-summary]");
+      const reserve = document.querySelector("[data-house-reserve]");
+      const fullCount = document.querySelector("[data-house-full]");
+      const inUseCount = document.querySelector("[data-house-in-use]");
+      const emptyCount = document.querySelector("[data-house-empty]");
+      const replacement = document.querySelector("[data-house-replacement]");
+      const calibrated = document.querySelector("[data-house-calibrated]");
+      const totalOutput = document.querySelector("[data-stock-total]");
+      const fullOutput = document.querySelector("[data-stock-full]");
+      const inUseOutput = document.querySelector("[data-stock-in-use]");
+      if (!reserve || !fullCount || !inUseCount || !emptyCount || !replacement || !calibrated || !totalOutput || !fullOutput || !inUseOutput) return;
+
+      calibration?.classList.toggle("is-hidden", stock.calibrated);
+      summary?.classList.toggle("is-hidden", !stock.calibrated);
+      totalOutput.textContent = stock.total;
+      fullOutput.textContent = stock.full;
+      inUseOutput.textContent = stock.inUse;
+      fullCount.textContent = stock.full;
+      inUseCount.textContent = stock.inUse;
+      emptyCount.textContent = Math.max(stock.total - stock.full - stock.inUse, 0);
+      replacement.textContent = replacementText(stock);
+      calibrated.textContent = stock.calibrated ? `Calibrado com ${stock.total} galões.` : "Estoque ainda não calibrado.";
+      reserve.innerHTML = Array.from({ length: stock.total }).map((_, index) => {
+        const inUse = index === stock.full && stock.inUse === 1;
+        const empty = index >= stock.full + stock.inUse;
+        const className = inUse ? 'class="in-use"' : empty ? 'class="empty"' : "";
+        const alt = inUse ? "Galão em uso" : empty ? "Galão vazio" : "Galão cheio";
+        return `<img ${className} src="/static/img/20.png" alt="${alt}">`;
+      }).join("");
     }
 
     function notificationsEnabled() {
@@ -1835,6 +2200,15 @@
       navItems.forEach((item) => {
         item.classList.toggle("is-active", item.dataset.go === name || (name === "address" && item.dataset.go === "house"));
       });
+      if (name === "house") {
+        renderHouseStock();
+      }
+      if (name === "payment") {
+        renderPayment();
+      }
+      if (name === "orders") {
+        renderOrders();
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -1886,6 +2260,7 @@
       document.getElementById("checkoutQty").textContent = `${state.qty} un.`;
       document.getElementById("checkoutTotal").textContent = formatMoney(state.price * state.qty);
       document.getElementById("checkoutDelivery").textContent = scheduleText;
+      renderPayment();
       document.getElementById("itemsJson").value = JSON.stringify([
         { slug: state.product, qty: state.qty, unit_price: state.price }
       ]);
@@ -1893,6 +2268,7 @@
         orderNotes.value = [
           "Pedido iniciado pelo app Central Águas",
           `Agendamento: ${scheduleText}`,
+          `Pagamento preferido: ${paymentLabel(state.paymentMethod)}`,
           customerNotes ? `Observações: ${customerNotes}` : "",
         ].filter(Boolean).join(" | ");
       }
@@ -1905,7 +2281,6 @@
         event.preventDefault();
         event.stopPropagation();
         showScreen("address");
-        searchCurrentLocation();
         return;
       }
 
@@ -1970,6 +2345,82 @@
         profile.done = Math.min(plan.count, Number(profile.done || 0) + 1);
         saveHydrationProfile(profile);
         renderHydration();
+      }
+
+      const addressEdit = event.target.closest("[data-address-edit]");
+      if (addressEdit) {
+        document.querySelector("[data-address-editor]")?.classList.remove("is-hidden");
+        setLocationStatus("Informe o CEP ou use a localização para alterar o endereço.");
+      }
+
+      const paymentChoice = event.target.closest("[data-payment-choice]");
+      if (paymentChoice) {
+        savePaymentPreference(paymentChoice.dataset.paymentChoice);
+      }
+
+      const ordersFilterButton = event.target.closest("[data-orders-filter]");
+      if (ordersFilterButton) {
+        ordersFilter = ordersFilterButton.dataset.ordersFilter || "all";
+        document.querySelectorAll("[data-orders-filter]").forEach((button) => {
+          button.classList.toggle("active", button === ordersFilterButton);
+        });
+        renderOrders();
+      }
+
+      const stockStep = event.target.closest("[data-stock-step]");
+      if (stockStep) {
+        const stock = loadHouseStock();
+        const field = stockStep.closest("[data-stock-stepper]")?.dataset.stockStepper;
+        const delta = Number(stockStep.dataset.stockStep || 0);
+        if (field === "total") {
+          stock.total = Math.max(1, Math.min(12, stock.total + delta));
+          stock.inUse = Math.min(stock.inUse, stock.total);
+          stock.full = Math.min(stock.full, stock.total - stock.inUse);
+        }
+        if (field === "full") {
+          stock.full = Math.max(0, Math.min(stock.total - stock.inUse, stock.full + delta));
+        }
+        if (field === "inUse") {
+          stock.inUse = Math.max(0, Math.min(1, stock.inUse + delta));
+          stock.full = Math.min(stock.full, stock.total - stock.inUse);
+        }
+        saveHouseStock(stock);
+        renderHouseStock();
+      }
+
+      const stockSave = event.target.closest("[data-stock-save]");
+      if (stockSave) {
+        const stock = loadHouseStock();
+        stock.calibrated = true;
+        stock.updatedAt = new Date().toISOString();
+        saveHouseStock(stock);
+        renderHouseStock();
+      }
+
+      const stockEdit = event.target.closest("[data-stock-edit]");
+      if (stockEdit) {
+        const stock = loadHouseStock();
+        stock.calibrated = false;
+        saveHouseStock(stock);
+        renderHouseStock();
+      }
+
+      const stockUse = event.target.closest("[data-stock-use]");
+      if (stockUse) {
+        const stock = loadHouseStock();
+        if (!stock.calibrated) {
+          showScreen("house");
+          return;
+        }
+        if (stock.inUse === 0 && stock.full > 0) {
+          stock.inUse = 1;
+          stock.full -= 1;
+        } else if (stock.inUse === 1 && stock.full > 0) {
+          stock.full -= 1;
+        }
+        stock.updatedAt = new Date().toISOString();
+        saveHouseStock(stock);
+        renderHouseStock();
       }
 
       const currentLocation = event.target.closest("[data-location-current]");
@@ -2038,15 +2489,20 @@
 
     document.getElementById("orderForm")?.addEventListener("submit", () => {
       updateCheckout();
+      saveOrderSnapshot();
     });
 
+    loadPaymentPreference();
     renderDeliveryPeriods();
     updateCheckout();
     updateLocationDisplay();
+    renderPayment();
+    renderOrders();
+    renderHouseStock();
     renderHydration();
     renderNotificationStatus();
     const initialScreen = new URLSearchParams(window.location.search).get("screen");
-    const allowedInitialScreens = ["home", "store", "delivery", "checkout", "loyalty", "house", "gotinha", "menu", "address"];
+    const allowedInitialScreens = ["home", "store", "delivery", "checkout", "payment", "orders", "loyalty", "house", "gotinha", "menu", "address"];
     if (initialScreen && allowedInitialScreens.includes(initialScreen)) {
       showScreen(initialScreen);
     }

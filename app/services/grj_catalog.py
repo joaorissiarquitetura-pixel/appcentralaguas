@@ -93,8 +93,9 @@ def fetch_grj_products(limit: int = 500) -> list[GRJCatalogProduct]:
         with urllib.request.urlopen(request, timeout=8) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except Exception as exc:
-        logger.warning("Central Aguas catalog API failed: %s", exc)
-        raise GRJCatalogUnavailable("central_aguas_catalog_api_failed") from exc
+        reason = getattr(exc, "reason", exc)
+        logger.warning("Central Aguas catalog API failed: %s", reason)
+        raise GRJCatalogUnavailable(f"central_aguas_catalog_api_failed: {reason}") from exc
 
     if payload.get("status") != "ok" or not isinstance(payload.get("data"), list):
         raise GRJCatalogUnavailable("central_aguas_catalog_api_invalid_response")

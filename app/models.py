@@ -53,6 +53,21 @@ class Customer(Base):
     lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     lon: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    delivery_channel: Mapped[str] = mapped_column(String(20), default="manual")
+    destination_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+
+    customer = relationship("Customer")
+
 class Attendant(Base):
     __tablename__ = "attendants"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from datetime import timedelta
 
 from sqlalchemy import select, update
@@ -37,10 +38,43 @@ def issue_password_reset_token(
             token_hash=hash_token(plain_token),
             created_by_attendant_id=created_by_attendant_id,
             expires_at=now + timedelta(minutes=settings.RESET_TOKEN_TTL_MINUTES),
+            delivery_channel="manual_link",
+            destination_phone=customer.phone,
         )
     )
     logger.info("Issued password reset token for customer_id=%s", customer.id)
     return plain_token
+
+
+def issue_password_reset_code(
+    db: Session,
+    *,
+    customer: Customer,
+    created_by_attendant_id: int | None = None,
+) -> str:
+    now = utcnow_naive()
+    db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.customer_id == customer.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+
+    code = "".join(secrets.choice("0123456789") for _ in range(6))
+    db.add(
+        PasswordResetToken(
+            customer_id=customer.id,
+            token_hash=hash_token(code),
+            created_by_attendant_id=created_by_attendant_id,
+            expires_at=now + timedelta(minutes=settings.RESET_TOKEN_TTL_MINUTES),
+            delivery_channel="phone_code",
+            destination_phone=customer.phone,
+        )
+    )
+    logger.info("Issued password reset code for customer_id=%s", customer.id)
+    return code
 
 
 def get_valid_reset_token(db: Session, token: str) -> PasswordResetToken | None:
