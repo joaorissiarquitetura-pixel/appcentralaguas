@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.centralaguas.app-mergeDebugResources-8:/values-v16/values-v16.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\João Rissi\\.gradle\\caches\\8.10.2\\transforms\\71fc025a7666d7d310f2a564f52db37f\\transformed\\core-1.2.0\\res\\values-v16\\values-v16.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "65",
+                        "endOffsets": "116"
+                    }
+                }
+            ]
+        }
+    ]
+}

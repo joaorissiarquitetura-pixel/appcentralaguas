@@ -1,0 +1,66 @@
+[
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-mdpi_ic_launcher_foreground.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-mdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-hdpi_ic_launcher_foreground.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-hdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xxxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/drawable_splash_background.xml.flat",
+        "source": "com.centralaguas.app-main-12:/drawable/splash_background.xml"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.centralaguas.app-debug-10:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.centralaguas.app-main-12:/mipmap-xxxhdpi/ic_launcher_round.png"
+    }
+]

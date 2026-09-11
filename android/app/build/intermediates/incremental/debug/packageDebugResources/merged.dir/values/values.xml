@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="central_primary">#0B4CCB</color>
+    <color name="central_primary_dark">#083A9A</color>
+    <color name="central_white">#FFFFFF</color>
+    <string name="app_name">Central Aguas</string>
+    <string name="app_start_url">https://app.centralaguas.com.br/app</string>
+    <string name="fcm_token_url">https://app.centralaguas.com.br/api/app/fcm-token</string>
+    <string name="gcm_defaultSenderId" translatable="false">9173509192</string>
+    <string name="google_api_key" translatable="false">AIzaSyD_b193duLIbBJiizMJZ9M4bUx0P0NrqZw</string>
+    <string name="google_app_id" translatable="false">1:9173509192:android:ad8d4c85db07612e57a47d</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyD_b193duLIbBJiizMJZ9M4bUx0P0NrqZw</string>
+    <string name="google_storage_bucket" translatable="false">central-aguas-app.firebasestorage.app</string>
+    <string name="project_id" translatable="false">central-aguas-app</string>
+    <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/central_white</item>
+        <item name="android:statusBarColor">@color/central_primary</item>
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+</resources>

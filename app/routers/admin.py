@@ -497,9 +497,10 @@ def send_app_notification(
     devices = db.execute(device_query).scalars().all()
     send_notification_to_app_devices(db, notification, devices)
 
+    redirect_to = "/admin/app" if "/admin/app" in request.headers.get("referer", "") else "/admin/site"
     if not push_configured() and not fcm_configured():
-        return RedirectResponse("/admin/site?success=Notificação%20registrada.%20Configure%20Firebase%20ou%20VAPID%20para%20envio%20push.", status_code=303)
-    return RedirectResponse("/admin/site?success=Notificação%20enviada", status_code=303)
+        return RedirectResponse(f"{redirect_to}?success=Notificação%20registrada.%20Configure%20Firebase%20ou%20VAPID%20para%20envio%20push.", status_code=303)
+    return RedirectResponse(f"{redirect_to}?success=Notificação%20enviada", status_code=303)
 
 
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---

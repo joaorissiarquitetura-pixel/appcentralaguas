@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/admin">Voltar ao painel</a>
+  <a class="ca-pill ca-outline text-decoration-none" href="/admin/site">Loja e cupons</a>
+  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .backend-grid { display: grid; gap: 22px; }
+  .backend-hero {
+    padding: 26px;
+    border: 1px solid rgba(15, 23, 42, .09);
+    background: linear-gradient(135deg, rgba(2, 132, 199, .11), rgba(15, 23, 42, .04));
+    box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
+  }
+  .backend-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  .backend-card {
+    padding: 18px;
+    border: 1px solid rgba(15, 23, 42, .08);
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 14px 35px rgba(15, 23, 42, .06);
+  }
+  .backend-card h2 { font-size: 1rem; margin: 0 0 12px; }
+  .backend-kpi strong { display: block; font-size: 1.8rem; line-height: 1; color: #0f172a; }
+  .backend-kpi span, .muted { color: #64748b; font-size: .86rem; }
+  .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
+  .status-ok { background: #16a34a; }
+  .status-warn { background: #f59e0b; }
+  .status-bad { background: #dc2626; }
+  .backend-split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr); gap: 16px; align-items: start; }
+  .backend-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .backend-table th, .backend-table td { padding: 10px 8px; border-bottom: 1px solid rgba(15, 23, 42, .08); vertical-align: top; }
+  .backend-table th { color: #475569; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+  .code-cell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; }
+  .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; font-size: .76rem; background: #eef2ff; color: #3730a3; }
+  .pill-state.danger { background: #fee2e2; color: #991b1b; }
+  .pill-state.ok { background: #dcfce7; color: #166534; }
+  .form-grid { display: grid; gap: 12px; }
+  @media (max-width: 1100px) {
+    .backend-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .backend-split { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="backend-grid">
+  <section class="backend-hero">
+    <span class="tag">Backend técnico</span>
+    <h1 class="display-serif mt-2 mb-1">Controle do app Central Águas</h1>
+    <p class="text-secondary mb-0">Dispositivos, push, Firebase, localização, bloqueios e eventos técnicos do aplicativo.</p>
+  </section>
+
+  {% if err %}
+    <div class="alert alert-danger">{{ err }}</div>
+  {% endif %}
+  {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+  {% endif %}
+
+  <section class="backend-kpis">
+    <div class="backend-card backend-kpi"><strong>{{ device_count }}</strong><span>dispositivos</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ active_24h_count }}</strong><span>ativos 24h</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ fcm_device_count }}</strong><span>tokens FCM</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ push_active_count }}</strong><span>web push ativo</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ blocked_device_count }}</strong><span>bloqueados</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ location_denied_count }}</strong><span>localizações negadas</span></div>
+  </section>
+
+  <section class="backend-split">
+    <div class="backend-card">
+      <h2>Status técnico</h2>
+      <div class="d-grid gap-2">
+        <div>
+          <span class="status-dot {{ 'status-ok' if fcm_configured else 'status-bad' }}"></span>
+          Firebase FCM: <strong>{{ 'configurado' if fcm_configured else 'pendente' }}</strong>
+        </div>
+        <div>
+          <span class="status-dot {{ 'status-ok' if push_configured else 'status-warn' }}"></span>
+          Web Push VAPID: <strong>{{ 'configurado' if push_configured else 'opcional/pendente' }}</strong>
+        </div>
+        <div class="muted">
+          Área permitida: {{ service_area.city }} / {{ service_area.state }}
+          {% if service_area.min_lat and service_area.max_lat and service_area.min_lon and service_area.max_lon %}
+            · limites por coordenadas configurados
+          {% else %}
+            · validação por cidade/estado
+          {% endif %}
+        </div>
+        <div class="muted">Endpoint JSON de saúde: <code>/admin/app/status</code></div>
+      </div>
+    </div>
+
+    <div class="backend-card">
+      <h2>Enviar push real</h2>
+      <form class="form-grid" method="post" action="/admin/notifications/send">
+        <input class="form-control" type="text" name="title" placeholder="Título da notificação" required>
+        <textarea class="form-control" name="body" rows="3" placeholder="Mensagem que aparece no celular" required></textarea>
+        <select class="form-select" name="target">
+          <option value="all">Todos os dispositivos</option>
+          <option value="customers">Clientes identificados</option>
+        </select>
+        <input class="form-control" type="text" name="url" value="/app">
+        <button class="ca-pill ca-primary" type="submit">Enviar notificação</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="backend-card">
+    <h2>Dispositivos do app</h2>
+    <div class="table-responsive">
+      <table class="backend-table">
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Cliente</th>
+            <th>Permissões</th>
+            <th>FCM</th>
+            <th>Último acesso</th>
+            <th>Acesso</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for device in devices %}
+            <tr>
+              <td>
+                <div class="code-cell">{{ device.device_id }}</div>
+                <div class="muted">{{ device.platform or 'web' }} {{ device.app_version or '' }}</div>
+              </td>
+              <td>{{ device.customer.name if device.customer else 'Não identificado' }}</td>
+              <td>
+                <div>Push: {{ device.notification_permission or '-' }}</div>
+                <div>Localização: {{ device.location_permission or '-' }}</div>
+              </td>
+              <td>
+                {% if device.fcm_token %}
+                  <span class="pill-state ok">registrado</span>
+                {% else %}
+                  <span class="pill-state">sem token</span>
+                {% endif %}
+              </td>
+              <td>{{ device.last_seen_at.strftime('%d/%m/%Y %H:%M') if device.last_seen_at else '-' }}</td>
+              <td>
+                {% if device.is_blocked %}
+                  <span class="pill-state danger">bloqueado</span>
+                  <div class="muted">{{ device.block_reason or '' }}</div>
+                {% else %}
+                  <span class="pill-state ok">liberado</span>
+                {% endif %}
+                <form class="mt-2 d-grid gap-1" method="post" action="/admin/app/devices/{{ device.id }}/toggle-block">
+                  {% if not device.is_blocked %}
+                    <input class="form-control form-control-sm" type="text" name="block_reason" placeholder="Motivo do bloqueio">
+                  {% endif %}
+                  <button class="ca-pill ca-outline" type="submit">{{ 'Desbloquear' if device.is_blocked else 'Bloquear' }}</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="muted">Nenhum dispositivo registrado ainda.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="backend-split">
+    <div class="backend-card">
+      <h2>Localização e acesso</h2>
+      <div class="muted mb-2">{{ location_allowed_count }} liberadas · {{ location_denied_count }} negadas</div>
+      <div class="table-responsive">
+        <table class="backend-table">
+          <thead><tr><th>Data</th><th>Device</th><th>Coordenadas</th><th>Resultado</th></tr></thead>
+          <tbody>
+            {% for log in location_logs %}
+              <tr>
+                <td>{{ log.created_at.strftime('%d/%m %H:%M') }}</td>
+                <td><div class="code-cell">{{ log.device_id or '-' }}</div></td>
+                <td>{{ '%.5f'|format(log.lat) if log.lat is not none else '-' }}, {{ '%.5f'|format(log.lon) if log.lon is not none else '-' }}</td>
+                <td>
+                  <span class="pill-state {{ 'ok' if log.allowed else 'danger' }}">{{ 'permitido' if log.allowed else 'negado' }}</span>
+                  <div class="muted">{{ log.reason or '' }}</div>
+                </td>
+              </tr>
+            {% else %}
+              <tr><td colspan="4" class="muted">Nenhuma checagem de localização ainda.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="backend-card">
+      <h2>Histórico de notificações</h2>
+      <div class="d-grid gap-2">
+        {% for notification in latest_notifications %}
+          <div>
+            <strong>{{ notification.title }}</strong>
+            <div class="muted">{{ notification.status }} · {{ notification.sent_count }} enviadas · {{ notification.failed_count }} falhas · {{ notification.created_at.strftime('%d/%m %H:%M') }}</div>
+          </div>
+        {% else %}
+          <div class="muted">Nenhuma notificação enviada ainda.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="backend-card">
+    <h2>Inscrições Web Push</h2>
+    <div class="table-responsive">
+      <table class="backend-table">
+        <thead><tr><th>ID</th><th>Device</th><th>Status</th><th>Falhas</th><th>Último envio</th><th>Ação</th></tr></thead>
+        <tbody>
+          {% for subscription in subscriptions %}
+            <tr>
+              <td>#{{ subscription.id }}</td>
+              <td><div class="code-cell">{{ subscription.device_id }}</div></td>
+              <td><span class="pill-state {{ 'ok' if subscription.active else 'danger' }}">{{ 'ativo' if subscription.active else 'inativo' }}</span></td>
+              <td>{{ subscription.fail_count or 0 }}</td>
+              <td>{{ subscription.last_sent_at.strftime('%d/%m %H:%M') if subscription.last_sent_at else '-' }}</td>
+              <td>
+                <form method="post" action="/admin/app/subscriptions/{{ subscription.id }}/toggle">
+                  <button class="ca-pill ca-outline" type="submit">{{ 'Desativar' if subscription.active else 'Ativar' }}</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="muted">Nenhuma inscrição Web Push registrada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

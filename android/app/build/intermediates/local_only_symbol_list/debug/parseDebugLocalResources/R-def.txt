@@ -1,0 +1,19 @@
+R_DEF: Internal format may change without notice
+local
+color central_primary
+color central_primary_dark
+color central_white
+drawable splash_background
+mipmap ic_launcher
+mipmap ic_launcher_foreground
+mipmap ic_launcher_round
+string app_name
+string app_start_url
+string fcm_token_url
+string gcm_defaultSenderId
+string google_api_key
+string google_app_id
+string google_crash_reporting_api_key
+string google_storage_bucket
+string project_id
+style AppTheme

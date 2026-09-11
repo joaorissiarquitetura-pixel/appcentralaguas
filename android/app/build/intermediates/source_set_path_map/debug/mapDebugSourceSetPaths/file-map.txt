@@ -1,0 +1,13 @@
+com.centralaguas.app-jetified-firebase-messaging-24.1.0-0 C:\Users\João Rissi\.gradle\caches\8.10.2\transforms\148a205cf400b8fafd8517e6fd77bf17\transformed\jetified-firebase-messaging-24.1.0\res
+com.centralaguas.app-core-1.2.0-1 C:\Users\João Rissi\.gradle\caches\8.10.2\transforms\71fc025a7666d7d310f2a564f52db37f\transformed\core-1.2.0\res
+com.centralaguas.app-jetified-play-services-base-18.0.1-2 C:\Users\João Rissi\.gradle\caches\8.10.2\transforms\d1c5f7d74d95d0cd45b27c5da353b804\transformed\jetified-play-services-base-18.0.1\res
+com.centralaguas.app-jetified-play-services-basement-18.3.0-3 C:\Users\João Rissi\.gradle\caches\8.10.2\transforms\d8231ae59198588f72e7e8fedf9c8e8a\transformed\jetified-play-services-basement-18.3.0\res
+com.centralaguas.app-jetified-firebase-common-21.0.0-4 C:\Users\João Rissi\.gradle\caches\8.10.2\transforms\ff89411d5922e3a0b70166c038b8c766\transformed\jetified-firebase-common-21.0.0\res
+com.centralaguas.app-pngs-5 E:\Central_Aguas_Fidelidade_v2\android\app\build\generated\res\pngs\debug
+com.centralaguas.app-res-6 E:\Central_Aguas_Fidelidade_v2\android\app\build\generated\res\processDebugGoogleServices
+com.centralaguas.app-resValues-7 E:\Central_Aguas_Fidelidade_v2\android\app\build\generated\res\resValues\debug
+com.centralaguas.app-packageDebugResources-8 E:\Central_Aguas_Fidelidade_v2\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.centralaguas.app-packageDebugResources-9 E:\Central_Aguas_Fidelidade_v2\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.centralaguas.app-debug-10 E:\Central_Aguas_Fidelidade_v2\android\app\build\intermediates\merged_res\debug\mergeDebugResources
+com.centralaguas.app-debug-11 E:\Central_Aguas_Fidelidade_v2\android\app\src\debug\res
+com.centralaguas.app-main-12 E:\Central_Aguas_Fidelidade_v2\android\app\src\main\res
