@@ -12,6 +12,7 @@ from .config import settings
 from .database import SessionLocal
 from .init_db import create_tables, seed_if_needed
 from .routers.admin import router as admin_router
+from .routers.app_api import router as app_api_router
 from .routers.attendant import router as attendant_router
 from .routers.customer import router as customer_router
 from .routers.gotinha import router as gotinha_router
@@ -41,6 +42,16 @@ def facebook_domain_verification():
     return FileResponse("rqdbw52paf85rzi0jfb5hzbm2j5x0y.html", media_type="text/html")
 
 
+@app.get("/manifest.webmanifest", response_class=FileResponse)
+def pwa_manifest():
+    return FileResponse("app/static/manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/service-worker.js", response_class=FileResponse)
+def service_worker():
+    return FileResponse("app/static/service-worker.js", media_type="application/javascript")
+
+
 # --- EVENTO DE STARTUP ---
 @app.on_event("startup")
 def on_startup():
@@ -58,6 +69,7 @@ def on_startup():
 app.include_router(public_router)
 app.include_router(customer_router)
 app.include_router(gotinha_router)
+app.include_router(app_api_router)
 app.include_router(attendant_router, prefix="/atendente", tags=["Atendente"])
 app.include_router(admin_router)
 

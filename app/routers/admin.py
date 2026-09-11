@@ -1,5 +1,8 @@
 import os
-from fastapi import APIRouter, Request, Form, Depends
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, Request, Form, Depends, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -10,14 +13,17 @@ import time as _time
 import json
 
 from ..database import get_db
-from ..models import Attendant, Customer, Product, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
+from ..models import AppDevice, AppNotification, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
 from ..services.address import geocode_structured
+from ..services.push import fcm_configured, push_configured, send_notification_to_app_devices, send_notification_to_subscriptions
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/admin")
+
+UPLOAD_DIR = Path("app/static/uploads/products")
 
 # --- FUNÇÃO DE SEGURANÇA ---
 def require_admin(request: Request, db: Session) -> Attendant | None:
@@ -29,6 +35,49 @@ def require_admin(request: Request, db: Session) -> Attendant | None:
         return None
     return admin
 
+
+def _parse_optional_float(value: str | float | None) -> float | None:
+    if value is None:
+        return None
+    text_value = str(value).strip().replace(",", ".")
+    if not text_value:
+        return None
+    return float(text_value)
+
+
+def _parse_optional_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _coupon_available(coupon: Coupon, now: datetime | None = None) -> bool:
+    now = now or datetime.utcnow()
+    if not coupon.active:
+        return False
+    if coupon.valid_from and coupon.valid_from > now:
+        return False
+    if coupon.valid_until and coupon.valid_until < now:
+        return False
+    return True
+
+
+def _save_product_image(image_file: UploadFile | None) -> str | None:
+    if not image_file or not image_file.filename:
+        return None
+    ext = Path(image_file.filename).suffix.lower()
+    if ext not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        return None
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{datetime.utcnow():%Y%m%d%H%M%S}_{uuid4().hex[:8]}{ext}"
+    target = UPLOAD_DIR / filename
+    with target.open("wb") as output:
+        output.write(image_file.file.read())
+    return f"/static/uploads/products/{filename}"
+
 # --- DASHBOARD / HOME ---
 @router.get("", response_class=HTMLResponse)
 def admin_dashboard(request: Request, db: Session = Depends(get_db)):
@@ -39,9 +88,14 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     customers_with_purchases = db.scalar(select(func.count(Customer.id)).where(Customer.first_purchase_at.is_not(None)))
     total_tx = db.scalar(select(func.count(Transaction.id)))
     open_alerts = db.scalar(select(func.count(Alert.id)).where(Alert.resolved_at.is_(None)))
+    without_geo = db.scalar(select(func.count(Customer.id)).where(Customer.lat.is_(None)))
+    top_customers = db.execute(select(Customer).order_by(Customer.points.desc()).limit(8)).scalars().all()
 
     products = db.execute(select(Product).order_by(Product.name)).scalars().all()
     attendants = db.execute(select(Attendant).order_by(Attendant.name)).scalars().all()
+    open_shop_orders = 0
+    subscriber_total = 0
+    conversion_percent = int(((customers_with_purchases or 0) / total_customers) * 100) if total_customers else 0
 
     return templates.TemplateResponse(
         request=request,
@@ -53,6 +107,11 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "customers_with_purchases": customers_with_purchases or 0,
             "total_tx": total_tx or 0,
             "open_alerts": open_alerts or 0,
+            "open_shop_orders": open_shop_orders,
+            "subscriber_total": subscriber_total,
+            "conversion_percent": conversion_percent,
+            "without_geo": without_geo or 0,
+            "top_customers": top_customers,
             "target": settings.CARD_TARGET_POINTS,
             "double_weekday": settings.DOUBLE_POINTS_WEEKDAY,
             "ref_bonus": settings.REFERRAL_BONUS_POINTS,
@@ -167,6 +226,282 @@ def alerts_page(request: Request, db: Session = Depends(get_db)):
         context={"admin": admin, "alerts": alerts_display}
     )
 
+# --- ADMIN DA FRENTE DIGITAL ---
+
+@router.get("/site", response_class=HTMLResponse)
+def admin_site(
+    request: Request,
+    edit_product_id: int = 0,
+    edit_coupon_id: int = 0,
+    err: str = "",
+    success: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    products = db.execute(select(Product).order_by(Product.display_order.asc(), Product.name.asc())).scalars().all()
+    coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
+    editing_product = db.get(Product, edit_product_id) if edit_product_id else None
+    editing_coupon = db.get(Coupon, edit_coupon_id) if edit_coupon_id else None
+    coupon_available_count = sum(1 for coupon in coupons if _coupon_available(coupon))
+    device_count = db.scalar(select(func.count(AppDevice.id)))
+    push_count = db.scalar(select(func.count(PushSubscription.id)).where(PushSubscription.active == True))
+    latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(8)).scalars().all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_site.html",
+        context={
+            "admin": admin,
+            "business_name": settings.BUSINESS_NAME,
+            "products": products,
+            "coupons": coupons,
+            "editing_product": editing_product,
+            "editing_coupon": editing_coupon,
+            "coupon_available_count": coupon_available_count,
+            "device_count": device_count or 0,
+            "push_count": push_count or 0,
+            "push_configured": push_configured(),
+            "fcm_configured": fcm_configured(),
+            "latest_notifications": latest_notifications,
+            "open_shop_orders": 0,
+            "latest_shop_orders": [],
+            "attendants": db.execute(select(Attendant).order_by(Attendant.name)).scalars().all(),
+            "err": err,
+            "success": success,
+            "temp_password": "",
+            "temp_email": "",
+        },
+    )
+
+
+@router.get("/app", response_class=HTMLResponse)
+def admin_app_backend(
+    request: Request,
+    err: str = "",
+    success: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    since_24h = datetime.utcnow() - timedelta(hours=24)
+    blocked_device_ids = {
+        row[0]
+        for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
+    }
+    devices = db.execute(select(AppDevice).order_by(AppDevice.last_seen_at.desc()).limit(80)).scalars().all()
+    subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
+    location_logs = db.execute(select(LocationAccessLog).order_by(LocationAccessLog.created_at.desc()).limit(60)).scalars().all()
+    latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(12)).scalars().all()
+
+    push_active_count = sum(1 for subscription in subscriptions if subscription.active and subscription.device_id not in blocked_device_ids)
+    location_allowed_count = db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == True)) or 0
+    location_denied_count = db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == False)) or 0
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_app_backend.html",
+        context={
+            "admin": admin,
+            "business_name": settings.BUSINESS_NAME,
+            "devices": devices,
+            "subscriptions": subscriptions,
+            "location_logs": location_logs,
+            "latest_notifications": latest_notifications,
+            "device_count": db.scalar(select(func.count(AppDevice.id))) or 0,
+            "active_24h_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.last_seen_at >= since_24h)) or 0,
+            "blocked_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.is_blocked == True)) or 0,
+            "fcm_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
+            "push_active_count": push_active_count,
+            "location_allowed_count": location_allowed_count,
+            "location_denied_count": location_denied_count,
+            "push_configured": push_configured(),
+            "fcm_configured": fcm_configured(),
+            "service_area": {
+                "city": settings.SERVICE_AREA_CITY,
+                "state": settings.SERVICE_AREA_STATE,
+                "min_lat": settings.SERVICE_AREA_MIN_LAT,
+                "max_lat": settings.SERVICE_AREA_MAX_LAT,
+                "min_lon": settings.SERVICE_AREA_MIN_LON,
+                "max_lon": settings.SERVICE_AREA_MAX_LON,
+            },
+            "err": err,
+            "success": success,
+        },
+    )
+
+
+@router.get("/app/status", response_class=JSONResponse)
+def admin_app_status(request: Request, db: Session = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+    since_24h = datetime.utcnow() - timedelta(hours=24)
+    return {
+        "ok": True,
+        "push": {"web_push": push_configured(), "firebase_fcm": fcm_configured()},
+        "devices": {
+            "total": db.scalar(select(func.count(AppDevice.id))) or 0,
+            "active_24h": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.last_seen_at >= since_24h)) or 0,
+            "blocked": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.is_blocked == True)) or 0,
+            "with_fcm": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
+        },
+        "location": {
+            "allowed": db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == True)) or 0,
+            "denied": db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == False)) or 0,
+        },
+    }
+
+
+@router.post("/app/devices/{device_id}/toggle-block")
+def toggle_app_device_block(
+    device_id: int,
+    request: Request,
+    block_reason: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    device = db.get(AppDevice, device_id)
+    if not device:
+        return RedirectResponse("/admin/app?err=Dispositivo%20não%20encontrado", status_code=303)
+
+    device.is_blocked = not bool(device.is_blocked)
+    if device.is_blocked:
+        device.block_reason = block_reason.strip()[:180] or "Bloqueado pelo administrador."
+        device.blocked_at = datetime.utcnow()
+        device.fcm_token = None
+        for subscription in db.execute(select(PushSubscription).where(PushSubscription.device_id == device.device_id)).scalars().all():
+            subscription.active = False
+    else:
+        device.block_reason = None
+        device.blocked_at = None
+    db.commit()
+    message = "Dispositivo%20bloqueado" if device.is_blocked else "Dispositivo%20desbloqueado"
+    return RedirectResponse(f"/admin/app?success={message}", status_code=303)
+
+
+@router.post("/app/subscriptions/{subscription_id}/toggle")
+def toggle_push_subscription(subscription_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    subscription = db.get(PushSubscription, subscription_id)
+    if not subscription:
+        return RedirectResponse("/admin/app?err=Inscrição%20push%20não%20encontrada", status_code=303)
+    subscription.active = not bool(subscription.active)
+    subscription.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse("/admin/app?success=Inscrição%20push%20atualizada", status_code=303)
+
+
+@router.post("/coupons")
+def create_or_update_coupon(
+    request: Request,
+    coupon_id: int = Form(0),
+    code: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    discount_type: str = Form("fixed"),
+    discount_value: str = Form("0"),
+    min_order_value: str = Form(""),
+    valid_from: str = Form(""),
+    valid_until: str = Form(""),
+    display_order: int = Form(0),
+    active: str = Form("off"),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    code_normalized = code.strip().upper()
+    if not code_normalized:
+        return RedirectResponse("/admin/site?err=Código%20obrigatório", status_code=303)
+
+    existing = db.scalar(select(Coupon).where(Coupon.code == code_normalized, Coupon.id != coupon_id))
+    if existing:
+        return RedirectResponse("/admin/site?err=Código%20de%20cupom%20já%20existe", status_code=303)
+
+    coupon = db.get(Coupon, coupon_id) if coupon_id else None
+    if not coupon:
+        coupon = Coupon(code=code_normalized, title=title.strip() or code_normalized)
+        db.add(coupon)
+
+    coupon.code = code_normalized
+    coupon.title = title.strip() or code_normalized
+    coupon.description = description.strip() or None
+    coupon.discount_type = discount_type if discount_type in {"fixed", "percent"} else "fixed"
+    coupon.discount_value = _parse_optional_float(discount_value) or 0
+    coupon.min_order_value = _parse_optional_float(min_order_value)
+    coupon.valid_from = _parse_optional_datetime(valid_from)
+    coupon.valid_until = _parse_optional_datetime(valid_until)
+    coupon.display_order = int(display_order or 0)
+    coupon.active = active == "on"
+    db.commit()
+
+    return RedirectResponse("/admin/site?success=Cupom%20salvo", status_code=303)
+
+
+@router.post("/coupons/{coupon_id}/toggle")
+def toggle_coupon(coupon_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    coupon = db.get(Coupon, coupon_id)
+    if coupon:
+        coupon.active = not coupon.active
+        db.commit()
+    return RedirectResponse("/admin/site", status_code=303)
+
+
+@router.post("/notifications/send")
+def send_app_notification(
+    request: Request,
+    title: str = Form(...),
+    body: str = Form(...),
+    target: str = Form("all"),
+    url: str = Form("/app"),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    notification = AppNotification(
+        title=title.strip()[:120],
+        body=body.strip(),
+        target=target if target in {"all", "customers"} else "all",
+        url=url.strip() or "/app",
+        status="queued",
+        created_by_attendant_id=admin.id,
+    )
+    db.add(notification)
+    db.commit()
+
+    query = select(PushSubscription).where(PushSubscription.active == True)
+    if notification.target == "customers":
+        query = query.where(PushSubscription.customer_id.is_not(None))
+    blocked_device_ids = {
+        row[0]
+        for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
+    }
+    subscriptions = [
+        subscription
+        for subscription in db.execute(query).scalars().all()
+        if subscription.device_id not in blocked_device_ids
+    ]
+    send_notification_to_subscriptions(db, notification, subscriptions)
+
+    device_query = select(AppDevice).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))
+    if notification.target == "customers":
+        device_query = device_query.where(AppDevice.customer_id.is_not(None))
+    devices = db.execute(device_query).scalars().all()
+    send_notification_to_app_devices(db, notification, devices)
+
+    if not push_configured() and not fcm_configured():
+        return RedirectResponse("/admin/site?success=Notificação%20registrada.%20Configure%20Firebase%20ou%20VAPID%20para%20envio%20push.", status_code=303)
+    return RedirectResponse("/admin/site?success=Notificação%20enviada", status_code=303)
+
+
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---
 
 @router.post("/customers/{customer_id}/reset_password")
@@ -223,16 +558,52 @@ def delete_customer(customer_id: int, request: Request, db: Session = Depends(ge
     return RedirectResponse("/admin/customers", status_code=303)
 
 @router.post("/products")
-def create_or_update_product(request: Request, product_id: int = Form(0), name: str = Form(...), points_per_unit: int = Form(1), active: str = Form("off"), db: Session = Depends(get_db)):
+def create_or_update_product(
+    request: Request,
+    product_id: int = Form(0),
+    name: str = Form(...),
+    description: str = Form(""),
+    promo_badge: str = Form(""),
+    pickup_price: str = Form(""),
+    delivery_price: str = Form(""),
+    promo_pickup_price: str = Form(""),
+    promo_delivery_price: str = Form(""),
+    stock_status: str = Form("disponivel"),
+    display_order: int = Form(0),
+    image_url: str = Form(""),
+    points_per_unit: int = Form(1),
+    featured_on_home: str = Form("off"),
+    active: str = Form("off"),
+    image_file: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
     is_active = (active == "on")
     if product_id > 0:
         p = db.get(Product, product_id)
-        if p: p.name, p.points_per_unit, p.active = name.strip(), int(points_per_unit), is_active
-    else: db.add(Product(name=name.strip(), points_per_unit=int(points_per_unit), active=is_active))
+        if not p:
+            return RedirectResponse("/admin/site?err=Produto%20não%20encontrado", status_code=303)
+    else:
+        p = Product(name=name.strip(), points_per_unit=int(points_per_unit), active=is_active)
+        db.add(p)
+
+    uploaded_url = _save_product_image(image_file)
+    p.name = name.strip()
+    p.description = description.strip() or None
+    p.promo_badge = promo_badge.strip() or None
+    p.pickup_price = _parse_optional_float(pickup_price)
+    p.delivery_price = _parse_optional_float(delivery_price)
+    p.promo_pickup_price = _parse_optional_float(promo_pickup_price)
+    p.promo_delivery_price = _parse_optional_float(promo_delivery_price)
+    p.stock_status = stock_status
+    p.display_order = int(display_order or 0)
+    p.image_url = uploaded_url or image_url.strip() or None
+    p.points_per_unit = int(points_per_unit)
+    p.featured_on_home = featured_on_home == "on"
+    p.active = is_active
     db.commit()
-    return RedirectResponse("/admin", status_code=303)
+    return RedirectResponse("/admin/site?success=Produto%20salvo", status_code=303)
 
 @router.post("/attendants")
 def create_attendant(request: Request, name: str = Form(...), email: str = Form(...), password: str = Form(...), role: str = Form("attendant"), db: Session = Depends(get_db)):

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .database import engine
-from .models import Attendant, Base, Product
+from .models import Attendant, Base, Coupon, Product
 from .security import hash_password
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,21 @@ def seed_if_needed(db: Session):
                     active=True,
                 )
             )
+
+    has_coupon = db.scalar(select(Coupon.id).limit(1))
+    if not has_coupon:
+        db.add(
+            Coupon(
+                code="BEMVINDO10",
+                title="Boas-vindas Central",
+                description="Desconto de R$ 10,00 para experimentar o pedido pelo app.",
+                discount_type="fixed",
+                discount_value=10.0,
+                min_order_value=20.0,
+                active=True,
+                display_order=0,
+            )
+        )
 
     admin = db.scalar(select(Attendant).where(Attendant.email == settings.SEED_ADMIN_EMAIL))
     if not admin:

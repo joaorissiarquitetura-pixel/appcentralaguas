@@ -66,6 +66,18 @@ class Settings:
     SESSION_MAX_AGE_SECONDS: int
     RESET_TOKEN_TTL_MINUTES: int
     ALLOW_AUTO_SEED_IN_PRODUCTION: bool
+    VAPID_PRIVATE_KEY: str
+    VAPID_PUBLIC_KEY: str
+    VAPID_SUBJECT: str
+    FIREBASE_SERVICE_ACCOUNT_JSON: str
+    FIREBASE_SERVICE_ACCOUNT_FILE: str
+    FIREBASE_PROJECT_ID: str
+    SERVICE_AREA_CITY: str
+    SERVICE_AREA_STATE: str
+    SERVICE_AREA_MIN_LAT: float
+    SERVICE_AREA_MAX_LAT: float
+    SERVICE_AREA_MIN_LON: float
+    SERVICE_AREA_MAX_LON: float
 
     @property
     def is_production(self) -> bool:
@@ -154,6 +166,18 @@ def load_settings() -> Settings:
         SESSION_MAX_AGE_SECONDS=int(os.getenv("SESSION_MAX_AGE_SECONDS", str(60 * 60 * 12))),
         RESET_TOKEN_TTL_MINUTES=int(os.getenv("RESET_TOKEN_TTL_MINUTES", "30")),
         ALLOW_AUTO_SEED_IN_PRODUCTION=env_bool("ALLOW_AUTO_SEED_IN_PRODUCTION", False),
+        VAPID_PRIVATE_KEY=os.getenv("VAPID_PRIVATE_KEY", ""),
+        VAPID_PUBLIC_KEY=os.getenv("VAPID_PUBLIC_KEY", ""),
+        VAPID_SUBJECT=os.getenv("VAPID_SUBJECT", "mailto:contato@centralaguas.com.br"),
+        FIREBASE_SERVICE_ACCOUNT_JSON=os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", ""),
+        FIREBASE_SERVICE_ACCOUNT_FILE=os.getenv("FIREBASE_SERVICE_ACCOUNT_FILE", ""),
+        FIREBASE_PROJECT_ID=os.getenv("FIREBASE_PROJECT_ID", ""),
+        SERVICE_AREA_CITY=os.getenv("SERVICE_AREA_CITY", "Votuporanga"),
+        SERVICE_AREA_STATE=os.getenv("SERVICE_AREA_STATE", "SP"),
+        SERVICE_AREA_MIN_LAT=float(os.getenv("SERVICE_AREA_MIN_LAT", "-20.48")),
+        SERVICE_AREA_MAX_LAT=float(os.getenv("SERVICE_AREA_MAX_LAT", "-20.35")),
+        SERVICE_AREA_MIN_LON=float(os.getenv("SERVICE_AREA_MIN_LON", "-50.05")),
+        SERVICE_AREA_MAX_LON=float(os.getenv("SERVICE_AREA_MAX_LON", "-49.90")),
     )
 
 

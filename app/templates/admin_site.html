@@ -60,6 +60,17 @@
     padding: 12px 0;
     border-bottom: 1px solid var(--ca-line);
   }
+  .coupon-code {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #eef5ff;
+    color: var(--ca-navy);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
   @media (max-width: 1100px) {
     .content-grid,
     .form-grid-2 { grid-template-columns: 1fr; }
@@ -261,11 +272,205 @@
 
     <div class="admin-grid">
       <div class="admin-card">
+        <h2>Backend do app</h2>
+        <div class="quick-list">
+          <div class="quick-item">
+            <span class="small-muted">Dispositivos registrados</span>
+            <strong>{{ device_count }}</strong>
+          </div>
+          <div class="quick-item">
+            <span class="small-muted">Inscrições push ativas</span>
+            <strong>{{ push_count }}</strong>
+          </div>
+          <div class="quick-item">
+            <span class="small-muted">Web Push</span>
+            <strong>{{ 'Configurado' if push_configured else 'Aguardando VAPID' }}</strong>
+          </div>
+          <div class="quick-item">
+            <span class="small-muted">Firebase FCM</span>
+            <strong>{{ 'Configurado' if fcm_configured else 'Aguardando credencial' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2>Enviar notificação</h2>
+        <form class="form-grid" method="post" action="/admin/notifications/send">
+          <div>
+            <label class="form-label fw-semibold">Título</label>
+            <input class="form-control" type="text" name="title" value="Central Águas" required>
+          </div>
+          <div>
+            <label class="form-label fw-semibold">Mensagem</label>
+            <input class="form-control" type="text" name="body" placeholder="Ex.: Cupom novo disponível no app" required>
+          </div>
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Destino</label>
+              <select class="form-select" name="target">
+                <option value="all">Todos os dispositivos</option>
+                <option value="customers">Clientes logados</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Abrir tela</label>
+              <input class="form-control" type="text" name="url" value="/app?screen=coupons">
+            </div>
+          </div>
+          <button class="ca-pill ca-primary" type="submit">Enviar push</button>
+        </form>
+        <div class="quick-list mt-3">
+          {% for notification in latest_notifications %}
+            <div class="quick-item">
+              <span>
+                <strong>{{ notification.title }}</strong>
+                <span class="small-muted d-block">{{ notification.status }} · {{ notification.sent_count }} enviados · {{ notification.failed_count }} falhas</span>
+              </span>
+              <span class="small-muted">{{ notification.created_at.strftime('%d/%m %H:%M') }}</span>
+            </div>
+          {% else %}
+            <div class="small-muted">Nenhuma notificação registrada ainda.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="admin-card">
+        <h2>Cupons do app</h2>
+        <p class="small-muted">Cadastre os cupons que aparecem para o cliente no app. Cupons ativos e dentro da validade entram em disponíveis.</p>
+        <form class="form-grid" method="post" action="/admin/coupons">
+          <input type="hidden" name="coupon_id" value="{{ editing_coupon.id if editing_coupon else 0 }}">
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Código do cupom</label>
+              <input class="form-control" type="text" name="code" placeholder="Ex.: BEMVINDO10" value="{{ editing_coupon.code if editing_coupon else '' }}" required>
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Título</label>
+              <input class="form-control" type="text" name="title" placeholder="Ex.: R$ 10 de boas-vindas" value="{{ editing_coupon.title if editing_coupon else '' }}" required>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label fw-semibold">Descrição</label>
+            <input class="form-control" type="text" name="description" placeholder="Texto curto que aparece no app" value="{{ editing_coupon.description if editing_coupon and editing_coupon.description else '' }}">
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Tipo de desconto</label>
+              <select class="form-select" name="discount_type">
+                <option value="fixed" {% if not editing_coupon or editing_coupon.discount_type == 'fixed' %}selected{% endif %}>Valor fixo</option>
+                <option value="percent" {% if editing_coupon and editing_coupon.discount_type == 'percent' %}selected{% endif %}>Percentual</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Desconto</label>
+              <input class="form-control" type="number" step="0.01" name="discount_value" placeholder="10.00" value="{{ editing_coupon.discount_value if editing_coupon else '' }}">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Pedido mínimo</label>
+              <input class="form-control" type="number" step="0.01" name="min_order_value" placeholder="20.00" value="{{ editing_coupon.min_order_value if editing_coupon and editing_coupon.min_order_value is not none else '' }}">
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Ordem de exibição</label>
+              <input class="form-control" type="number" name="display_order" value="{{ editing_coupon.display_order if editing_coupon else 0 }}">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div>
+              <label class="form-label fw-semibold">Válido a partir de</label>
+              <input class="form-control" type="datetime-local" name="valid_from" value="{{ editing_coupon.valid_from.strftime('%Y-%m-%dT%H:%M') if editing_coupon and editing_coupon.valid_from else '' }}">
+            </div>
+            <div>
+              <label class="form-label fw-semibold">Válido até</label>
+              <input class="form-control" type="datetime-local" name="valid_until" value="{{ editing_coupon.valid_until.strftime('%Y-%m-%dT%H:%M') if editing_coupon and editing_coupon.valid_until else '' }}">
+            </div>
+          </div>
+
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="active" id="coupon_active" {% if not editing_coupon or editing_coupon.active %}checked{% endif %}>
+            <label class="form-check-label" for="coupon_active">Cupom ativo</label>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            <button class="ca-pill ca-primary" type="submit">{% if editing_coupon %}Atualizar cupom{% else %}Salvar cupom{% endif %}</button>
+            {% if editing_coupon %}
+              <a class="ca-pill ca-outline text-decoration-none" href="/admin/site">Novo cupom</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <h2>Cupons cadastrados</h2>
+        <div class="table-wrap">
+          <table class="product-table">
+            <thead>
+              <tr>
+                <th>Cupom</th>
+                <th>Desconto</th>
+                <th>Validade</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for coupon in coupons %}
+              <tr>
+                <td>
+                  <span class="coupon-code">{{ coupon.code }}</span>
+                  <div class="mt-2"><strong>{{ coupon.title }}</strong></div>
+                  {% if coupon.description %}<div class="small-muted">{{ coupon.description }}</div>{% endif %}
+                  <div class="product-row-actions">
+                    <a class="ca-pill ca-outline text-decoration-none" href="/admin/site?edit_coupon_id={{ coupon.id }}">Editar</a>
+                    <form method="post" action="/admin/coupons/{{ coupon.id }}/toggle">
+                      <button class="ca-pill ca-outline" type="submit">{{ 'Desativar' if coupon.active else 'Ativar' }}</button>
+                    </form>
+                  </div>
+                </td>
+                <td>
+                  {% if coupon.discount_type == 'percent' %}
+                    {{ '%g'|format(coupon.discount_value or 0) }}% OFF
+                  {% else %}
+                    R$ {{ '%.2f'|format(coupon.discount_value or 0)|replace('.', ',') }}
+                  {% endif %}
+                  <div class="small-muted">
+                    {% if coupon.min_order_value %}Mínimo R$ {{ '%.2f'|format(coupon.min_order_value)|replace('.', ',') }}{% else %}Sem mínimo{% endif %}
+                  </div>
+                </td>
+                <td>
+                  <div>{% if coupon.valid_from %}De {{ coupon.valid_from.strftime('%d/%m/%Y %H:%M') }}{% else %}Início imediato{% endif %}</div>
+                  <div>{% if coupon.valid_until %}Até {{ coupon.valid_until.strftime('%d/%m/%Y %H:%M') }}{% else %}Sem expiração{% endif %}</div>
+                </td>
+                <td>
+                  <div>{{ 'Ativo' if coupon.active else 'Inativo' }}</div>
+                  <div class="small-muted">Ordem {{ coupon.display_order or 0 }}</div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="small-muted">Nenhum cupom cadastrado ainda.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-card">
         <h2>Operação da loja</h2>
         <div class="quick-list">
           <div class="quick-item">
             <span class="small-muted">Pedidos em aberto</span>
             <strong>{{ open_shop_orders }}</strong>
+          </div>
+          <div class="quick-item">
+            <span class="small-muted">Cupons disponíveis no app</span>
+            <strong>{{ coupon_available_count }}</strong>
           </div>
           {% for order in latest_shop_orders %}
             <div class="quick-item">

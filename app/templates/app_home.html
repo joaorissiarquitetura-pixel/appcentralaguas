@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ business_name }} App | Central Águas</title>
+  <meta name="theme-color" content="#0B4CCB">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/static/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
@@ -45,12 +52,24 @@
       z-index: 30;
       display: grid;
       place-items: center;
-      background: var(--ca-primary);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(179, 229, 255, 0.42), transparent 34%),
+        linear-gradient(180deg, #0B4CCB 0%, #083A9A 100%);
       color: var(--ca-white);
       animation: splashOut 700ms ease 1250ms forwards;
     }
-    .splash-inner { display: grid; justify-items: center; gap: 28px; }
-    .splash-inner img { width: min(54vw, 230px); border-radius: 14px; }
+    .splash-inner { display: grid; justify-items: center; gap: 18px; }
+    .splash-mascot {
+      width: min(48vw, 184px);
+      object-fit: contain;
+      filter: drop-shadow(0 22px 30px rgba(0, 0, 0, 0.24));
+      animation: floatDrop 4.8s ease-in-out infinite;
+    }
+    .splash-brand {
+      width: min(50vw, 210px);
+      border-radius: 14px;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+    }
     .splash-copy {
       max-width: 240px;
       text-align: center;
@@ -117,13 +136,12 @@
       color: var(--ca-white);
     }
     .top-brand-mark {
-      width: 30px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      color: #65cef7;
-      font-size: 1.75rem;
-      line-height: 1;
+      width: 24px;
+      height: 30px;
+      margin-left: 3px;
+      border-radius: 70% 70% 70% 18%;
+      background: #65cef7;
+      transform: rotate(45deg);
     }
     .top-brand-copy {
       min-width: 0;
@@ -168,7 +186,19 @@
         linear-gradient(180deg, rgba(255, 255, 255, 0.1) 64%, rgba(179, 229, 255, 0.42) 100%),
         var(--ca-white);
     }
-    .onboarding-logo { width: 190px; margin: 0 auto 8px; border-radius: 14px; }
+    .onboarding-brand {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      margin-bottom: 2px;
+    }
+    .onboarding-mascot {
+      width: 132px;
+      object-fit: contain;
+      filter: drop-shadow(0 16px 22px rgba(11, 76, 203, 0.18));
+      animation: floatDrop 4.8s ease-in-out infinite;
+    }
+    .onboarding-logo { width: 158px; border-radius: 14px; }
     .onboarding-title {
       margin: 0;
       color: var(--ca-primary);
@@ -632,6 +662,88 @@
       font-weight: 800;
       white-space: nowrap;
     }
+    .coupon-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 4px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-soft);
+    }
+    .coupon-tab {
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #344054;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .coupon-tab.is-active {
+      background: var(--ca-white);
+      color: var(--ca-primary);
+      box-shadow: 0 8px 18px rgba(11, 76, 203, 0.08);
+    }
+    .coupon-panel { display: none; gap: 10px; }
+    .coupon-panel.is-active { display: grid; }
+    .coupon-card {
+      position: relative;
+      display: grid;
+      gap: 11px;
+      padding: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(11, 76, 203, 0.14);
+      border-radius: var(--ca-card);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 249, 255, 0.98));
+      box-shadow: var(--ca-shadow);
+    }
+    .coupon-card.is-disabled {
+      opacity: 0.68;
+      filter: grayscale(0.35);
+    }
+    .coupon-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+    }
+    .coupon-value {
+      min-width: 88px;
+      min-height: 48px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: var(--ca-primary);
+      color: var(--ca-white);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font: 800 0.98rem/1.05 "Montserrat", Arial, sans-serif;
+    }
+    .coupon-code {
+      min-height: 38px;
+      padding: 0 12px;
+      border: 1px dashed rgba(11, 76, 203, 0.35);
+      border-radius: 12px;
+      background: rgba(179, 229, 255, 0.22);
+      color: var(--ca-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .coupon-code button {
+      min-height: 30px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--ca-primary);
+      color: var(--ca-white);
+      font-size: 0.76rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
     .empty-state {
       display: grid;
       justify-items: center;
@@ -1047,6 +1159,8 @@
       html { scroll-behavior: auto; }
       .app-splash,
       .splash-loader span,
+      .splash-mascot,
+      .onboarding-mascot,
       .gotinha-nudge img,
       .gotinha-hero img { animation: none; }
       .app-splash { display: none; }
@@ -1087,7 +1201,8 @@
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
   <div class="app-splash" aria-hidden="true">
     <div class="splash-inner">
-      <img src="/static/img/logo_central.jpg" alt="">
+      <img class="splash-mascot" src="/static/assets/gotinha/emotions/alegria.webp" onerror="this.onerror=null;this.src='/static/img/mascote_novo.png';" alt="">
+      <img class="splash-brand" src="/static/img/logo_central.jpg" alt="">
       <div class="splash-copy">Água faz bem. A Central cuida do resto.</div>
       <div class="splash-loader"><span></span></div>
     </div>
@@ -1097,7 +1212,10 @@
     {% if not customer_logged_in %}
       <section class="onboarding-screen" data-screen="login">
         <div class="screen-inner stack">
-          <img class="onboarding-logo" src="/static/img/logo_central.jpg" alt="Central Águas">
+          <div class="onboarding-brand">
+            <img class="onboarding-mascot" src="/static/assets/gotinha/emotions/alegria.webp" onerror="this.onerror=null;this.src='/static/img/mascote_novo.png';" alt="Gotinha Central Águas">
+            <img class="onboarding-logo" src="/static/img/logo_central.jpg" alt="Central Águas">
+          </div>
           <div>
             <h1 class="onboarding-title">Peça sua água de um jeito mais simples.</h1>
             <p class="onboarding-copy">Entrega rápida e a qualidade que você já conhece.</p>
@@ -1116,7 +1234,7 @@
       <div class="screen-inner">
         <header class="app-topbar home">
           <div class="top-brand" aria-label="Central Águas">
-            <span class="top-brand-mark"><i class="bi bi-droplet-fill"></i></span>
+            <span class="top-brand-mark" aria-hidden="true"></span>
             <span class="top-brand-copy">
               <span class="top-brand-name">Central</span>
               <span class="top-brand-subtitle">Distribuidora de água mineral</span>
@@ -1396,10 +1514,71 @@
           <p class="small">Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.</p>
           <button class="primary-button" type="button" data-go="store">Usar na próxima compra</button>
         </article>
+        <button class="menu-row" type="button" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated-fill"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis para usar no app</span></span><i class="bi bi-chevron-right"></i></button>
         <h2 class="section-title">Histórico de pontos</h2>
         <div class="history-row"><span class="blue-icon"><i class="bi bi-bag-check"></i></span><span class="row-copy"><strong>Compra na loja</strong><span>Última movimentação</span></span><strong>+1 ponto</strong></div>
         <div class="history-row"><span class="blue-icon"><i class="bi bi-cart3"></i></span><span class="row-copy"><strong>Compra online</strong><span>Pedido pelo app</span></span><strong>+2 pontos</strong></div>
         <button class="secondary-button" type="button" data-go="home">Voltar para o app</button>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="coupons">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="menu" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Cupons</h1>
+          <button class="icon-button" type="button" data-go="store" aria-label="Abrir loja"><i class="bi bi-cart3"></i></button>
+        </header>
+        <div class="coupon-tabs" aria-label="Abas de cupons">
+          <button class="coupon-tab is-active" type="button" data-coupon-tab="available">Disponíveis</button>
+          <button class="coupon-tab" type="button" data-coupon-tab="unavailable">Indisponíveis</button>
+        </div>
+        <div class="coupon-panel is-active" data-coupon-panel="available">
+          {% for coupon in coupons.available %}
+            <article class="coupon-card">
+              <div class="coupon-top">
+                <span class="row-copy">
+                  <strong>{{ coupon.title }}</strong>
+                  <span>{{ coupon.description }}</span>
+                </span>
+                <span class="coupon-value">{{ coupon.discount_label }}</span>
+              </div>
+              <div class="coupon-code">
+                <span>{{ coupon.code }}</span>
+                <button type="button" data-copy-coupon="{{ coupon.code }}">Copiar</button>
+              </div>
+              <div class="small muted">{{ coupon.min_order_label }} · {{ coupon.validity_label }}</div>
+              <button class="primary-button" type="button" data-copy-coupon="{{ coupon.code }}" data-go="store">Usar cupom</button>
+            </article>
+          {% else %}
+            <div class="empty-state">
+              <span class="blue-icon"><i class="bi bi-ticket-perforated"></i></span>
+              <strong>Nenhum cupom disponível agora.</strong>
+              <span>Quando o admin liberar uma campanha, ela aparece aqui.</span>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="coupon-panel" data-coupon-panel="unavailable">
+          {% for coupon in coupons.unavailable %}
+            <article class="coupon-card is-disabled">
+              <div class="coupon-top">
+                <span class="row-copy">
+                  <strong>{{ coupon.title }}</strong>
+                  <span>{{ coupon.description }}</span>
+                </span>
+                <span class="coupon-value">{{ coupon.discount_label }}</span>
+              </div>
+              <div class="coupon-code"><span>{{ coupon.code }}</span><span>Indisponível</span></div>
+              <div class="small muted">{{ coupon.min_order_label }} · {{ coupon.validity_label }}</div>
+            </article>
+          {% else %}
+            <div class="empty-state">
+              <span class="blue-icon"><i class="bi bi-check2-circle"></i></span>
+              <strong>Nada indisponível por aqui.</strong>
+              <span>Seus cupons vencidos ou pausados ficam nesta aba.</span>
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </section>
 
@@ -1577,6 +1756,7 @@
           <i class="bi bi-chevron-right"></i>
         </a>
         <a class="menu-row" href="/app?screen=orders" data-go="orders"><span class="blue-icon"><i class="bi bi-receipt"></i></span><span class="row-copy"><strong>Meus pedidos</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=coupons" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis · {{ coupons.unavailable|length }} indisponíveis</span></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=payment" data-go="payment"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></a>
@@ -1637,6 +1817,7 @@
     const houseStockKey = "centralAguas.houseStock";
     const paymentPreferenceKey = "centralAguas.paymentPreference";
     const ordersKey = "centralAguas.orders";
+    const deviceIdKey = "centralAguas.deviceId";
     const houseStockDefaults = {
       total: 4,
       full: 3,
@@ -1648,9 +1829,96 @@
     let hydrationNotificationTimers = [];
     let deliveryNotificationTimer = null;
     let ordersFilter = "all";
+    let appBootstrap = { push: { configured: false, public_key: "" } };
 
     function formatMoney(value) {
       return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function getDeviceId() {
+      let deviceId = localStorage.getItem(deviceIdKey);
+      if (!deviceId) {
+        const random = crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        deviceId = `ca-${random}`;
+        localStorage.setItem(deviceIdKey, deviceId);
+      }
+      return deviceId;
+    }
+
+    async function postAppApi(path, payload) {
+      try {
+        const response = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch {
+        return { ok: false };
+      }
+    }
+
+    async function loadAppBootstrap() {
+      try {
+        const response = await fetch("/api/app/bootstrap");
+        appBootstrap = await response.json();
+      } catch {
+        appBootstrap = { push: { configured: false, public_key: "" } };
+      }
+    }
+
+    async function registerAppDevice() {
+      await postAppApi("/api/app/device", {
+        device_id: getDeviceId(),
+        platform: navigator.userAgent.includes("wv") ? "android-webview" : "web",
+        app_version: "1.0.0",
+        notification_permission: "Notification" in window ? Notification.permission : "unsupported",
+        location_permission: "unknown"
+      });
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+    }
+
+    async function syncPushSubscription() {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      if (!appBootstrap?.push?.configured || !appBootstrap.push.public_key) return;
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(appBootstrap.push.public_key)
+        });
+        const json = subscription.toJSON();
+        await postAppApi("/api/app/push-subscription", {
+          device_id: getDeviceId(),
+          endpoint: json.endpoint,
+          p256dh: json.keys?.p256dh || "",
+          auth: json.keys?.auth || ""
+        });
+      } catch {
+        await registerAppDevice();
+      }
+    }
+
+    async function syncLocationAccess(position, permissionState = "granted", source = "browser") {
+      if (!position?.coords) return;
+      const result = await postAppApi("/api/app/location/check", {
+        device_id: getDeviceId(),
+        lat: Number(position.coords.latitude),
+        lon: Number(position.coords.longitude),
+        accuracy: Number(position.coords.accuracy || 0),
+        permission_state: permissionState,
+        source
+      });
+      if (result?.reason) {
+        setLocationStatus(result.allowed ? result.reason : `${result.reason}. Atendimento sujeito à confirmação.`);
+      }
     }
 
     function paymentLabel(value) {
@@ -1907,10 +2175,11 @@
       const permission = Notification.permission === "granted"
         ? "granted"
         : await Notification.requestPermission();
-      if (permission === "granted") {
-        localStorage.setItem(deliveryNotificationKey, "on");
-        scheduleDeliveryNotification();
-      } else {
+          if (permission === "granted") {
+            localStorage.setItem(deliveryNotificationKey, "on");
+            await syncPushSubscription();
+            scheduleDeliveryNotification();
+          } else {
         localStorage.setItem(deliveryNotificationKey, "off");
       }
       renderDeliveryNotificationStatus();
@@ -2082,6 +2351,7 @@
         : await Notification.requestPermission();
       if (permission === "granted") {
         localStorage.setItem(notificationKey, "on");
+        await syncPushSubscription();
         scheduleHydrationNotifications();
       } else {
         localStorage.setItem(notificationKey, "off");
@@ -2211,6 +2481,7 @@
         async (position) => {
           const lat = position.coords.latitude.toFixed(5);
           const lng = position.coords.longitude.toFixed(5);
+          syncLocationAccess(position, "granted", "current_location");
           setLocationStatus("Convertendo localização em endereço...");
           try {
             const response = await fetch(`/api/localizacao/reversa?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
@@ -2229,6 +2500,11 @@
           }
         },
         () => {
+          postAppApi("/api/app/location/check", {
+            device_id: getDeviceId(),
+            permission_state: "denied",
+            source: "current_location"
+          });
           setLocationStatus("Não consegui acessar a localização. Permita no navegador ou busque pelo CEP.");
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
@@ -2500,6 +2776,25 @@
         renderOrders();
       }
 
+      const couponTab = event.target.closest("[data-coupon-tab]");
+      if (couponTab) {
+        const tab = couponTab.dataset.couponTab;
+        document.querySelectorAll("[data-coupon-tab]").forEach((button) => {
+          button.classList.toggle("is-active", button === couponTab);
+        });
+        document.querySelectorAll("[data-coupon-panel]").forEach((panel) => {
+          panel.classList.toggle("is-active", panel.dataset.couponPanel === tab);
+        });
+      }
+
+      const copyCoupon = event.target.closest("[data-copy-coupon]");
+      if (copyCoupon) {
+        const code = copyCoupon.dataset.copyCoupon || "";
+        if (code && navigator.clipboard) {
+          navigator.clipboard.writeText(code).catch(() => {});
+        }
+      }
+
       const stockStep = event.target.closest("[data-stock-step]");
       if (stockStep) {
         const stock = loadHouseStock();
@@ -2640,8 +2935,14 @@
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();
+    loadAppBootstrap().then(registerAppDevice).then(syncPushSubscription);
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js").then(syncPushSubscription).catch(() => {});
+      });
+    }
     const initialScreen = new URLSearchParams(window.location.search).get("screen");
-    const allowedInitialScreens = ["home", "store", "delivery", "checkout", "payment", "orders", "loyalty", "house", "gotinha", "menu", "address"];
+    const allowedInitialScreens = ["home", "store", "delivery", "checkout", "payment", "orders", "loyalty", "coupons", "house", "gotinha", "menu", "address"];
     if (initialScreen && allowedInitialScreens.includes(initialScreen)) {
       showScreen(initialScreen);
     }

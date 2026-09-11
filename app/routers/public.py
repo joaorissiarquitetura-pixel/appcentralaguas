@@ -3,7 +3,7 @@ import socket
 import ssl
 import urllib.parse
 import urllib.request
-from datetime import date
+from datetime import date, datetime
 from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, Form, Request, Response
@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id, login_customer, logout_customer
 from ..config import settings
 from ..database import SessionLocal, get_db
-from ..models import Customer, Product
+from ..models import Coupon, Customer, Product
 from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
@@ -285,6 +285,58 @@ def _hydration_profile(customer: Customer | None) -> SimpleNamespace:
     )
 
 
+def _coupon_is_available(coupon: Coupon, now: datetime | None = None) -> bool:
+    now = now or datetime.utcnow()
+    if not coupon.active:
+        return False
+    if coupon.valid_from and coupon.valid_from > now:
+        return False
+    if coupon.valid_until and coupon.valid_until < now:
+        return False
+    return True
+
+
+def _coupon_discount_label(coupon: Coupon) -> str:
+    if coupon.discount_type == "percent":
+        return f"{coupon.discount_value:g}% OFF"
+    value = coupon.discount_value or 0
+    return f"R$ {value:.2f}".replace(".", ",")
+
+
+def _coupon_validity_label(coupon: Coupon) -> str:
+    if coupon.valid_until:
+        return f"Válido até {coupon.valid_until.strftime('%d/%m/%Y')}"
+    if coupon.valid_from:
+        return f"Disponível a partir de {coupon.valid_from.strftime('%d/%m/%Y')}"
+    return "Sem data de expiração"
+
+
+def _customer_coupons(db: Session) -> SimpleNamespace:
+    coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
+    available = []
+    unavailable = []
+    for coupon in coupons:
+        item = SimpleNamespace(
+            id=coupon.id,
+            code=coupon.code,
+            title=coupon.title,
+            description=coupon.description or "Use este cupom na próxima compra.",
+            discount_label=_coupon_discount_label(coupon),
+            validity_label=_coupon_validity_label(coupon),
+            min_order_label=(
+                f"Pedido mínimo R$ {coupon.min_order_value:.2f}".replace(".", ",")
+                if coupon.min_order_value
+                else "Sem pedido mínimo"
+            ),
+            active=coupon.active,
+        )
+        if _coupon_is_available(coupon):
+            available.append(item)
+        else:
+            unavailable.append(item)
+    return SimpleNamespace(available=available, unavailable=unavailable)
+
+
 # --- ROTA HOME ---
 @router.get("/")
 def home(request: Request):
@@ -305,6 +357,7 @@ def app_home(request: Request, db: Session = Depends(get_db)):
 
     offers, catalog_error = _shop_catalog(db)
     loyalty = _home_loyalty(customer, db)
+    coupons = _customer_coupons(db)
     try:
         return templates.TemplateResponse(
             request=request,
@@ -323,6 +376,7 @@ def app_home(request: Request, db: Session = Depends(get_db)):
                 "loyalty_reward": _money_reward(),
                 "delivery_days": _app_delivery_days(),
                 "hydration_profile": _hydration_profile(customer),
+                "coupons": coupons,
             },
         )
     finally:

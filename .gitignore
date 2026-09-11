@@ -21,6 +21,13 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Ignorar build Android local
+android/build/
+android/central-aguas-debug.keystore
+android/app/google-services.json
+firebase-service-account*.json
+service-account*.json
+
 # Ignorar configurações da IDE
 .vscode/
 .idea/

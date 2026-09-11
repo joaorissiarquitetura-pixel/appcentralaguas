@@ -10,6 +10,8 @@ python-dotenv
 itsdangerous
 qrcode[pil]
 requests
+pywebpush
+firebase-admin
 fdb
 firebirdsql
 bcrypt==4.0.1
