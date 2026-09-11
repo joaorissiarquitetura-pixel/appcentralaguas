@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_customer_id, login_customer, logout_customer
@@ -312,7 +313,11 @@ def _coupon_validity_label(coupon: Coupon) -> str:
 
 
 def _customer_coupons(db: Session) -> SimpleNamespace:
-    coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
+    try:
+        coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
+    except SQLAlchemyError:
+        return SimpleNamespace(available=[], unavailable=[])
+
     available = []
     unavailable = []
     for coupon in coupons:

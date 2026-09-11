@@ -4,12 +4,18 @@ import json
 from datetime import datetime
 from typing import Iterable
 
-import firebase_admin
-from firebase_admin import credentials, messaging
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..models import AppDevice, AppNotification, PushSubscription
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials, messaging
+except ImportError:
+    firebase_admin = None
+    credentials = None
+    messaging = None
 
 
 def push_configured() -> bool:
@@ -17,10 +23,12 @@ def push_configured() -> bool:
 
 
 def fcm_configured() -> bool:
-    return bool(settings.FIREBASE_SERVICE_ACCOUNT_JSON or settings.FIREBASE_SERVICE_ACCOUNT_FILE)
+    return bool(firebase_admin and messaging and (settings.FIREBASE_SERVICE_ACCOUNT_JSON or settings.FIREBASE_SERVICE_ACCOUNT_FILE))
 
 
 def ensure_firebase_app() -> bool:
+    if not firebase_admin or not credentials:
+        return False
     if firebase_admin._apps:
         return True
     if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
@@ -40,30 +48,10 @@ def vapid_private_key() -> str:
 def send_web_push(subscription: PushSubscription, title: str, body: str, url: str = "/app") -> bool:
     if not push_configured():
         return False
-
-
-def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> bool:
-    if not device.fcm_token or not ensure_firebase_app():
-        return False
     try:
-        message = messaging.Message(
-            token=device.fcm_token,
-            notification=messaging.Notification(title=title, body=body),
-            data={"url": url or "/app"},
-            android=messaging.AndroidConfig(
-                priority="high",
-                notification=messaging.AndroidNotification(
-                    channel_id="central_aguas_alerts",
-                    icon="ic_launcher",
-                ),
-            ),
-        )
-        messaging.send(message)
-        return True
-    except Exception:
+        from pywebpush import WebPushException, webpush
+    except ImportError:
         return False
-
-    from pywebpush import WebPushException, webpush
 
     payload = json.dumps(
         {
@@ -88,6 +76,28 @@ def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> boo
         )
         return True
     except WebPushException:
+        return False
+
+
+def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> bool:
+    if not device.fcm_token or not ensure_firebase_app() or not messaging:
+        return False
+    try:
+        message = messaging.Message(
+            token=device.fcm_token,
+            notification=messaging.Notification(title=title, body=body),
+            data={"url": url or "/app"},
+            android=messaging.AndroidConfig(
+                priority="high",
+                notification=messaging.AndroidNotification(
+                    channel_id="central_aguas_alerts",
+                    icon="ic_launcher",
+                ),
+            ),
+        )
+        messaging.send(message)
+        return True
+    except Exception:
         return False
 
 
