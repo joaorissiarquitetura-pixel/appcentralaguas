@@ -6,6 +6,13 @@ from sqlalchemy.orm import Session
 from ..models import Product
 from ..services.grj_catalog import GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 
+DELIVERY_SURCHARGE = 2.0
+
+
+def app_delivery_price(base_price: float | None) -> float:
+    price = float(base_price or 0)
+    return price + DELIVERY_SURCHARGE if price > 0 else 0
+
 
 def _slug_from_text(value: str) -> str:
     slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in value).strip("-")
@@ -39,7 +46,8 @@ def product_category(name: str, description: str = "") -> str:
 def local_product_to_api(product: Product) -> dict:
     description = product.description or "Agua mineral Central Aguas."
     pickup_price = product.promo_pickup_price or product.pickup_price or 0
-    delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    catalog_delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    delivery_price = max(catalog_delivery_price, app_delivery_price(pickup_price)) if pickup_price else catalog_delivery_price
     image_url = product.image_url or _catalog_image_for_name(product.name)
     return {
         "id": product.id,

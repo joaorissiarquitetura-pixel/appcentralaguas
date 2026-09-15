@@ -10,6 +10,7 @@ from typing import Any
 from ..config import settings
 
 logger = logging.getLogger(__name__)
+DELIVERY_SURCHARGE = 2.0
 
 
 @dataclass(frozen=True)
@@ -46,7 +47,7 @@ class GRJCatalogProduct:
 
     @property
     def delivery_price(self) -> float:
-        return self.preco_venda
+        return self.preco_venda + DELIVERY_SURCHARGE if self.preco_venda > 0 else 0.0
 
     @property
     def stock_quantity(self) -> float:

@@ -430,6 +430,15 @@
       color: #667085;
       cursor: not-allowed;
     }
+    .cart-indicator {
+      display: none;
+      align-items: center;
+      gap: 5px;
+      color: var(--ca-primary);
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+    .cart-indicator.is-visible { display: inline-flex; }
     .choice-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
     .choice-card {
       min-height: 66px;
@@ -765,6 +774,13 @@
       gap: 10px;
       margin-top: 10px;
     }
+    .checkout-warning {
+      display: none;
+      color: #B42318;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .checkout-warning.is-visible { display: block; }
     .coupon-applied {
       display: flex;
       justify-content: space-between;
@@ -1404,6 +1420,7 @@
               <strong>{{ offer.name }}</strong>
               <span>{{ offer.description }}</span>
               <span class="product-price">R$ {{ "%.2f"|format(offer.delivery_price)|replace('.', ',') }}</span>
+              <span class="cart-indicator" data-cart-indicator="{{ offer.name }}"><i class="bi bi-cart-check-fill"></i><span>No carrinho</span></span>
               <div class="product-actions">
                 <div class="quantity-control" data-quantity>
                   <button type="button" data-step="-1" aria-label="Diminuir quantidade">−</button>
@@ -1480,6 +1497,7 @@
           <div class="subtotal-row"><span>Subtotal</span><strong id="checkoutSubtotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
           <div class="coupon-applied" id="checkoutDiscountRow"><span>Desconto</span><strong id="checkoutDiscount">- R$ 0,00</strong></div>
           <div class="total-row"><span>Total</span><strong id="checkoutTotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
+          <div class="checkout-warning" id="checkoutWarning"></div>
         </article>
         <form method="post" action="/loja/finalizar" id="orderForm">
           <input type="hidden" name="items_json" id="itemsJson">
@@ -1491,6 +1509,7 @@
           <input type="hidden" name="street" value="{{ customer.street if customer else '' }}">
           <input type="hidden" name="number" value="{{ customer.number if customer else '' }}">
           <input type="hidden" name="complement" value="{{ customer.complement if customer else '' }}">
+          <input type="hidden" name="city" value="{{ customer.city if customer and customer.city else location.detail if location.detail else '' }}">
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
           <div class="checkout-actions">
             <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
@@ -1882,7 +1901,8 @@
       street: {{ (customer.street if customer else '')|tojson }},
       number: {{ (customer.number if customer else '')|tojson }},
       complement: {{ (customer.complement if customer else '')|tojson }},
-      city: "Votuporanga",
+      city: {{ (customer.city if customer and customer.city else location.detail if location.detail else '')|tojson }},
+      deliveryAvailable: true,
       lat: "",
       lng: "",
       paymentMethod: "pix",
@@ -2254,6 +2274,18 @@
       }
       syncPrimaryFromCart();
       updateCheckout();
+      updateCartIndicators();
+    }
+
+    function updateCartIndicators() {
+      const items = Array.isArray(state.cart) ? state.cart : [];
+      document.querySelectorAll("[data-cart-indicator]").forEach((indicator) => {
+        const cartItem = items.find((item) => item.product === indicator.dataset.cartIndicator);
+        const qty = Number(cartItem?.qty || 0);
+        indicator.classList.toggle("is-visible", qty > 0);
+        const label = indicator.querySelector("span");
+        if (label) label.textContent = qty > 0 ? `No carrinho (${qty})` : "No carrinho";
+      });
     }
 
     function reorderFromHouseStock() {
@@ -2640,6 +2672,48 @@
       return label;
     }
 
+    function normalizeText(value) {
+      return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    function isVotuporangaAddress() {
+      const city = normalizeText(state.city || state.locationBaseLabel || state.locationLabel);
+      return city.includes("votuporanga");
+    }
+
+    function addressIssue() {
+      if (!isVotuporangaAddress()) {
+        return "Área de entrega não disponível. Hoje atendemos somente Votuporanga/SP.";
+      }
+      if (!String(state.street || "").trim()) {
+        return "Informe o endereço antes de finalizar o pedido.";
+      }
+      if (!String(state.number || "").trim()) {
+        return "Digite o número do imóvel para finalizar o pedido.";
+      }
+      return "";
+    }
+
+    function showCheckoutWarning(message) {
+      const warning = document.getElementById("checkoutWarning");
+      if (!warning) return;
+      warning.textContent = message || "";
+      warning.classList.toggle("is-visible", Boolean(message));
+    }
+
+    function ensureOrderAddress() {
+      const issue = addressIssue();
+      showCheckoutWarning(issue);
+      if (!issue) return true;
+      setLocationStatus(issue);
+      document.querySelector("[data-address-editor]")?.classList.remove("is-hidden");
+      showScreen("address");
+      return false;
+    }
+
     function formattedLocationLabel() {
       const baseLabel = publicLocationLabel(state.locationBaseLabel || state.locationLabel);
       const number = String(state.number || "").trim();
@@ -2667,6 +2741,7 @@
     function updateLocationDisplay() {
       state.locationBaseLabel = publicLocationLabel(state.locationBaseLabel || state.locationLabel);
       state.locationLabel = formattedLocationLabel();
+      state.deliveryAvailable = isVotuporangaAddress();
       document.querySelectorAll("[data-location-label]").forEach((item) => {
         item.textContent = state.locationLabel;
       });
@@ -2674,12 +2749,18 @@
       const street = document.querySelector("input[name='street']");
       const number = document.querySelector("input[name='number']");
       const complement = document.querySelector("input[name='complement']");
+      const city = document.querySelector("input[name='city']");
       const notes = document.querySelector("input[name='notes']");
+      const visibleNumber = document.querySelector("[data-location-number]");
+      const visibleComplement = document.querySelector("[data-location-complement]");
       if (neighborhood) neighborhood.value = state.neighborhood || "";
       if (street) street.value = state.street || "";
       if (number) number.value = state.number || "";
       if (complement) complement.value = state.complement || "";
+      if (city) city.value = state.city || "";
       if (notes) notes.value = state.notes || "Pedido iniciado pelo app Central Águas";
+      if (visibleNumber && visibleNumber.value !== (state.number || "")) visibleNumber.value = state.number || "";
+      if (visibleComplement && visibleComplement.value !== (state.complement || "")) visibleComplement.value = state.complement || "";
       updateLocationMap();
     }
 
@@ -2691,12 +2772,14 @@
       state.street = street;
       state.neighborhood = neighborhood;
       state.city = `${city}/${uf}`;
+      state.number = "";
+      state.complement = "";
       state.locationBaseLabel = [street || "Endereço pelo CEP", neighborhood, state.city].filter(Boolean).join(" - ");
       state.notes = "Pedido iniciado pelo app Central Águas";
       state.lat = "";
       state.lng = "";
       updateLocationDisplay();
-      setLocationStatus("Localização encontrada pelo CEP.");
+      setLocationStatus(isVotuporangaAddress() ? "Endereço encontrado. Digite o número do imóvel." : "Área de entrega não disponível. Hoje atendemos somente Votuporanga/SP.");
     }
 
     function applyCurrentAddress(data, lat, lng) {
@@ -2704,12 +2787,14 @@
       state.neighborhood = data.neighborhood || "";
       const resolvedLabel = data.label || [state.street, state.neighborhood, data.city].filter(Boolean).join(" - ");
       state.city = data.city || "Votuporanga";
+      state.number = "";
+      state.complement = "";
       state.locationBaseLabel = publicLocationLabel(resolvedLabel);
       state.lat = lat;
       state.lng = lng;
       state.notes = `Pedido iniciado pelo app Central Águas. Localização aproximada capturada pelo aparelho: ${lat}, ${lng}`;
       updateLocationDisplay();
-      setLocationStatus("Endereço encontrado pela localização. Confira se está correto.");
+      setLocationStatus(isVotuporangaAddress() ? "Endereço encontrado pela localização. Digite o número do imóvel." : "Área de entrega não disponível. Hoje atendemos somente Votuporanga/SP.");
     }
 
     async function searchCepLocation() {
@@ -2952,6 +3037,10 @@
       }
       if (name === "store") {
         renderStoreCategory();
+        updateCartIndicators();
+      }
+      if (name === "address") {
+        setLocationStatus(addressIssue() || "Endereço pronto para entrega.");
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -3102,6 +3191,9 @@
         const next = go.dataset.go;
         if (next) {
           event.preventDefault();
+          if ((next === "delivery" || next === "checkout") && !ensureOrderAddress()) {
+            return;
+          }
           if (next === "coupons") {
             couponReturnScreen = go.id === "couponAction" ? "checkout" : "menu";
           }
@@ -3141,6 +3233,7 @@
           item.qty = Math.max(1, Number(item.qty || 1) + Number(cartStepButton.dataset.cartStep || 0));
           syncPrimaryFromCart();
           updateCheckout();
+          updateCartIndicators();
         }
       }
 
@@ -3150,6 +3243,7 @@
         state.cart.splice(index, 1);
         syncPrimaryFromCart();
         updateCheckout();
+        updateCartIndicators();
       }
 
       const add = event.target.closest("[data-product]");
@@ -3328,6 +3422,7 @@
     document.querySelector("[data-location-number]")?.addEventListener("input", (event) => {
       state.number = event.target.value.trim();
       updateLocationDisplay();
+      setLocationStatus(addressIssue() || "Endereço pronto para entrega.");
     });
 
     document.querySelector("[data-location-complement]")?.addEventListener("input", (event) => {
@@ -3403,8 +3498,12 @@
       renderHydration();
     });
 
-    document.getElementById("orderForm")?.addEventListener("submit", () => {
+    document.getElementById("orderForm")?.addEventListener("submit", (event) => {
       updateCheckout();
+      if (!ensureOrderAddress()) {
+        event.preventDefault();
+        return;
+      }
       saveOrderSnapshot();
     });
 
@@ -3415,6 +3514,7 @@
     renderPayment();
     renderOrders();
     renderStoreCategory();
+    updateCartIndicators();
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();

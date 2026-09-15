@@ -1,6 +1,7 @@
 import json
 import socket
 import ssl
+import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import date, datetime
@@ -23,6 +24,21 @@ from ..services.loyalty import card_progress, cards_completed, points_balance
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
+DELIVERY_SURCHARGE = 2.0
+
+
+def _app_delivery_price(base_price: float | None) -> float:
+    price = float(base_price or 0)
+    return price + DELIVERY_SURCHARGE if price > 0 else 0
+
+
+def _plain_text(value: str | None) -> str:
+    text = unicodedata.normalize("NFD", value or "")
+    return "".join(char for char in text if unicodedata.category(char) != "Mn").lower()
+
+
+def _is_votuporanga(value: str | None) -> bool:
+    return "votuporanga" in _plain_text(value)
 
 
 def _chrome_hidden_context(**context):
@@ -86,7 +102,8 @@ def _product_category(name: str, description: str = "") -> str:
 
 def _shop_offer_from_product(product: Product) -> SimpleNamespace:
     pickup_price = product.promo_pickup_price or product.pickup_price or 0
-    delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    catalog_delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    delivery_price = max(catalog_delivery_price, _app_delivery_price(pickup_price)) if pickup_price else catalog_delivery_price
     description = product.description or "Água mineral Central Águas."
     return SimpleNamespace(
         product_id=product.id,
@@ -107,7 +124,8 @@ def _shop_offer_from_product(product: Product) -> SimpleNamespace:
 
 def _local_product_to_public_dict(product: Product) -> dict[str, object]:
     pickup_price = product.promo_pickup_price or product.pickup_price or 0
-    delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    catalog_delivery_price = product.promo_delivery_price or product.delivery_price or pickup_price
+    delivery_price = max(catalog_delivery_price, _app_delivery_price(pickup_price)) if pickup_price else catalog_delivery_price
     return {
         "external_id": str(product.id),
         "name": product.name,
@@ -130,7 +148,7 @@ def _shop_offer_from_grj_product(product: GRJCatalogProduct) -> SimpleNamespace:
         name=product.name,
         description=product.description,
         pickup_price=product.pickup_price,
-        delivery_price=product.delivery_price,
+        delivery_price=_app_delivery_price(product.pickup_price),
         badge="Sistema GRJ",
         image_url=_grj_product_image_proxy_url(product) or _catalog_image_for_name(product.name),
         stock_status=product.stock_status,
@@ -215,7 +233,7 @@ def _home_location(customer: Customer | None) -> SimpleNamespace:
 
     address_bits = [customer.street, customer.number]
     street_line = ", ".join(bit for bit in address_bits if bit)
-    detail = customer.neighborhood or "Votuporanga"
+    detail = " - ".join(bit for bit in [customer.neighborhood, customer.city] if bit) or "Votuporanga"
     return SimpleNamespace(
         label=street_line or "Endereço não informado",
         detail=detail,
@@ -630,8 +648,15 @@ def finish_shop_order(
     street: str = Form(""),
     number: str = Form(""),
     complement: str = Form(""),
+    city: str = Form(""),
     notes: str = Form(""),
 ):
+    city_hint = city or notes or ""
+    if not street.strip() or not number.strip():
+        return HTMLResponse("Informe endereço e número do imóvel para finalizar o pedido.", status_code=400)
+    if not _is_votuporanga(city_hint) and not _is_votuporanga(neighborhood) and not _is_votuporanga(street):
+        return HTMLResponse("Área de entrega não disponível. Hoje atendemos somente Votuporanga/SP.", status_code=400)
+
     try:
         raw_items = json.loads(items_json)
     except json.JSONDecodeError:
