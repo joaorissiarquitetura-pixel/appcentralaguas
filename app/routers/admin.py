@@ -1,4 +1,5 @@
 import os
+import hmac
 from pathlib import Path
 from uuid import uuid4
 
@@ -35,6 +36,106 @@ def require_admin(request: Request, db: Session) -> Attendant | None:
     if not admin or not is_admin(admin):
         return None
     return admin
+
+
+def _valid_recovery_token(token: str) -> bool:
+    expected = os.getenv("ADMIN_RECOVERY_TOKEN", "").strip()
+    if len(expected) < 24:
+        return False
+    return hmac.compare_digest(token.strip(), expected)
+
+
+@router.get("/recover-access", response_class=HTMLResponse)
+def admin_recover_access_page(request: Request, token: str = "", db: Session = Depends(get_db)):
+    if not _valid_recovery_token(token):
+        return HTMLResponse("Recuperacao indisponivel.", status_code=404)
+    return HTMLResponse(
+        """
+        <!doctype html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Recuperar admin</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #eef6ff; color: #102033; }
+            form { width: min(420px, calc(100vw - 32px)); display: grid; gap: 14px; padding: 24px; background: #fff; border: 1px solid #d8e6f5; border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,.08); }
+            h1 { margin: 0 0 4px; font-size: 22px; }
+            label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; }
+            input { height: 42px; border: 1px solid #cbd9ea; border-radius: 8px; padding: 0 12px; font: inherit; }
+            button { height: 44px; border: 0; border-radius: 8px; background: #0b4ccb; color: #fff; font-weight: 800; cursor: pointer; }
+            p { margin: 0; color: #607084; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <form method="post" action="/admin/recover-access">
+            <h1>Recuperar admin</h1>
+            <p>Defina o login que vai acessar o painel.</p>
+            <input type="hidden" name="token" value="{token}">
+            <label>Nome
+              <input name="name" value="Administrador" required>
+            </label>
+            <label>E-mail
+              <input name="email" type="email" value="admin@centralaguas.com" required>
+            </label>
+            <label>Senha nova
+              <input name="password" type="password" minlength="8" required>
+            </label>
+            <button type="submit">Salvar acesso admin</button>
+          </form>
+        </body>
+        </html>
+        """.replace("{token}", token.strip())
+    )
+
+
+@router.post("/recover-access", response_class=HTMLResponse)
+def admin_recover_access_action(
+    request: Request,
+    token: str = Form(""),
+    name: str = Form("Administrador"),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if not _valid_recovery_token(token):
+        return HTMLResponse("Recuperacao indisponivel.", status_code=404)
+    if len(password.strip()) < 8:
+        return HTMLResponse("A senha precisa ter pelo menos 8 caracteres.", status_code=400)
+
+    email_normalized = email.strip().lower()
+    admin = db.scalar(select(Attendant).where(Attendant.email == email_normalized))
+    if not admin:
+        admin = Attendant(
+            name=name.strip() or "Administrador",
+            email=email_normalized,
+            password_hash=hash_password(password.strip()),
+            role="admin",
+            is_active=True,
+        )
+        db.add(admin)
+    else:
+        admin.name = name.strip() or admin.name
+        admin.password_hash = hash_password(password.strip())
+        admin.role = "admin"
+        admin.is_active = True
+    db.commit()
+
+    return HTMLResponse(
+        """
+        <!doctype html>
+        <html lang="pt-BR">
+        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+        <body style="font-family:Arial,sans-serif;display:grid;place-items:center;min-height:100vh;background:#eef6ff;color:#102033">
+          <main style="background:white;padding:24px;border-radius:12px;border:1px solid #d8e6f5;max-width:420px">
+            <h1 style="margin-top:0">Admin atualizado</h1>
+            <p>Agora entre com o e-mail e senha que voce acabou de definir.</p>
+            <a href="/atendente/login" style="display:inline-block;margin-top:12px;background:#0b4ccb;color:white;padding:12px 16px;border-radius:8px;text-decoration:none;font-weight:800">Ir para login</a>
+          </main>
+        </body>
+        </html>
+        """
+    )
 
 
 def _parse_optional_float(value: str | float | None) -> float | None:
