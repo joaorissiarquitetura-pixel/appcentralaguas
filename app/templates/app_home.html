@@ -126,34 +126,32 @@
     .app-topbar.home h1 { color: var(--ca-white); }
     .top-brand {
       display: inline-grid;
-      grid-template-columns: 25px minmax(0, 1fr);
+      grid-template-columns: 31px minmax(0, 1fr);
       align-items: center;
-      gap: 5px;
+      gap: 7px;
       min-width: 0;
       color: var(--ca-white);
     }
-    .top-brand-mark {
-      width: 20px;
-      height: 25px;
-      margin-left: 2px;
-      border-radius: 70% 70% 70% 18%;
-      background: #65cef7;
-      transform: rotate(45deg);
+    .top-brand-drop {
+      width: 28px;
+      height: 34px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
     }
     .top-brand-copy {
       min-width: 0;
       display: grid;
-      gap: 1px;
+      gap: 2px;
     }
     .top-brand-name {
       color: var(--ca-white);
-      font: 700 1.42rem/0.92 "Montserrat", Arial, sans-serif;
+      font: 800 1.34rem/0.92 "Montserrat", Arial, sans-serif;
       letter-spacing: 0;
     }
     .top-brand-subtitle {
-      color: rgba(255, 255, 255, 0.82);
-      font: 700 0.34rem/1.15 "Montserrat", Arial, sans-serif;
-      letter-spacing: 0.03em;
+      color: rgba(255, 255, 255, 0.9);
+      font: 800 0.43rem/1.05 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0.02em;
       text-transform: uppercase;
       white-space: nowrap;
     }
@@ -1252,7 +1250,7 @@
       <div class="screen-inner">
         <header class="app-topbar home">
           <div class="top-brand" aria-label="Central Águas">
-            <span class="top-brand-mark" aria-hidden="true"></span>
+            <img class="top-brand-drop" src="/static/img/logo_central_drop.png" alt="" aria-hidden="true">
             <span class="top-brand-copy">
               <span class="top-brand-name">Central</span>
               <span class="top-brand-subtitle">Distribuidora de água mineral</span>
