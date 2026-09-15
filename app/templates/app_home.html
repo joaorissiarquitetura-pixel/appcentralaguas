@@ -760,6 +760,11 @@
       color: #101828;
       background: var(--ca-white);
     }
+    .checkout-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
     .coupon-applied {
       display: flex;
       justify-content: space-between;
@@ -1469,8 +1474,8 @@
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-wallet2"></i></span><span class="row-copy"><strong>Pagamento</strong><span id="checkoutPayment">Pix</span></span><button class="text-button" type="button" data-go="payment">Alterar</button></div>
           <div class="summary-row" id="couponSummary">
             <span class="blue-icon"><i class="bi bi-ticket-perforated"></i></span>
-            <span class="row-copy"><strong>Cupom de desconto</strong><span id="couponHelp">Escolha um cupom disponível para este pedido.</span></span>
-            <select class="coupon-select" id="couponSelect" aria-label="Cupom de desconto"></select>
+            <span class="row-copy"><strong>Cupom</strong><span id="couponHelp">Escolha um cupom disponível para este pedido.</span></span>
+            <button class="text-button" type="button" data-go="coupons" id="couponAction">Inserir</button>
           </div>
           <div class="subtotal-row"><span>Subtotal</span><strong id="checkoutSubtotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
           <div class="coupon-applied" id="checkoutDiscountRow"><span>Desconto</span><strong id="checkoutDiscount">- R$ 0,00</strong></div>
@@ -1487,8 +1492,10 @@
           <input type="hidden" name="number" value="{{ customer.number if customer else '' }}">
           <input type="hidden" name="complement" value="{{ customer.complement if customer else '' }}">
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
-          <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
-          <button class="primary-button" type="submit">Finalizar pedido</button>
+          <div class="checkout-actions">
+            <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
+            <button class="primary-button" type="submit">Finalizar pedido</button>
+          </div>
         </form>
       </div>
     </section>
@@ -1561,7 +1568,7 @@
     <section class="app-screen" data-screen="coupons">
       <div class="screen-inner stack">
         <header class="app-topbar">
-          <button class="icon-button" type="button" data-go="menu" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <button class="icon-button" type="button" data-coupon-back aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
           <h1>Cupons</h1>
           <button class="icon-button" type="button" data-go="store" aria-label="Abrir loja"><i class="bi bi-cart3"></i></button>
         </header>
@@ -1584,7 +1591,7 @@
                 <button type="button" data-copy-coupon="{{ coupon.code }}">Copiar</button>
               </div>
               <div class="small muted">{{ coupon.min_order_label }} · {{ coupon.validity_label }}</div>
-              <button class="primary-button" type="button" data-copy-coupon="{{ coupon.code }}" data-go="store">Usar cupom</button>
+              <button class="primary-button" type="button" data-apply-coupon="{{ coupon.code }}" data-go="checkout">Aplicar cupom</button>
             </article>
           {% else %}
             <div class="empty-state">
@@ -1911,6 +1918,7 @@
     let hydrationNotificationTimers = [];
     let deliveryNotificationTimer = null;
     let ordersFilter = "all";
+    let couponReturnScreen = "menu";
     let appBootstrap = { push: { configured: false, public_key: "" } };
     const checkoutCoupons = [
       {% for coupon in coupons.available %}
@@ -3040,35 +3048,30 @@
 
     function renderCouponSelect(subtotal = cartSubtotal()) {
       const couponSummary = document.getElementById("couponSummary");
-      const couponSelect = document.getElementById("couponSelect");
       const couponHelp = document.getElementById("couponHelp");
-      if (!couponSummary || !couponSelect || !couponHelp) return;
+      const couponAction = document.getElementById("couponAction");
+      if (!couponSummary || !couponHelp || !couponAction) return;
       couponSummary.style.display = "grid";
       if (!checkoutCoupons.length) {
-        couponSelect.innerHTML = `<option value="">Nenhum cupom na sua lista</option>`;
-        couponSelect.disabled = true;
         couponHelp.textContent = "Quando houver cupom disponível, ele aparece aqui antes de finalizar.";
+        couponAction.textContent = "Inserir";
         state.couponCode = "";
         return;
       }
-      couponSelect.disabled = false;
-      couponSelect.innerHTML = [
-        `<option value="">Sem cupom</option>`,
-        ...checkoutCoupons.map((coupon) => {
-          const minBlocked = subtotal < Number(coupon.minOrderValue || 0);
-          const disabled = !coupon.canUse || minBlocked;
-          const suffix = !coupon.canUse ? " - indisponível" : minBlocked ? ` - ${coupon.minOrderLabel}` : "";
-          return `<option value="${escapeHtml(coupon.code)}" ${disabled ? "disabled" : ""}>${escapeHtml(coupon.code)} - ${escapeHtml(coupon.discountLabel)}${escapeHtml(suffix)}</option>`;
-        })
-      ].join("");
       if (state.couponCode && !checkoutCoupons.some((coupon) => coupon.code === state.couponCode && coupon.canUse && subtotal >= Number(coupon.minOrderValue || 0))) {
         state.couponCode = "";
       }
-      couponSelect.value = state.couponCode;
       const coupon = selectedCoupon();
-      couponHelp.textContent = coupon
-        ? `${coupon.title} aplicado no pedido.`
-        : "Escolha um cupom disponível para este pedido.";
+      if (coupon) {
+        couponHelp.textContent = `${coupon.code} aplicado: ${coupon.discountLabel}.`;
+        couponAction.textContent = "Trocar";
+        return;
+      }
+      const usableCount = checkoutCoupons.filter((couponItem) => couponItem.canUse && subtotal >= Number(couponItem.minOrderValue || 0)).length;
+      couponHelp.textContent = usableCount
+        ? `${usableCount} cupom${usableCount > 1 ? "s" : ""} disponível${usableCount > 1 ? "s" : ""} para este pedido.`
+        : "Abra seus cupons para consultar regras e pedido mínimo.";
+      couponAction.textContent = "Inserir";
     }
 
     document.addEventListener("click", (event) => {
@@ -3080,11 +3083,28 @@
         return;
       }
 
+      const couponBack = event.target.closest("[data-coupon-back]");
+      if (couponBack) {
+        event.preventDefault();
+        updateCheckout();
+        showScreen(couponReturnScreen || "menu");
+        return;
+      }
+
+      const applyCoupon = event.target.closest("[data-apply-coupon]");
+      if (applyCoupon) {
+        state.couponCode = applyCoupon.dataset.applyCoupon || "";
+        updateCheckout();
+      }
+
       const go = event.target.closest("[data-go]");
       if (go) {
         const next = go.dataset.go;
         if (next) {
           event.preventDefault();
+          if (next === "coupons") {
+            couponReturnScreen = go.id === "couponAction" ? "checkout" : "menu";
+          }
           if (next === "delivery") {
             renderDeliveryPeriods();
           }
@@ -3209,8 +3229,6 @@
       const copyCoupon = event.target.closest("[data-copy-coupon]");
       if (copyCoupon) {
         const code = copyCoupon.dataset.copyCoupon || "";
-        state.couponCode = code;
-        updateCheckout();
         if (code && navigator.clipboard) {
           navigator.clipboard.writeText(code).catch(() => {});
         }
@@ -3383,11 +3401,6 @@
       profile.setupComplete = false;
       saveHydrationProfile(profile);
       renderHydration();
-    });
-
-    document.getElementById("couponSelect")?.addEventListener("change", (event) => {
-      state.couponCode = event.target.value || "";
-      updateCheckout();
     });
 
     document.getElementById("orderForm")?.addEventListener("submit", () => {
