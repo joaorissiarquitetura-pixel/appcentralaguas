@@ -49,6 +49,9 @@ public class MainActivity extends Activity {
         settings.setGeolocationEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.clearCache(true);
+        webView.clearHistory();
 
         webView.setWebViewClient(new WebViewClient() {
             @Override

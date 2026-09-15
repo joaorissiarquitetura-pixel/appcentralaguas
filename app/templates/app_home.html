@@ -63,51 +63,13 @@
     }
     .splash-inner { display: grid; justify-items: center; gap: 22px; }
     .splash-logo {
-      display: inline-grid;
-      grid-template-columns: 34px minmax(0, 1fr);
-      align-items: center;
-      gap: 9px;
-      color: var(--ca-white);
+      width: min(76vw, 340px);
+      height: auto;
+      object-fit: contain;
       filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.18));
       opacity: 0;
       transform: translateY(8px) scale(0.96);
       animation: splashLogoSequence 2200ms ease forwards;
-    }
-    .splash-logo-mark {
-      width: 28px;
-      height: 36px;
-      border-radius: 70% 70% 70% 18%;
-      background: var(--ca-white);
-      transform: rotate(45deg);
-      position: relative;
-    }
-    .splash-logo-mark::after {
-      content: "";
-      position: absolute;
-      width: 8px;
-      height: 18px;
-      left: 8px;
-      top: 10px;
-      border-radius: 50%;
-      background: var(--ca-primary);
-      opacity: 0.9;
-      transform: rotate(-24deg);
-    }
-    .splash-logo-copy {
-      display: grid;
-      gap: 2px;
-    }
-    .splash-logo-name {
-      color: var(--ca-white);
-      font: 800 2.2rem/0.9 "Montserrat", Arial, sans-serif;
-      letter-spacing: 0;
-    }
-    .splash-logo-subtitle {
-      color: rgba(255, 255, 255, 0.86);
-      font: 800 0.5rem/1.1 "Montserrat", Arial, sans-serif;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      white-space: nowrap;
     }
     .splash-loader {
       width: 112px;
@@ -1259,13 +1221,7 @@
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
   <div class="app-splash" aria-hidden="true">
     <div class="splash-inner">
-      <div class="splash-logo" aria-label="Central Águas">
-        <span class="splash-logo-mark"></span>
-        <span class="splash-logo-copy">
-          <strong class="splash-logo-name">Central</strong>
-          <span class="splash-logo-subtitle">Distribuidora de água mineral</span>
-        </span>
-      </div>
+      <img class="splash-logo" src="/static/img/logo_central_white.png" alt="Central Águas">
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
@@ -3000,7 +2956,12 @@
     loadAppBootstrap().then(registerAppDevice).then(syncPushSubscription);
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/service-worker.js").then(syncPushSubscription).catch(() => {});
+        navigator.serviceWorker.register("/service-worker.js")
+          .then((registration) => {
+            registration.update().catch(() => {});
+            return syncPushSubscription();
+          })
+          .catch(() => {});
       });
     }
     const initialScreen = new URLSearchParams(window.location.search).get("screen");
