@@ -60,7 +60,7 @@
     <div>
       <span class="section-label">Admin Central Águas</span>
       <h1 class="display-serif mt-2 mb-1">Painel gerencial</h1>
-      <p class="small-muted mb-0">Separei a operação por áreas para ficar mais claro o que é fidelidade, loja e acompanhamento comercial.</p>
+      <p class="small-muted mb-0">Cada área fica separada para enxergar rápido o que é fidelidade, loja, cupons e comunicação do app.</p>
     </div>
     <span class="tag">Olá, {{ admin.name }}</span>
   </div>
@@ -112,8 +112,8 @@
 
     <section class="module-card">
       <span class="tag gold">Loja</span>
-      <h2>Produtos, promoções e operação do site</h2>
-      <p>Área separada para cadastro de produto, preços, destaque de ofertas e controle da frente digital.</p>
+      <h2>Produtos e operação do site</h2>
+      <p>Cadastro de produtos, preços, fotos e itens importados da GRJ que aparecem na loja.</p>
       <div class="module-actions">
         <a class="ca-pill ca-primary text-decoration-none" href="/admin/site">Abrir gestão da loja</a>
         <a class="ca-pill ca-outline text-decoration-none" href="/atendente">Ver pedidos no painel de vendas</a>
@@ -121,9 +121,28 @@
     </section>
 
     <section class="module-card">
-      <span class="tag">App</span>
-      <h2>Backend técnico do aplicativo</h2>
-      <p>Controle de dispositivos, Firebase/FCM, Web Push, localização, bloqueios e eventos técnicos do APK.</p>
+      <span class="tag gold">Cupons</span>
+      <h2>Cupons e campanhas</h2>
+      <p>Descontos, validade, pedido mínimo e cupons ativos que aparecem para o cliente no app.</p>
+      <div class="module-actions">
+        <a class="ca-pill ca-primary text-decoration-none" href="/admin/coupons">Abrir cupons</a>
+      </div>
+    </section>
+
+    <section class="module-card">
+      <span class="tag">Notificações</span>
+      <h2>Push e comunicação do app</h2>
+      <p>Envio de notificações reais, histórico de disparos e status de entrega nos celulares.</p>
+      <div class="module-actions">
+        <a class="ca-pill ca-primary text-decoration-none" href="/admin/notifications">Enviar notificações</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/app">Backend técnico</a>
+      </div>
+    </section>
+
+    <section class="module-card">
+      <span class="tag">Backend</span>
+      <h2>Dispositivos e diagnóstico</h2>
+      <p>Controle técnico de dispositivos, Firebase/FCM, Web Push, localização e bloqueios do APK.</p>
       <div class="module-actions">
         <a class="ca-pill ca-primary text-decoration-none" href="/admin/app">Abrir backend do app</a>
         <a class="ca-pill ca-outline text-decoration-none" href="/admin/app/status">Ver status JSON</a>

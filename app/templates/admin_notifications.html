@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/admin">Voltar ao painel</a>
+  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .admin-grid { display: grid; gap: 22px; }
+  .content-grid { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+  .admin-card { padding: 24px; border: 1px solid var(--ca-line); border-radius: 18px; background: #fff; box-shadow: var(--ca-shadow); }
+  .admin-card h2 { margin: 0 0 14px; color: var(--ca-navy); font-size: 1.2rem; }
+  .form-grid { display: grid; gap: 14px; }
+  .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .small-muted { color: var(--ca-text); font-size: 0.88rem; }
+  .metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .metric strong { display: block; color: var(--ca-navy); font-size: 1.8rem; line-height: 1; }
+  .quick-list { display: grid; gap: 12px; }
+  .quick-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ca-line); }
+  .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
+  .status-ok { background: #16a34a; }
+  .status-warn { background: #f59e0b; }
+  .status-bad { background: #dc2626; }
+  @media (max-width: 1100px) {
+    .content-grid,
+    .form-grid-2,
+    .metric-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="admin-grid">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <span class="section-label">Notificações</span>
+      <h1 class="display-serif mt-2 mb-1">Push para clientes do app</h1>
+      <p class="small-muted mb-0">Envio de mensagens, histórico de disparos e status do Firebase.</p>
+    </div>
+    <span class="tag">Olá, {{ admin.name }}</span>
+  </div>
+
+  {% if err %}<div class="alert alert-danger mb-0">{{ err }}</div>{% endif %}
+  {% if success %}<div class="alert alert-success mb-0">{{ success }}</div>{% endif %}
+
+  <div class="metric-row">
+    <div class="admin-card metric"><strong>{{ device_count }}</strong><span class="small-muted">dispositivos</span></div>
+    <div class="admin-card metric"><strong>{{ fcm_device_count }}</strong><span class="small-muted">tokens FCM</span></div>
+    <div class="admin-card metric"><strong>{{ push_active_count }}</strong><span class="small-muted">web push ativo</span></div>
+    <div class="admin-card metric"><strong>{{ latest_notifications|length }}</strong><span class="small-muted">últimos registros</span></div>
+  </div>
+
+  <div class="content-grid">
+    <section class="admin-card">
+      <h2>Status técnico do envio</h2>
+      <div class="d-grid gap-2 mb-4">
+        <div><span class="status-dot {{ 'status-ok' if fcm_configured else 'status-bad' }}"></span>Firebase FCM: <strong>{{ 'configurado' if fcm_configured else 'pendente' }}</strong></div>
+        <div><span class="status-dot {{ 'status-ok' if push_configured else 'status-warn' }}"></span>Web Push VAPID: <strong>{{ 'configurado' if push_configured else 'opcional/pendente' }}</strong></div>
+      </div>
+
+      <h2>Enviar push real</h2>
+      <form class="form-grid" method="post" action="/admin/notifications/send">
+        <input class="form-control" type="text" name="title" placeholder="Título da notificação" required>
+        <textarea class="form-control" name="body" rows="3" placeholder="Mensagem que aparece no celular" required></textarea>
+        <div class="form-grid-2">
+          <select class="form-select" name="target">
+            <option value="all">Todos os dispositivos</option>
+            <option value="customers">Clientes logados</option>
+          </select>
+          <input class="form-control" type="text" name="url" value="/app">
+        </div>
+        <button class="ca-pill ca-primary" type="submit">Enviar notificação</button>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <h2>Histórico de notificações</h2>
+      <div class="quick-list">
+        {% for notification in latest_notifications %}
+          <div class="quick-item">
+            <span>
+              <strong>{{ notification.title }}</strong>
+              <span class="small-muted d-block">{{ notification.status }} · {{ notification.sent_count }} enviados · {{ notification.failed_count }} falhas</span>
+            </span>
+            <span class="small-muted">{{ notification.created_at.strftime('%d/%m %H:%M') }}</span>
+          </div>
+        {% else %}
+          <div class="small-muted">Nenhuma notificação registrada ainda.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

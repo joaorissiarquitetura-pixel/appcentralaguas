@@ -309,6 +309,7 @@
 </head>
 {% set current_path = request.url.path if request.url is defined else "" %}
 {% set chrome_hidden = hide_chrome|default(false) or current_path in ["/login", "/cadastrar", "/privacidade", "/meu-cartao", "/cliente", "/loja/finalizar", "/alterar-senha-obrigatoria"] %}
+{% set admin_area = current_path.startswith("/admin") or current_path.startswith("/atendente") %}
 <body class="{% if chrome_hidden %}app-chrome-hidden{% endif %}">
 {% if not chrome_hidden %}
 <nav class="navbar navbar-expand-lg sticky-top">
@@ -321,11 +322,20 @@
     </button>
     <div class="collapse navbar-collapse" id="navMain">
       <ul class="navbar-nav ms-auto align-items-lg-center">
-        <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
-        <li class="nav-item"><a class="nav-link" href="/loja">Loja</a></li>
-        <li class="nav-item"><a class="nav-link" href="/fidelidade">Fidelidade</a></li>
-        <li class="nav-item"><a class="nav-link" href="/gotinha">Gotinha</a></li>
-        <li class="nav-item"><a class="nav-link" href="/meu-cartao">Área do Cliente</a></li>
+        {% if admin_area %}
+          <li class="nav-item"><a class="nav-link" href="/admin">Painel</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/customers">Fidelidade</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/site">Loja</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/coupons">Cupons</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/notifications">Notificações</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/app">Backend app</a></li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="/">Início</a></li>
+          <li class="nav-item"><a class="nav-link" href="/loja">Loja</a></li>
+          <li class="nav-item"><a class="nav-link" href="/fidelidade">Fidelidade</a></li>
+          <li class="nav-item"><a class="nav-link" href="/gotinha">Gotinha</a></li>
+          <li class="nav-item"><a class="nav-link" href="/meu-cartao">Área do Cliente</a></li>
+        {% endif %}
       </ul>
       <div class="ms-lg-3 d-flex gap-2">
         {% block nav_right %}{% endblock %}
@@ -344,12 +354,14 @@
   Central Águas. Água mineral, pedido rápido e atendimento com cuidado em cada entrega.
 </footer>
 
+{% if not admin_area %}
 <nav class="mobile-bottom-nav" aria-label="Navegação principal mobile">
   <a href="/"><i class="bi bi-house"></i><span>Home</span></a>
   <a href="/loja"><i class="bi bi-bag-check"></i><span>Loja</span></a>
   <a href="/meu-cartao"><i class="bi bi-award"></i><span>Fidelidade</span></a>
   <a href="/gotinha"><i class="bi bi-droplet"></i><span>Gotinha</span></a>
 </nav>
+{% endif %}
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -49,7 +49,7 @@
     <div class="card shadow-sm mt-4">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="card-title mb-0">Pedidos da Loja</h5>
+          <h5 class="card-title mb-0">Pedidos novos do site/app</h5>
           <span class="badge text-bg-primary">{{ pending_shop_orders|length }}</span>
         </div>
 
@@ -85,7 +85,7 @@
             </div>
           </div>
           {% else %}
-          <div class="text-muted small">Nenhum pedido novo da loja no momento.</div>
+          <div class="text-muted small">Nenhum pedido novo vindo do site/app no momento.</div>
           {% endfor %}
         </div>
       </div>

@@ -384,7 +384,6 @@ def alerts_page(request: Request, db: Session = Depends(get_db)):
 def admin_site(
     request: Request,
     edit_product_id: int = 0,
-    edit_coupon_id: int = 0,
     err: str = "",
     success: str = "",
     db: Session = Depends(get_db),
@@ -402,13 +401,7 @@ def admin_site(
         catalog_message = f"Catalogo GRJ indisponivel no momento: {exc}"
     products.extend(_admin_local_product(product) for product in local_products)
 
-    coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
     editing_product = db.get(Product, edit_product_id) if edit_product_id else None
-    editing_coupon = db.get(Coupon, edit_coupon_id) if edit_coupon_id else None
-    coupon_available_count = sum(1 for coupon in coupons if _coupon_available(coupon))
-    device_count = db.scalar(select(func.count(AppDevice.id)))
-    push_count = db.scalar(select(func.count(PushSubscription.id)).where(PushSubscription.active == True))
-    latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(8)).scalars().all()
 
     return templates.TemplateResponse(
         request=request,
@@ -420,22 +413,75 @@ def admin_site(
             "local_product_count": len(local_products),
             "grj_product_count": sum(1 for product in products if product.imported),
             "catalog_message": catalog_message,
-            "coupons": coupons,
             "editing_product": editing_product,
-            "editing_coupon": editing_coupon,
-            "coupon_available_count": coupon_available_count,
-            "device_count": device_count or 0,
-            "push_count": push_count or 0,
-            "push_configured": push_configured(),
-            "fcm_configured": fcm_configured(),
-            "latest_notifications": latest_notifications,
             "open_shop_orders": 0,
             "latest_shop_orders": [],
-            "attendants": db.execute(select(Attendant).order_by(Attendant.name)).scalars().all(),
             "err": err,
             "success": success,
-            "temp_password": "",
-            "temp_email": "",
+        },
+    )
+
+
+@router.get("/coupons", response_class=HTMLResponse)
+def admin_coupons(
+    request: Request,
+    edit_coupon_id: int = 0,
+    err: str = "",
+    success: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
+    editing_coupon = db.get(Coupon, edit_coupon_id) if edit_coupon_id else None
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_coupons.html",
+        context={
+            "admin": admin,
+            "business_name": settings.BUSINESS_NAME,
+            "coupons": coupons,
+            "editing_coupon": editing_coupon,
+            "coupon_available_count": sum(1 for coupon in coupons if _coupon_available(coupon)),
+            "err": err,
+            "success": success,
+        },
+    )
+
+
+@router.get("/notifications", response_class=HTMLResponse)
+def admin_notifications(
+    request: Request,
+    err: str = "",
+    success: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    blocked_device_ids = {
+        row[0]
+        for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
+    }
+    subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
+    latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(30)).scalars().all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_notifications.html",
+        context={
+            "admin": admin,
+            "business_name": settings.BUSINESS_NAME,
+            "latest_notifications": latest_notifications,
+            "device_count": db.scalar(select(func.count(AppDevice.id))) or 0,
+            "fcm_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
+            "push_active_count": sum(1 for subscription in subscriptions if subscription.active and subscription.device_id not in blocked_device_ids),
+            "push_configured": push_configured(),
+            "fcm_configured": fcm_configured(),
+            "err": err,
+            "success": success,
         },
     )
 
@@ -596,14 +642,15 @@ def create_or_update_coupon(
 ):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    redirect_to = "/admin/coupons" if "/admin/coupons" in request.headers.get("referer", "") else "/admin/site"
 
     code_normalized = code.strip().upper()
     if not code_normalized:
-        return RedirectResponse("/admin/site?err=Código%20obrigatório", status_code=303)
+        return RedirectResponse(f"{redirect_to}?err=Código%20obrigatório", status_code=303)
 
     existing = db.scalar(select(Coupon).where(Coupon.code == code_normalized, Coupon.id != coupon_id))
     if existing:
-        return RedirectResponse("/admin/site?err=Código%20de%20cupom%20já%20existe", status_code=303)
+        return RedirectResponse(f"{redirect_to}?err=Código%20de%20cupom%20já%20existe", status_code=303)
 
     coupon = db.get(Coupon, coupon_id) if coupon_id else None
     if not coupon:
@@ -632,7 +679,7 @@ def create_or_update_coupon(
     )
     db.commit()
 
-    return RedirectResponse("/admin/site?success=Cupom%20salvo", status_code=303)
+    return RedirectResponse(f"{redirect_to}?success=Cupom%20salvo", status_code=303)
 
 
 @router.post("/coupons/{coupon_id}/toggle")
@@ -652,7 +699,8 @@ def toggle_coupon(coupon_id: int, request: Request, db: Session = Depends(get_db
             request=request,
         )
         db.commit()
-    return RedirectResponse("/admin/site", status_code=303)
+    redirect_to = "/admin/coupons" if "/admin/coupons" in request.headers.get("referer", "") else "/admin/site"
+    return RedirectResponse(redirect_to, status_code=303)
 
 
 @router.post("/notifications/send")
@@ -666,7 +714,13 @@ def send_app_notification(
 ):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
-    redirect_to = "/admin/app" if "/admin/app" in request.headers.get("referer", "") else "/admin/site"
+    referer = request.headers.get("referer", "")
+    if "/admin/notifications" in referer:
+        redirect_to = "/admin/notifications"
+    elif "/admin/app" in referer:
+        redirect_to = "/admin/app"
+    else:
+        redirect_to = "/admin/site"
 
     try:
         notification = AppNotification(
@@ -723,7 +777,7 @@ def send_app_notification(
 
 @router.get("/notifications/send")
 def send_app_notification_get():
-    return RedirectResponse("/admin/app", status_code=303)
+    return RedirectResponse("/admin/notifications", status_code=303)
 
 
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---
