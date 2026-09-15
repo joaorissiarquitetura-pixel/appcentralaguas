@@ -71,6 +71,21 @@
     font-weight: 800;
     letter-spacing: 0.04em;
   }
+  .source-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: #e8f4ff;
+    color: var(--ca-primary);
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .source-badge.manual {
+    background: #f4f7fb;
+    color: var(--ca-text);
+  }
   @media (max-width: 1100px) {
     .content-grid,
     .form-grid-2 { grid-template-columns: 1fr; }
@@ -218,6 +233,10 @@
 
       <div class="admin-card">
         <h2>Produtos cadastrados</h2>
+        <p class="small-muted">
+          Mostrando {{ grj_product_count }} produto(s) importado(s) da GRJ e {{ local_product_count }} produto(s) manual(is).
+          {% if catalog_message %}<br>{{ catalog_message }}{% endif %}
+        </p>
         <div class="table-wrap">
           <table class="product-table">
             <thead>
@@ -238,11 +257,19 @@
                     {% endif %}
                     <div>
                       <strong>{{ product.name }}</strong>
+                      <div class="mt-1">
+                        <span class="source-badge {{ 'manual' if not product.imported else '' }}">{{ product.source_label }}</span>
+                        {% if product.imported and product.external_id %}
+                          <span class="small-muted">Código {{ product.external_id }}</span>
+                        {% endif %}
+                      </div>
                       {% if product.promo_badge %}<div class="small-muted">{{ product.promo_badge }}</div>{% endif %}
                       {% if product.description %}<div class="small-muted mt-1">{{ product.description }}</div>{% endif %}
-                      <div class="product-row-actions">
-                        <a class="ca-pill ca-outline text-decoration-none" href="/admin/site?edit_product_id={{ product.id }}">Editar</a>
-                      </div>
+                      {% if not product.imported %}
+                        <div class="product-row-actions">
+                          <a class="ca-pill ca-outline text-decoration-none" href="/admin/site?edit_product_id={{ product.id }}">Editar</a>
+                        </div>
+                      {% endif %}
                     </div>
                   </div>
                 </td>
@@ -252,11 +279,19 @@
                 </td>
                 <td>
                   <div>{{ product.stock_status or 'disponivel' }}</div>
+                  {% if product.stock_quantity is not none %}
+                    <div class="small-muted">Estoque {{ '%g'|format(product.stock_quantity) }}</div>
+                  {% endif %}
                   <div class="small-muted">{{ 'Ativo' if product.active else 'Inativo' }}</div>
                 </td>
                 <td>
-                  <div>{{ 'Destaque' if product.featured_on_home else 'Oculto' }}</div>
-                  <div class="small-muted">Ordem {{ product.display_order or 0 }}</div>
+                  <div>{{ product.source_label }}</div>
+                  {% if product.imported %}
+                    <div class="small-muted">Sincronizado da GRJ</div>
+                  {% else %}
+                    <div class="small-muted">{{ 'Destaque' if product.featured_on_home else 'Oculto' }}</div>
+                    <div class="small-muted">Ordem {{ product.display_order or 0 }}</div>
+                  {% endif %}
                 </td>
               </tr>
               {% else %}

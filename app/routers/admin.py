@@ -2,6 +2,8 @@ import os
 import hmac
 import logging
 from pathlib import Path
+from types import SimpleNamespace
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Request, Form, Depends, File, UploadFile
@@ -21,6 +23,7 @@ from ..security import hash_password
 from ..config import settings
 from ..services.address import geocode_structured
 from ..services.audit import log_admin_action
+from ..services.grj_catalog import GRJCatalogUnavailable, fetch_grj_products
 from ..services.push import fcm_configured, push_configured, send_notification_to_app_devices, send_notification_to_subscriptions
 
 templates = Jinja2Templates(directory="app/templates")
@@ -181,6 +184,51 @@ def _save_product_image(image_file: UploadFile | None) -> str | None:
     with target.open("wb") as output:
         output.write(image_file.file.read())
     return f"/static/uploads/products/{filename}"
+
+
+def _admin_local_product(product: Product) -> SimpleNamespace:
+    return SimpleNamespace(
+        id=product.id,
+        external_id=str(product.id),
+        name=product.name,
+        description=product.description,
+        promo_badge=product.promo_badge,
+        image_url=product.image_url,
+        pickup_price=product.pickup_price,
+        delivery_price=product.delivery_price,
+        promo_pickup_price=product.promo_pickup_price,
+        promo_delivery_price=product.promo_delivery_price,
+        stock_status=product.stock_status or "disponivel",
+        stock_quantity=None,
+        active=bool(product.active),
+        featured_on_home=bool(product.featured_on_home),
+        display_order=product.display_order or 0,
+        source_label="Manual",
+        imported=False,
+    )
+
+
+def _admin_grj_product(product, display_order: int) -> SimpleNamespace:
+    image_url = f"/api/grj/produtos/{quote(product.external_id, safe='')}/imagem" if product.image_url else ""
+    return SimpleNamespace(
+        id=None,
+        external_id=product.external_id,
+        name=product.name,
+        description=product.description,
+        promo_badge="Importado da GRJ",
+        image_url=image_url,
+        pickup_price=product.pickup_price,
+        delivery_price=product.delivery_price,
+        promo_pickup_price=None,
+        promo_delivery_price=None,
+        stock_status=product.stock_status,
+        stock_quantity=product.stock_quantity,
+        active=bool(product.active),
+        featured_on_home=True,
+        display_order=display_order,
+        source_label="GRJ",
+        imported=True,
+    )
 
 # --- DASHBOARD / HOME ---
 @router.get("", response_class=HTMLResponse)
@@ -344,7 +392,16 @@ def admin_site(
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
 
-    products = db.execute(select(Product).order_by(Product.display_order.asc(), Product.name.asc())).scalars().all()
+    local_products = db.execute(select(Product).order_by(Product.display_order.asc(), Product.name.asc())).scalars().all()
+    products = []
+    catalog_message = ""
+    try:
+        grj_products = fetch_grj_products(limit=500)
+        products.extend(_admin_grj_product(product, index) for index, product in enumerate(grj_products, start=1))
+    except GRJCatalogUnavailable as exc:
+        catalog_message = f"Catalogo GRJ indisponivel no momento: {exc}"
+    products.extend(_admin_local_product(product) for product in local_products)
+
     coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
     editing_product = db.get(Product, edit_product_id) if edit_product_id else None
     editing_coupon = db.get(Coupon, edit_coupon_id) if edit_coupon_id else None
@@ -360,6 +417,9 @@ def admin_site(
             "admin": admin,
             "business_name": settings.BUSINESS_NAME,
             "products": products,
+            "local_product_count": len(local_products),
+            "grj_product_count": sum(1 for product in products if product.imported),
+            "catalog_message": catalog_message,
             "coupons": coupons,
             "editing_product": editing_product,
             "editing_coupon": editing_coupon,
