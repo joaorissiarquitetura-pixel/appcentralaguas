@@ -73,10 +73,10 @@ def _catalog_image_for_name(name: str) -> str | None:
 
 def _product_category(name: str, description: str = "") -> str:
     text = f"{name} {description}".lower()
-    if "gás" in text or "gas" in text:
-        return "gas"
     if "fardo" in text or "descart" in text or "garrafa" in text or "copo" in text or "pet" in text:
         return "descartaveis"
+    if "glp" in text or "botijão" in text or "botijao" in text or "gás de cozinha" in text or "gas de cozinha" in text or "supergasbras" in text:
+        return "gas"
     if "10l" in text or "10 l" in text:
         return "galao10"
     if "20l" in text or "20 l" in text or "garrafão" in text or "garrafao" in text or "galão" in text or "galao" in text:

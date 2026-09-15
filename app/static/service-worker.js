@@ -1,8 +1,10 @@
-const CACHE_NAME = "central-aguas-app-v5";
+const CACHE_NAME = "central-aguas-app-v6";
 const APP_SHELL = [
   "/app",
   "/manifest.webmanifest",
   "/static/img/logo_central.jpg",
+  "/static/img/logo_central_splash.png",
+  "/static/img/logo_central_drop.png",
   "/static/img/mascote_novo.png",
   "/static/assets/gotinha/emotions/alegria.webp",
   "/static/assets/gotinha/emotions/curiosidade.webp",

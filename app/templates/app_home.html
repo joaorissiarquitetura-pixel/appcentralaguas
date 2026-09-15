@@ -56,10 +56,9 @@
       display: grid;
       place-items: center;
       background-color: #0B4CCB;
-      background-image: linear-gradient(180deg, rgba(31, 111, 226, 0.2) 0%, rgba(8, 58, 154, 0.9) 100%);
+      background-image: linear-gradient(180deg, #0f5edc 0%, #0B4CCB 58%, #083A9A 100%);
       color: var(--ca-white);
       animation:
-        splashBrighten 6200ms ease 600ms forwards,
         splashOut 800ms ease 7200ms forwards;
     }
     .splash-inner { display: grid; justify-items: center; gap: 22px; }
@@ -70,7 +69,7 @@
       filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.18));
       opacity: 0;
       transform: translateY(8px) scale(0.96);
-      animation: splashLogoSequence 7600ms ease forwards;
+      animation: splashLogoSequence 7200ms ease forwards;
     }
     .splash-loader {
       width: 112px;
@@ -395,21 +394,20 @@
       color: #101828;
     }
     .chip-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
-      overflow-x: auto;
       padding: 2px 0 4px;
-      scrollbar-width: none;
     }
-    .chip-row::-webkit-scrollbar { display: none; }
     .chip {
       min-height: 38px;
-      padding: 0 14px;
+      padding: 0 10px;
       border: 1px solid var(--ca-line);
       border-radius: 12px;
       background: var(--ca-soft);
       color: #344054;
       font-weight: 700;
+      font-size: 0.78rem;
       white-space: nowrap;
       cursor: pointer;
     }
@@ -1142,25 +1140,11 @@
     .nav-item i { color: var(--ca-primary); font-size: 1.1rem; line-height: 1; }
     .nav-item.is-active { background: rgba(179, 229, 255, 0.38); color: var(--ca-primary); }
     body.login-mode .bottom-nav { display: none; }
-    @keyframes splashBrighten {
-      0% {
-        background-color: #0B4CCB;
-        background-image: linear-gradient(180deg, rgba(31, 111, 226, 0.2) 0%, rgba(8, 58, 154, 0.9) 100%);
-      }
-      72% {
-        background-color: #2f8df0;
-        background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(31, 111, 226, 0.36) 100%);
-      }
-      100% {
-        background-color: #eaf8ff;
-        background-image: linear-gradient(180deg, #eaf8ff 0%, #ffffff 100%);
-      }
-    }
     @keyframes splashLogoSequence {
       0% { opacity: 0; transform: translateY(8px) scale(0.96); }
-      14% { opacity: 1; transform: translateY(0) scale(1); }
-      86% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0.08; transform: translateY(-4px) scale(0.99); }
+      15% { opacity: 1; transform: translateY(0) scale(1); }
+      74% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-6px) scale(0.985); }
     }
     @keyframes splashLoaderIn {
       to { opacity: 1; }
