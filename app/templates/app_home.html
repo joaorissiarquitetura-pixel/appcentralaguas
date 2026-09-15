@@ -278,6 +278,56 @@
       place-items: center;
       flex: 0 0 auto;
     }
+    .home-hero {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px solid rgba(11, 76, 203, 0.1);
+      border-radius: 20px;
+      background: linear-gradient(180deg, #F8FCFF 0%, #FFFFFF 100%);
+      box-shadow: var(--ca-shadow);
+    }
+    .home-hero h2 {
+      margin: 0;
+      color: #101828;
+      font: 800 1.18rem/1.14 "Montserrat", Arial, sans-serif;
+    }
+    .home-hero p {
+      margin: 0;
+      color: var(--ca-muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+    .home-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+    }
+    .home-action {
+      min-height: 74px;
+      padding: 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: 16px;
+      background: var(--ca-white);
+      color: #101828;
+      display: grid;
+      gap: 6px;
+      align-content: center;
+      cursor: pointer;
+      text-align: left;
+    }
+    .home-action i {
+      color: var(--ca-primary);
+      font-size: 1.16rem;
+    }
+    .home-action strong {
+      font: 800 0.84rem/1.08 "Montserrat", Arial, sans-serif;
+    }
+    .home-action span {
+      color: var(--ca-muted);
+      font-size: 0.72rem;
+    }
     .reorder-card {
       display: grid;
       grid-template-columns: 86px minmax(0, 1fr);
@@ -826,6 +876,23 @@
     .checkout-actions .secondary-button {
       min-height: 50px;
     }
+    .empty-cart {
+      display: grid;
+      justify-items: center;
+      gap: 8px;
+      padding: 18px 12px;
+      color: var(--ca-muted);
+      text-align: center;
+    }
+    .clear-cart-button {
+      min-height: 42px;
+      border: 1px solid rgba(180, 35, 24, 0.18);
+      border-radius: 12px;
+      background: #fff;
+      color: #B42318;
+      font-weight: 800;
+      cursor: pointer;
+    }
     .checkout-warning {
       display: none;
       color: #B42318;
@@ -1338,7 +1405,6 @@
           <div class="stack">
             <a class="primary-button" href="/login">Entrar</a>
             <a class="secondary-button" href="/cadastrar">Criar conta</a>
-            <button class="text-button" type="button" data-go="home">Continuar como visitante</button>
           </div>
           <div class="water-band" aria-hidden="true"></div>
         </div>
@@ -1365,23 +1431,18 @@
           </span>
           <i class="bi bi-chevron-right"></i>
         </button>
-        <h2 class="section-title">Seu pedido de sempre</h2>
-        <article class="app-card reorder-card">
-          <img src="{{ primary_offer.image_url or '/static/img/20.png' }}" alt="{{ primary_offer.name }}">
-          <div class="product-info">
-            <strong>{{ primary_offer.name }}</strong>
-            <span>{{ primary_offer.description }}</span>
-            <span class="product-price">R$ {{ "%.2f"|format(primary_offer.delivery_price)|replace('.', ',') }}</span>
-            <div class="product-actions">
-              <div class="quantity-control" data-quantity>
-                <button type="button" data-step="-1" aria-label="Diminuir quantidade">−</button>
-                <output>2</output>
-                <button type="button" data-step="1" aria-label="Aumentar quantidade">+</button>
-              </div>
-              <button class="mini-add" type="button" data-go="checkout">Pedir novamente</button>
-            </div>
+        <section class="home-hero" aria-label="Atalhos do app">
+          <div>
+            <h2>O que você precisa hoje?</h2>
+            <p>Escolha uma área para continuar. A compra só é finalizada com cadastro e endereço confirmado.</p>
           </div>
-        </article>
+          <div class="home-actions">
+            <button class="home-action" type="button" data-go="store"><i class="bi bi-cart3"></i><strong>Comprar água</strong><span>Galões, descartáveis e gás</span></button>
+            <button class="home-action" type="button" data-go="house"><i class="bi bi-house-door"></i><strong>Minha casa</strong><span>Acompanhar galões</span></button>
+            <button class="home-action" type="button" data-go="coupons"><i class="bi bi-ticket-perforated"></i><strong>Cupons</strong><span>Ver descontos disponíveis</span></button>
+            <button class="home-action" type="button" data-go="gotinha"><i class="bi bi-droplet"></i><strong>Gotinha</strong><span>Lembretes de água</span></button>
+          </div>
+        </section>
         <div class="category-row" aria-label="Categorias">
           <button class="category-tile" type="button" data-go="store" data-store-category-go="galao20"><i class="bi bi-droplet-fill"></i><span>Galão 20L</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="galao10"><i class="bi bi-droplet"></i><span>Galão 10L</span></button>
@@ -1548,9 +1609,10 @@
             <span class="row-copy"><strong>Cupom</strong><span id="couponHelp">Escolha um cupom disponível para este pedido.</span></span>
             <button class="text-button" type="button" data-go="coupons" id="couponAction">Inserir</button>
           </div>
-          <div class="subtotal-row"><span>Subtotal</span><strong id="checkoutSubtotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
+          <button class="clear-cart-button" type="button" data-clear-cart>Esvaziar carrinho</button>
+          <div class="subtotal-row"><span>Subtotal</span><strong id="checkoutSubtotal">R$ 0,00</strong></div>
           <div class="coupon-applied" id="checkoutDiscountRow"><span>Desconto</span><strong id="checkoutDiscount">- R$ 0,00</strong></div>
-          <div class="total-row"><span>Total</span><strong id="checkoutTotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
+          <div class="total-row"><span>Total</span><strong id="checkoutTotal">R$ 0,00</strong></div>
           <div class="checkout-warning" id="checkoutWarning"></div>
         </article>
         <form method="post" action="/loja/finalizar" id="orderForm">
@@ -1943,14 +2005,8 @@
       description: {{ primary_offer.description|tojson }},
       price: Number("{{ primary_offer.delivery_price }}"),
       image: {{ (primary_offer.image_url or '/static/img/20.png')|tojson }},
-      qty: 2,
-      cart: [{
-        product: {{ primary_offer.name|tojson }},
-        description: {{ primary_offer.description|tojson }},
-        price: Number("{{ primary_offer.delivery_price }}"),
-        image: {{ (primary_offer.image_url or '/static/img/20.png')|tojson }},
-        qty: 2
-      }],
+      qty: 1,
+      cart: [],
       couponCode: "",
       deliveryDay: {{ (delivery_days[0].label ~ ', ' ~ delivery_days[0].date)|tojson }},
       deliveryDate: {{ delivery_days[0].iso_date|tojson }},
@@ -1970,6 +2026,7 @@
       storeCategory: "galao20",
       notes: "Pedido iniciado pelo app Central Águas"
     };
+    const customerLoggedIn = {{ customer_logged_in|tojson }};
     const hydrationDefaults = {
       routine: {{ ("calma" if hydration_profile.rhythm == "individual" else "corrida" if hydration_profile.rhythm == "familia" else "normal")|tojson }},
       weight: "",
@@ -2046,20 +2103,12 @@
 
     function activeCartItems() {
       state.cart = (Array.isArray(state.cart) ? state.cart : []).filter((item) => Number(item.qty || 0) > 0);
-      if (!state.cart.length) {
-        state.cart.push({
-          product: state.product,
-          description: state.description,
-          price: Number(state.price || 0),
-          image: state.image,
-          qty: Math.max(1, Number(state.qty || 1))
-        });
-      }
       return state.cart;
     }
 
     function syncPrimaryFromCart() {
       const first = activeCartItems()[0];
+      if (!first) return;
       state.product = first.product;
       state.description = first.description;
       state.price = Number(first.price || 0);
@@ -2069,6 +2118,17 @@
 
     function cartSubtotal() {
       return activeCartItems().reduce((total, item) => total + Number(item.price || 0) * Number(item.qty || 0), 0);
+    }
+
+    function clearCart() {
+      state.cart = [];
+      state.couponCode = "";
+      updateCheckout();
+      updateCartIndicators();
+    }
+
+    function requiresLogin(screenName) {
+      return ["store", "checkout", "delivery", "payment", "address", "house", "gotinha", "loyalty", "orders", "coupons"].includes(screenName);
     }
 
     function selectedCoupon() {
@@ -2688,6 +2748,7 @@
 
     function scheduleHydrationNotifications() {
       clearHydrationNotifications();
+      if (!customerLoggedIn) return;
       const bridge = nativeHydrationBridge();
       if (bridge && notificationsEnabled()) {
         const plan = hydrationPlan(loadHydrationProfile());
@@ -3205,8 +3266,9 @@
       const subtotal = cartSubtotal();
       const discount = couponDiscount(subtotal);
       const checkoutItems = document.getElementById("checkoutItems");
+      const clearCartButton = document.querySelector("[data-clear-cart]");
       if (checkoutItems) {
-        checkoutItems.innerHTML = items.map((item, index) => `
+        checkoutItems.innerHTML = items.length ? items.map((item, index) => `
           <div class="checkout-product">
             <img src="${escapeHtml(item.image || "/static/img/20.png")}" alt="">
             <span class="row-copy">
@@ -3224,8 +3286,15 @@
               ${items.length > 1 ? `<button class="remove-item" type="button" data-cart-remove="${index}">Remover</button>` : ""}
             </span>
           </div>
-        `).join("");
+        `).join("") : `
+          <div class="empty-cart">
+            <span class="blue-icon"><i class="bi bi-cart3"></i></span>
+            <strong>Seu carrinho está vazio.</strong>
+            <span>Escolha os produtos na loja para montar seu pedido.</span>
+          </div>
+        `;
       }
+      if (clearCartButton) clearCartButton.style.display = items.length ? "block" : "none";
       renderCouponSelect(subtotal);
       document.getElementById("checkoutSubtotal").textContent = formatMoney(subtotal);
       document.getElementById("checkoutDiscountRow").style.display = discount > 0 ? "flex" : "none";
@@ -3306,6 +3375,10 @@
         const next = go.dataset.go;
         if (next) {
           event.preventDefault();
+          if (!customerLoggedIn && requiresLogin(next)) {
+            showScreen("login");
+            return;
+          }
           if (next === "delivery" && !ensureOrderAddress()) {
             return;
           }
@@ -3363,6 +3436,10 @@
 
       const add = event.target.closest("[data-product]");
       if (add) {
+        if (!customerLoggedIn) {
+          showScreen("login");
+          return;
+        }
         const product = {
           product: add.dataset.product,
           description: add.dataset.description,
@@ -3375,6 +3452,11 @@
         addProductToCart(product, Number(qty || 1));
         add.textContent = "Adicionado";
         setTimeout(() => { add.textContent = "Adicionar"; }, 1100);
+      }
+
+      const clearCartButton = event.target.closest("[data-clear-cart]");
+      if (clearCartButton) {
+        clearCart();
       }
 
       const selectable = event.target.closest(".choice-card, .period-row");
@@ -3397,6 +3479,10 @@
 
       const waterDone = event.target.closest("[data-water-done]");
       if (waterDone) {
+        if (!customerLoggedIn) {
+          showScreen("login");
+          return;
+        }
         const profile = loadHydrationProfile();
         const plan = hydrationPlan(profile);
         profile.done = Math.min(plan.count, Number(profile.done || 0) + 1);
@@ -3516,6 +3602,10 @@
 
       const notificationToggle = event.target.closest("[data-notification-toggle]");
       if (notificationToggle) {
+        if (!customerLoggedIn) {
+          showScreen("login");
+          return;
+        }
         toggleHydrationNotifications();
       }
 
@@ -3600,6 +3690,10 @@
     });
 
     document.querySelector("[data-hydration-save]")?.addEventListener("click", () => {
+      if (!customerLoggedIn) {
+        showScreen("login");
+        return;
+      }
       const profile = loadHydrationProfile();
       profile.setupComplete = true;
       saveHydrationProfile(profile);
@@ -3615,11 +3709,24 @@
 
     document.getElementById("orderForm")?.addEventListener("submit", (event) => {
       updateCheckout();
+      if (!customerLoggedIn) {
+        event.preventDefault();
+        showScreen("login");
+        return;
+      }
+      if (!activeCartItems().length) {
+        event.preventDefault();
+        showCheckoutWarning("Adicione pelo menos um produto ao carrinho.");
+        showScreen("store");
+        return;
+      }
       if (!ensureOrderAddress()) {
         event.preventDefault();
         return;
       }
       saveOrderSnapshot();
+      state.cart = [];
+      state.couponCode = "";
     });
 
     loadPaymentPreference();

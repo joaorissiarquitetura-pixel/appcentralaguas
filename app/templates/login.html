@@ -11,7 +11,8 @@
     margin: 0 auto;
     min-height: calc(100vh - 48px);
     display: grid;
-    align-items: center;
+    align-items: start;
+    padding-top: clamp(18px, 8vh, 72px);
   }
   .auth-card {
     overflow: hidden;
@@ -57,19 +58,14 @@
   }
   .auth-title {
     display: grid;
-    gap: 8px;
+    gap: 0;
   }
   .auth-title h1 {
     margin: 0;
     color: #101828;
     font: 800 1.55rem/1.05 "Montserrat", Arial, sans-serif;
   }
-  .auth-title p {
-    margin: 0;
-    color: #53627a;
-    font-size: 0.92rem;
-    line-height: 1.45;
-  }
+  .auth-title p { display: none; }
   .auth-form {
     display: grid;
     gap: 12px;
@@ -216,7 +212,6 @@
     <div class="auth-body">
       <div class="auth-title">
         <h1>Entre na sua conta.</h1>
-        <p>Acompanhe seus pedidos, pontos e cupons em um só lugar.</p>
       </div>
 
       {% if error %}

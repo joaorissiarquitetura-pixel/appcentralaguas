@@ -651,6 +651,10 @@ def finish_shop_order(
     city: str = Form(""),
     notes: str = Form(""),
 ):
+    cid = get_current_customer_id(request)
+    if not cid:
+        return RedirectResponse("/login", status_code=303)
+
     city_hint = city or notes or ""
     if not street.strip() or not number.strip():
         return HTMLResponse("Informe endereço e número do imóvel para finalizar o pedido.", status_code=400)
@@ -666,6 +670,8 @@ def finish_shop_order(
     for raw_item in raw_items if isinstance(raw_items, list) else []:
         qty = int(raw_item.get("qty") or 1)
         unit_price = float(raw_item.get("unit_price") or raw_item.get("price") or 0)
+        if qty <= 0:
+            continue
         items.append(
             SimpleNamespace(
                 name=raw_item.get("slug", "Produto"),
@@ -673,6 +679,8 @@ def finish_shop_order(
                 subtotal=unit_price * qty,
             )
         )
+    if not items:
+        return HTMLResponse("Adicione pelo menos um produto ao carrinho.", status_code=400)
 
     order = SimpleNamespace(
         code="PREVIEW",
