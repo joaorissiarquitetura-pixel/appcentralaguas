@@ -4,9 +4,12 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
 import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -27,10 +30,17 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        configureSystemBars();
+
         webView = new WebView(this);
         webView.setBackgroundColor(Color.WHITE);
         webView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        webView.setFitsSystemWindows(true);
+        applySystemBarInsets(webView);
         setContentView(webView);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            webView.requestApplyInsets();
+        }
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -66,6 +76,36 @@ public class MainActivity extends Activity {
         webView.loadUrl(getString(R.string.app_start_url));
         requestNotificationPermission();
         syncFcmToken();
+    }
+
+    private void configureSystemBars() {
+        Window window = getWindow();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.setStatusBarColor(Color.rgb(11, 76, 203));
+            window.setNavigationBarColor(Color.WHITE);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        }
+    }
+
+    private void applySystemBarInsets(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            view.setOnApplyWindowInsetsListener((v, insets) -> {
+                int top;
+                int bottom;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
+                    top = bars.top;
+                    bottom = bars.bottom;
+                } else {
+                    top = insets.getSystemWindowInsetTop();
+                    bottom = insets.getSystemWindowInsetBottom();
+                }
+                v.setPadding(0, top, 0, bottom);
+                return insets;
+            });
+        }
     }
 
     private void requestNotificationPermission() {

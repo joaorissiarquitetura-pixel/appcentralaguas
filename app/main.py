@@ -8,9 +8,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+from .api.v1.router import router as api_v1_router
 from .config import settings
 from .database import SessionLocal
 from .init_db import create_tables, seed_if_needed
+from .middleware.security_headers import security_headers_middleware
 from .routers.admin import router as admin_router
 from .routers.app_api import router as app_api_router
 from .routers.attendant import router as attendant_router
@@ -33,6 +35,7 @@ app.add_middleware(
     max_age=settings.SESSION_MAX_AGE_SECONDS,
     session_cookie="central_aguas_session",
 )
+app.middleware("http")(security_headers_middleware)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -58,7 +61,8 @@ def on_startup():
     settings.validate_runtime()
     if settings.AUTO_CREATE_TABLES:
         create_tables()
-        ensure_runtime_schema_updates()
+    ensure_runtime_schema_updates()
+    if settings.AUTO_CREATE_TABLES:
         db = SessionLocal()
         try:
             seed_if_needed(db)
@@ -70,8 +74,14 @@ app.include_router(public_router)
 app.include_router(customer_router)
 app.include_router(gotinha_router)
 app.include_router(app_api_router)
+app.include_router(api_v1_router)
 app.include_router(attendant_router, prefix="/atendente", tags=["Atendente"])
 app.include_router(admin_router)
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "app": settings.BUSINESS_NAME, "environment": settings.APP_ENV}
 
 
 @app.get("/privacidade")

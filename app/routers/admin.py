@@ -18,6 +18,7 @@ from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
 from ..services.address import geocode_structured
+from ..services.audit import log_admin_action
 from ..services.push import fcm_configured, push_configured, send_notification_to_app_devices, send_notification_to_subscriptions
 
 templates = Jinja2Templates(directory="app/templates")
@@ -378,6 +379,15 @@ def toggle_app_device_block(
     else:
         device.block_reason = None
         device.blocked_at = None
+    log_admin_action(
+        db,
+        action="app_device_block_toggled",
+        actor_attendant_id=admin.id,
+        entity_type="app_device",
+        entity_id=device.id,
+        details={"device_id": device.device_id, "is_blocked": bool(device.is_blocked)},
+        request=request,
+    )
     db.commit()
     message = "Dispositivo%20bloqueado" if device.is_blocked else "Dispositivo%20desbloqueado"
     return RedirectResponse(f"/admin/app?success={message}", status_code=303)
@@ -392,6 +402,15 @@ def toggle_push_subscription(subscription_id: int, request: Request, db: Session
         return RedirectResponse("/admin/app?err=Inscrição%20push%20não%20encontrada", status_code=303)
     subscription.active = not bool(subscription.active)
     subscription.updated_at = datetime.utcnow()
+    log_admin_action(
+        db,
+        action="push_subscription_toggled",
+        actor_attendant_id=admin.id,
+        entity_type="push_subscription",
+        entity_id=subscription.id,
+        details={"device_id": subscription.device_id, "active": bool(subscription.active)},
+        request=request,
+    )
     db.commit()
     return RedirectResponse("/admin/app?success=Inscrição%20push%20atualizada", status_code=303)
 
@@ -438,6 +457,16 @@ def create_or_update_coupon(
     coupon.valid_until = _parse_optional_datetime(valid_until)
     coupon.display_order = int(display_order or 0)
     coupon.active = active == "on"
+    db.flush()
+    log_admin_action(
+        db,
+        action="coupon_saved",
+        actor_attendant_id=admin.id,
+        entity_type="coupon",
+        entity_id=coupon.id,
+        details={"code": coupon.code, "active": bool(coupon.active), "discount_type": coupon.discount_type},
+        request=request,
+    )
     db.commit()
 
     return RedirectResponse("/admin/site?success=Cupom%20salvo", status_code=303)
@@ -450,6 +479,15 @@ def toggle_coupon(coupon_id: int, request: Request, db: Session = Depends(get_db
     coupon = db.get(Coupon, coupon_id)
     if coupon:
         coupon.active = not coupon.active
+        log_admin_action(
+            db,
+            action="coupon_toggled",
+            actor_attendant_id=admin.id,
+            entity_type="coupon",
+            entity_id=coupon.id,
+            details={"code": coupon.code, "active": bool(coupon.active)},
+            request=request,
+        )
         db.commit()
     return RedirectResponse("/admin/site", status_code=303)
 
@@ -475,6 +513,16 @@ def send_app_notification(
         created_by_attendant_id=admin.id,
     )
     db.add(notification)
+    db.flush()
+    log_admin_action(
+        db,
+        action="notification_created",
+        actor_attendant_id=admin.id,
+        entity_type="app_notification",
+        entity_id=notification.id,
+        details={"title": notification.title, "target": notification.target, "url": notification.url},
+        request=request,
+    )
     db.commit()
 
     query = select(PushSubscription).where(PushSubscription.active == True)

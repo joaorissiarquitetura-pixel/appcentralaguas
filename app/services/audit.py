@@ -1,6 +1,7 @@
 import json
 import logging
 
+from fastapi import Request
 from sqlalchemy.orm import Session
 
 from ..models import AdminAuditLog
@@ -16,6 +17,7 @@ def log_admin_action(
     entity_type: str = "system",
     entity_id: int | None = None,
     details: dict | str | None = None,
+    request: Request | None = None,
 ) -> None:
     if isinstance(details, dict):
         serialized_details = json.dumps(details, ensure_ascii=True, sort_keys=True)
@@ -29,6 +31,8 @@ def log_admin_action(
             entity_type=entity_type,
             entity_id=entity_id,
             details=serialized_details,
+            ip_address=request.client.host if request and request.client else None,
+            user_agent=request.headers.get("user-agent", "") if request else None,
         )
     )
     logger.info(

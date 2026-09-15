@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import inspect, text
 
 from .database import engine
-from .models import AppDevice, AppNotification, Coupon, LocationAccessLog, PushSubscription
+from .models import AdminAuditLog, AppDevice, AppNotification, Coupon, LocationAccessLog, PushSubscription
 
 
 PRODUCT_COLUMN_SPECS = {
@@ -31,7 +31,7 @@ APP_DEVICE_COLUMN_SPECS = {
 def ensure_runtime_schema_updates() -> None:
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
-    for table_model in (Coupon, AppDevice, PushSubscription, LocationAccessLog, AppNotification):
+    for table_model in (Coupon, AppDevice, PushSubscription, LocationAccessLog, AppNotification, AdminAuditLog):
         table_model.__table__.create(bind=engine, checkfirst=True)
 
     if "products" not in table_names:

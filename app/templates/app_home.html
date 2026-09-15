@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{{ business_name }} App | Central Águas</title>
   <meta name="theme-color" content="#0B4CCB">
   <meta name="mobile-web-app-capable" content="yes">
@@ -31,6 +31,8 @@
       --ca-featured: 24px;
       --ca-button: 16px;
       --ca-pill: 999px;
+      --ca-safe-top: env(safe-area-inset-top, 0px);
+      --ca-safe-bottom: env(safe-area-inset-bottom, 0px);
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -52,54 +54,87 @@
       z-index: 30;
       display: grid;
       place-items: center;
-      background:
-        radial-gradient(circle at 50% 30%, rgba(179, 229, 255, 0.42), transparent 34%),
-        linear-gradient(180deg, #0B4CCB 0%, #083A9A 100%);
+      background-color: #0B4CCB;
+      background-image: linear-gradient(180deg, rgba(31, 111, 226, 0.2) 0%, rgba(8, 58, 154, 0.9) 100%);
       color: var(--ca-white);
-      animation: splashOut 700ms ease 1250ms forwards;
+      animation:
+        splashBrighten 1800ms ease 450ms forwards,
+        splashOut 700ms ease 2250ms forwards;
     }
-    .splash-inner { display: grid; justify-items: center; gap: 18px; }
-    .splash-mascot {
-      width: min(48vw, 184px);
-      object-fit: contain;
-      filter: drop-shadow(0 22px 30px rgba(0, 0, 0, 0.24));
-      animation: floatDrop 4.8s ease-in-out infinite;
+    .splash-inner { display: grid; justify-items: center; gap: 22px; }
+    .splash-logo {
+      display: inline-grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      color: var(--ca-white);
+      filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.18));
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+      animation: splashLogoSequence 2200ms ease forwards;
     }
-    .splash-brand {
-      width: min(50vw, 210px);
-      border-radius: 14px;
-      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+    .splash-logo-mark {
+      width: 28px;
+      height: 36px;
+      border-radius: 70% 70% 70% 18%;
+      background: var(--ca-white);
+      transform: rotate(45deg);
+      position: relative;
     }
-    .splash-copy {
-      max-width: 240px;
-      text-align: center;
-      font-size: 0.96rem;
-      color: rgba(255, 255, 255, 0.9);
+    .splash-logo-mark::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 18px;
+      left: 8px;
+      top: 10px;
+      border-radius: 50%;
+      background: var(--ca-primary);
+      opacity: 0.9;
+      transform: rotate(-24deg);
+    }
+    .splash-logo-copy {
+      display: grid;
+      gap: 2px;
+    }
+    .splash-logo-name {
+      color: var(--ca-white);
+      font: 800 2.2rem/0.9 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+    .splash-logo-subtitle {
+      color: rgba(255, 255, 255, 0.86);
+      font: 800 0.5rem/1.1 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
     .splash-loader {
-      width: 128px;
-      height: 6px;
+      width: 112px;
+      height: 4px;
       overflow: hidden;
       border-radius: var(--ca-pill);
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.22);
+      opacity: 0;
+      animation: splashLoaderIn 500ms ease 500ms forwards;
     }
     .splash-loader span {
       display: block;
       width: 44%;
       height: 100%;
       border-radius: inherit;
-      background: var(--ca-aqua);
+      background: var(--ca-white);
       animation: loader 1100ms ease-in-out infinite;
     }
     .phone-stage {
       min-height: 100vh;
-      padding: 0 0 94px;
+      padding: 0 0 calc(112px + var(--ca-safe-bottom));
       background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
     }
     .app-screen {
       display: none;
-      min-height: calc(100vh - 94px);
-      padding: 14px 14px 20px;
+      min-height: calc(100vh - 112px - var(--ca-safe-bottom));
+      padding: calc(14px + var(--ca-safe-top)) 14px 24px;
       background: var(--ca-white);
     }
     .app-screen.is-active { display: block; }
@@ -114,9 +149,9 @@
     }
     .app-topbar.home {
       grid-template-columns: minmax(0, 1fr) 38px 38px;
-      min-height: 70px;
-      margin: -14px -14px 12px;
-      padding: 12px 14px 10px;
+      min-height: 82px;
+      margin: calc(-14px - var(--ca-safe-top)) -14px 14px;
+      padding: calc(18px + var(--ca-safe-top)) 14px 12px;
       background: var(--ca-primary);
       color: var(--ca-white);
       border-radius: 0 0 20px 20px;
@@ -129,16 +164,16 @@
     .app-topbar.home h1 { color: var(--ca-white); }
     .top-brand {
       display: inline-grid;
-      grid-template-columns: 30px minmax(0, 1fr);
+      grid-template-columns: 25px minmax(0, 1fr);
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       min-width: 0;
       color: var(--ca-white);
     }
     .top-brand-mark {
-      width: 24px;
-      height: 30px;
-      margin-left: 3px;
+      width: 20px;
+      height: 25px;
+      margin-left: 2px;
       border-radius: 70% 70% 70% 18%;
       background: #65cef7;
       transform: rotate(45deg);
@@ -150,13 +185,13 @@
     }
     .top-brand-name {
       color: var(--ca-white);
-      font: 800 1.72rem/0.9 "Montserrat", Arial, sans-serif;
+      font: 700 1.42rem/0.92 "Montserrat", Arial, sans-serif;
       letter-spacing: 0;
     }
     .top-brand-subtitle {
       color: rgba(255, 255, 255, 0.82);
-      font: 700 0.38rem/1.1 "Montserrat", Arial, sans-serif;
-      letter-spacing: 0.04em;
+      font: 700 0.34rem/1.15 "Montserrat", Arial, sans-serif;
+      letter-spacing: 0.03em;
       text-transform: uppercase;
       white-space: nowrap;
     }
@@ -1118,12 +1153,13 @@
       border-top: 1px solid var(--ca-line);
       background: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(14px);
+      padding-bottom: var(--ca-safe-bottom);
     }
     .bottom-nav-inner {
       width: min(100%, 460px);
-      min-height: 72px;
+      min-height: 76px;
       margin: 0 auto;
-      padding: 8px 8px 10px;
+      padding: 8px 8px 12px;
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 3px;
@@ -1145,6 +1181,29 @@
     .nav-item i { color: var(--ca-primary); font-size: 1.1rem; line-height: 1; }
     .nav-item.is-active { background: rgba(179, 229, 255, 0.38); color: var(--ca-primary); }
     body.login-mode .bottom-nav { display: none; }
+    @keyframes splashBrighten {
+      0% {
+        background-color: #0B4CCB;
+        background-image: linear-gradient(180deg, rgba(31, 111, 226, 0.2) 0%, rgba(8, 58, 154, 0.9) 100%);
+      }
+      72% {
+        background-color: #2f8df0;
+        background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(31, 111, 226, 0.36) 100%);
+      }
+      100% {
+        background-color: #eaf8ff;
+        background-image: linear-gradient(180deg, #eaf8ff 0%, #ffffff 100%);
+      }
+    }
+    @keyframes splashLogoSequence {
+      0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+      24% { opacity: 1; transform: translateY(0) scale(1); }
+      72% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0.12; transform: translateY(-4px) scale(0.99); }
+    }
+    @keyframes splashLoaderIn {
+      to { opacity: 1; }
+    }
     @keyframes splashOut { to { opacity: 0; visibility: hidden; pointer-events: none; } }
     @keyframes loader {
       0% { transform: translateX(-120%); }
@@ -1159,7 +1218,6 @@
       html { scroll-behavior: auto; }
       .app-splash,
       .splash-loader span,
-      .splash-mascot,
       .onboarding-mascot,
       .gotinha-nudge img,
       .gotinha-hero img { animation: none; }
@@ -1201,9 +1259,13 @@
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
   <div class="app-splash" aria-hidden="true">
     <div class="splash-inner">
-      <img class="splash-mascot" src="/static/assets/gotinha/emotions/alegria.webp" onerror="this.onerror=null;this.src='/static/img/mascote_novo.png';" alt="">
-      <img class="splash-brand" src="/static/img/logo_central.jpg" alt="">
-      <div class="splash-copy">Água faz bem. A Central cuida do resto.</div>
+      <div class="splash-logo" aria-label="Central Águas">
+        <span class="splash-logo-mark"></span>
+        <span class="splash-logo-copy">
+          <strong class="splash-logo-name">Central</strong>
+          <span class="splash-logo-subtitle">Distribuidora de água mineral</span>
+        </span>
+      </div>
       <div class="splash-loader"><span></span></div>
     </div>
   </div>

@@ -179,6 +179,23 @@ class AppNotification(Base):
 
     created_by = relationship("Attendant")
 
+
+class AdminAuditLog(Base):
+    __tablename__ = "admin_audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    actor_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(120), index=True)
+    entity_type: Mapped[str] = mapped_column(String(80), default="system", index=True)
+    entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    details: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    actor = relationship("Attendant")
+
+
 class Transaction(Base):
     __tablename__ = "transactions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

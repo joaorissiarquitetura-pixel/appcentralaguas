@@ -43,3 +43,30 @@ uvicorn app.main:app --reload
 ```bash
 python -m unittest tests.test_smoke_routes tests.test_grj_catalog_api
 ```
+
+## Backend técnico
+
+Endpoints de fundação adicionados para a evolução incremental do app:
+
+```text
+GET /health
+GET /api/v1/health
+GET /api/v1/app/bootstrap
+GET /api/v1/auth/session
+POST /api/v1/auth/login
+POST /api/v1/auth/register
+POST /api/v1/auth/logout
+GET /api/v1/customers/me
+GET /api/v1/customers/me/loyalty
+GET /api/v1/products
+```
+
+O pacote `app/api/v1` concentra as novas APIs versionadas. As rotas antigas continuam ativas para preservar o site e o painel existentes.
+
+O arquivo `app/schema_updates.py` executa atualizações aditivas seguras no startup, criando tabelas/colunas novas quando faltarem, sem apagar dados existentes.
+
+Para validar a fundação do backend:
+
+```bash
+python -m unittest tests.test_backend_foundation tests.test_smoke_routes tests.test_grj_catalog_api
+```
