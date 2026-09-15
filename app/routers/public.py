@@ -329,7 +329,10 @@ def _customer_coupons(db: Session) -> SimpleNamespace:
             title=coupon.title,
             description=coupon.description or "Use este cupom na próxima compra.",
             discount_label=_coupon_discount_label(coupon),
+            discount_type=coupon.discount_type,
+            discount_value=coupon.discount_value or 0,
             validity_label=_coupon_validity_label(coupon),
+            min_order_value=coupon.min_order_value or 0,
             min_order_label=(
                 f"Pedido mínimo R$ {coupon.min_order_value:.2f}".replace(".", ",")
                 if coupon.min_order_value

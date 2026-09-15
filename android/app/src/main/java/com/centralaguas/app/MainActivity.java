@@ -2,7 +2,9 @@ package com.centralaguas.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Insets;
@@ -52,6 +54,7 @@ public class MainActivity extends Activity {
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
         settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.addJavascriptInterface(new CentralAguasBridge(this), "CentralAguasAndroid");
         webView.clearCache(true);
         webView.clearHistory();
 
@@ -59,6 +62,12 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return false;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                flushHydrationActionsToWeb();
             }
         });
 
@@ -142,6 +151,28 @@ public class MainActivity extends Activity {
                 return insets;
             });
         }
+    }
+
+    public boolean hasNotificationPermission() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    public void requestNotificationPermissionFromBridge() {
+        runOnUiThread(this::requestNotificationPermission);
+    }
+
+    private void flushHydrationActionsToWeb() {
+        SharedPreferences prefs = getSharedPreferences(CentralAguasBridge.PREFS_NAME, Context.MODE_PRIVATE);
+        int pendingDrinks = prefs.getInt(CentralAguasBridge.KEY_PENDING_DRINKS, 0);
+        if (pendingDrinks <= 0 || webView == null) {
+            return;
+        }
+        prefs.edit().putInt(CentralAguasBridge.KEY_PENDING_DRINKS, 0).apply();
+        webView.evaluateJavascript(
+            "window.centralAguasApplyNativeHydration && window.centralAguasApplyNativeHydration(" + pendingDrinks + ");",
+            null
+        );
     }
 
     private void requestNotificationPermission() {

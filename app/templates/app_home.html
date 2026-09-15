@@ -755,6 +755,44 @@
       border-bottom: 1px solid var(--ca-line);
     }
     .checkout-product img { width: 62px; max-height: 74px; object-fit: contain; }
+    .checkout-product + .checkout-product { margin-top: 12px; }
+    .checkout-items { display: grid; gap: 12px; }
+    .checkout-item-actions {
+      display: grid;
+      justify-items: end;
+      gap: 8px;
+    }
+    .remove-item {
+      border: 0;
+      background: transparent;
+      color: var(--ca-muted);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .coupon-select {
+      width: 100%;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      padding: 12px;
+      font: 700 0.92rem/1.2 "Montserrat", Arial, sans-serif;
+      color: #101828;
+      background: var(--ca-white);
+    }
+    .coupon-applied {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--ca-success);
+      font-weight: 800;
+    }
+    .subtotal-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      color: var(--ca-muted);
+      font-size: 0.9rem;
+    }
     .total-row {
       display: flex;
       justify-content: space-between;
@@ -1373,7 +1411,7 @@
                 {% if offer.stock_status == "indisponivel" %}
                   <button class="mini-add" type="button" disabled>Indisponível</button>
                 {% else %}
-                  <button class="mini-add" type="button" data-product="{{ offer.name }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}" data-go="delivery">Adicionar</button>
+                  <button class="mini-add" type="button" data-product="{{ offer.name }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}">Adicionar</button>
                 {% endif %}
               </div>
             </div>
@@ -1428,18 +1466,17 @@
           <span></span>
         </header>
         <article class="app-card pad">
-          <div class="checkout-product">
-            <img id="checkoutImage" src="{{ primary_offer.image_url or '/static/img/20.png' }}" alt="">
-            <span class="row-copy">
-              <strong id="checkoutName">{{ primary_offer.name }}</strong>
-              <span id="checkoutDesc">{{ primary_offer.description }}</span>
-              <span class="product-price" id="checkoutUnit">R$ {{ "%.2f"|format(primary_offer.delivery_price)|replace('.', ',') }}</span>
-            </span>
-            <span class="small" id="checkoutQty">2 un.</span>
-          </div>
+          <div class="checkout-items" id="checkoutItems"></div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Endereço</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span><button class="text-button" type="button" data-go="address">Alterar</button></div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-calendar-check"></i></span><span class="row-copy"><strong>Entrega</strong><span id="checkoutDelivery">{{ delivery_days[0].label }}, {{ delivery_days[0].date }} - Sem hora definida</span></span><button class="text-button" type="button" data-go="delivery">Alterar</button></div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-wallet2"></i></span><span class="row-copy"><strong>Pagamento</strong><span id="checkoutPayment">Pix</span></span><button class="text-button" type="button" data-go="payment">Alterar</button></div>
+          <div class="summary-row" id="couponSummary">
+            <span class="blue-icon"><i class="bi bi-ticket-perforated"></i></span>
+            <span class="row-copy"><strong>Cupom de desconto</strong><span id="couponHelp">Escolha um cupom disponível para este pedido.</span></span>
+            <select class="coupon-select" id="couponSelect" aria-label="Cupom de desconto"></select>
+          </div>
+          <div class="subtotal-row"><span>Subtotal</span><strong id="checkoutSubtotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
+          <div class="coupon-applied" id="checkoutDiscountRow"><span>Desconto</span><strong id="checkoutDiscount">- R$ 0,00</strong></div>
           <div class="total-row"><span>Total</span><strong id="checkoutTotal">R$ {{ "%.2f"|format(primary_offer.delivery_price * 2)|replace('.', ',') }}</strong></div>
         </article>
         <form method="post" action="/loja/finalizar" id="orderForm">
@@ -1453,6 +1490,7 @@
           <input type="hidden" name="number" value="{{ customer.number if customer else '' }}">
           <input type="hidden" name="complement" value="{{ customer.complement if customer else '' }}">
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
+          <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
           <button class="primary-button" type="submit">Finalizar pedido</button>
         </form>
       </div>
@@ -1788,6 +1826,14 @@
       price: Number("{{ primary_offer.delivery_price }}"),
       image: {{ (primary_offer.image_url or '/static/img/20.png')|tojson }},
       qty: 2,
+      cart: [{
+        product: {{ primary_offer.name|tojson }},
+        description: {{ primary_offer.description|tojson }},
+        price: Number("{{ primary_offer.delivery_price }}"),
+        image: {{ (primary_offer.image_url or '/static/img/20.png')|tojson }},
+        qty: 2
+      }],
+      couponCode: "",
       deliveryDay: {{ (delivery_days[0].label ~ ', ' ~ delivery_days[0].date)|tojson }},
       deliveryDate: {{ delivery_days[0].iso_date|tojson }},
       deliveryPeriod: "Sem hora definida",
@@ -1831,9 +1877,78 @@
     let deliveryNotificationTimer = null;
     let ordersFilter = "all";
     let appBootstrap = { push: { configured: false, public_key: "" } };
+    const availableCoupons = [
+      {% for coupon in coupons.available %}
+        {
+          code: {{ coupon.code|tojson }},
+          title: {{ coupon.title|tojson }},
+          description: {{ coupon.description|tojson }},
+          discountLabel: {{ coupon.discount_label|tojson }},
+          discountType: {{ coupon.discount_type|tojson }},
+          discountValue: Number("{{ coupon.discount_value or 0 }}"),
+          minOrderValue: Number("{{ coupon.min_order_value or 0 }}"),
+          minOrderLabel: {{ coupon.min_order_label|tojson }}
+        }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
 
     function formatMoney(value) {
       return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function activeCartItems() {
+      state.cart = (Array.isArray(state.cart) ? state.cart : []).filter((item) => Number(item.qty || 0) > 0);
+      if (!state.cart.length) {
+        state.cart.push({
+          product: state.product,
+          description: state.description,
+          price: Number(state.price || 0),
+          image: state.image,
+          qty: Math.max(1, Number(state.qty || 1))
+        });
+      }
+      return state.cart;
+    }
+
+    function syncPrimaryFromCart() {
+      const first = activeCartItems()[0];
+      state.product = first.product;
+      state.description = first.description;
+      state.price = Number(first.price || 0);
+      state.image = first.image;
+      state.qty = Number(first.qty || 1);
+    }
+
+    function cartSubtotal() {
+      return activeCartItems().reduce((total, item) => total + Number(item.price || 0) * Number(item.qty || 0), 0);
+    }
+
+    function selectedCoupon() {
+      return availableCoupons.find((coupon) => coupon.code === state.couponCode) || null;
+    }
+
+    function couponDiscount(subtotal = cartSubtotal()) {
+      const coupon = selectedCoupon();
+      if (!coupon || subtotal < Number(coupon.minOrderValue || 0)) return 0;
+      if (coupon.discountType === "percent") {
+        return Math.min(subtotal, subtotal * Number(coupon.discountValue || 0) / 100);
+      }
+      return Math.min(subtotal, Number(coupon.discountValue || 0));
+    }
+
+    function cartTotal() {
+      const subtotal = cartSubtotal();
+      return Math.max(0, subtotal - couponDiscount(subtotal));
     }
 
     function getDeviceId() {
@@ -1957,14 +2072,20 @@
     function saveOrderSnapshot() {
       const orders = loadOrders();
       const now = new Date();
+      const items = activeCartItems().map((item) => ({ ...item }));
+      const subtotal = cartSubtotal();
+      const discount = couponDiscount(subtotal);
       orders.unshift({
         id: `APP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`,
-        product: state.product,
-        description: state.description,
-        unitPrice: state.price,
-        image: state.image,
-        qty: state.qty,
-        total: state.price * state.qty,
+        product: items.length === 1 ? items[0].product : `${items.length} produtos`,
+        description: items.map((item) => `${item.qty}x ${item.product}`).join(", "),
+        unitPrice: items[0]?.price || 0,
+        image: items[0]?.image || state.image,
+        qty: items.reduce((total, item) => total + Number(item.qty || 0), 0),
+        total: subtotal - discount,
+        couponCode: state.couponCode,
+        discount,
+        items,
         delivery: `${state.deliveryDay} - ${state.deliveryPeriod}`,
         payment: state.paymentMethod,
         status: "pending",
@@ -2057,23 +2178,45 @@
       state.image = product.image || state.image;
     }
 
+    function addProductToCart(product, qty = 1) {
+      if (!product) return;
+      const normalizedQty = Math.max(1, Number(qty || 1));
+      const normalizedProduct = {
+        product: product.product || state.product,
+        description: product.description || state.description,
+        price: Number(product.price || state.price || 0),
+        image: product.image || state.image,
+        qty: normalizedQty
+      };
+      if (!Array.isArray(state.cart)) state.cart = [];
+      const existing = state.cart.find((item) => item.product === normalizedProduct.product);
+      if (existing) {
+        existing.qty = Number(existing.qty || 0) + normalizedQty;
+      } else {
+        state.cart.push(normalizedProduct);
+      }
+      syncPrimaryFromCart();
+      updateCheckout();
+    }
+
     function reorderFromHouseStock() {
       const stock = loadHouseStock();
       const qty = Math.max(emptyGallons(stock), 1);
       const lastOrder = loadOrders()[0];
       if (!lastOrder) {
-        state.qty = qty;
+        state.cart = [];
+        addProductToCart(productFromCatalog(state.product), qty);
         updateCheckout();
         showScreen("store");
         return;
       }
-      applyProductSelection(productFromCatalog(lastOrder.product) || {
+      state.cart = [];
+      addProductToCart(productFromCatalog(lastOrder.product) || {
         product: lastOrder.product,
         description: lastOrder.description,
         price: lastOrder.unitPrice || state.price,
         image: lastOrder.image || state.image
-      });
-      state.qty = qty;
+      }, qty);
       updateCheckout();
       showScreen("checkout");
     }
@@ -2284,12 +2427,33 @@
       return localStorage.getItem(notificationKey) === "on";
     }
 
+    function nativeHydrationBridge() {
+      return window.CentralAguasAndroid || null;
+    }
+
     function clearHydrationNotifications() {
       hydrationNotificationTimers.forEach((timer) => clearTimeout(timer));
       hydrationNotificationTimers = [];
+      const bridge = nativeHydrationBridge();
+      if (bridge) {
+        try { bridge.cancelHydrationReminders(); } catch {}
+      }
     }
 
     function notificationStatusText(plan) {
+      const bridge = nativeHydrationBridge();
+      if (bridge) {
+        if (!notificationsEnabled()) {
+          return "Ative para receber lembretes no Android com botão Bebi água.";
+        }
+        try {
+          if (!bridge.isNotificationPermissionGranted()) {
+            return "Permissão do Android pendente. Toque para ativar e confirme no celular.";
+          }
+        } catch {}
+        const total = plan ? `${plan.count} avisos de ${plan.cupMl} ml` : "lembretes";
+        return `${total} ativos, com registro direto pela notificação.`;
+      }
       if (!("Notification" in window)) {
         return "Este navegador não permite notificações.";
       }
@@ -2310,7 +2474,12 @@
       const toggle = document.querySelector("[data-notification-toggle]");
       const status = document.querySelector("[data-notification-status]");
       if (!toggle || !status) return;
-      const isOn = notificationsEnabled() && "Notification" in window && Notification.permission === "granted";
+      const bridge = nativeHydrationBridge();
+      let nativeAllowed = false;
+      if (bridge) {
+        try { nativeAllowed = bridge.isNotificationPermissionGranted(); } catch {}
+      }
+      const isOn = notificationsEnabled() && (bridge ? nativeAllowed : "Notification" in window && Notification.permission === "granted");
       toggle.classList.toggle("is-on", isOn);
       toggle.setAttribute("aria-label", isOn ? "Desativar notificações" : "Ativar notificações");
       status.textContent = notificationStatusText(plan);
@@ -2318,6 +2487,19 @@
 
     function scheduleHydrationNotifications() {
       clearHydrationNotifications();
+      const bridge = nativeHydrationBridge();
+      if (bridge && notificationsEnabled()) {
+        const plan = hydrationPlan(loadHydrationProfile());
+        try {
+          bridge.scheduleHydrationReminders(JSON.stringify({
+            times: plan.times,
+            cupMl: plan.cupMl,
+            count: plan.count,
+            url: "/app?screen=gotinha"
+          }));
+        } catch {}
+        return;
+      }
       if (!("Notification" in window) || !notificationsEnabled() || Notification.permission !== "granted") return;
       const plan = hydrationPlan(loadHydrationProfile());
       const now = new Date();
@@ -2337,6 +2519,20 @@
     }
 
     async function toggleHydrationNotifications() {
+      const bridge = nativeHydrationBridge();
+      if (bridge) {
+        if (notificationsEnabled()) {
+          localStorage.setItem(notificationKey, "off");
+          clearHydrationNotifications();
+          renderNotificationStatus();
+          return;
+        }
+        localStorage.setItem(notificationKey, "on");
+        try { bridge.requestNotificationPermission(); } catch {}
+        scheduleHydrationNotifications();
+        renderNotificationStatus();
+        return;
+      }
       if (!("Notification" in window)) {
         renderNotificationStatus();
         return;
@@ -2359,6 +2555,16 @@
       }
       renderNotificationStatus();
     }
+
+    window.centralAguasApplyNativeHydration = (amount) => {
+      const increment = Math.max(0, Number(amount || 0));
+      if (!increment) return;
+      const profile = loadHydrationProfile();
+      const plan = hydrationPlan(profile);
+      profile.done = Math.min(plan.count, Number(profile.done || 0) + increment);
+      saveHydrationProfile(profile);
+      renderHydration();
+    };
 
     function setLocationStatus(text) {
       const status = document.querySelector("[data-location-status]");
@@ -2651,26 +2857,82 @@
       const orderNotes = document.getElementById("orderNotes");
       const scheduleText = `${state.deliveryDay} - ${state.deliveryPeriod}`;
       const customerNotes = String(notesField?.value || "").trim();
-      document.getElementById("checkoutImage").src = state.image;
-      document.getElementById("checkoutName").textContent = state.product;
-      document.getElementById("checkoutDesc").textContent = state.description;
-      document.getElementById("checkoutUnit").textContent = formatMoney(state.price);
-      document.getElementById("checkoutQty").textContent = `${state.qty} un.`;
-      document.getElementById("checkoutTotal").textContent = formatMoney(state.price * state.qty);
+      const items = activeCartItems();
+      syncPrimaryFromCart();
+      const subtotal = cartSubtotal();
+      const discount = couponDiscount(subtotal);
+      const checkoutItems = document.getElementById("checkoutItems");
+      if (checkoutItems) {
+        checkoutItems.innerHTML = items.map((item, index) => `
+          <div class="checkout-product">
+            <img src="${escapeHtml(item.image || "/static/img/20.png")}" alt="">
+            <span class="row-copy">
+              <strong>${escapeHtml(item.product)}</strong>
+              <span>${escapeHtml(item.description || "Produto Central Águas")}</span>
+              <span class="product-price">${formatMoney(Number(item.price || 0))}</span>
+            </span>
+            <span class="checkout-item-actions">
+              <span class="small">${Number(item.qty || 1)} un.</span>
+              <span class="quantity-control" data-cart-quantity="${index}">
+                <button type="button" data-cart-step="-1" aria-label="Diminuir">-</button>
+                <output>${Number(item.qty || 1)}</output>
+                <button type="button" data-cart-step="1" aria-label="Aumentar">+</button>
+              </span>
+              ${items.length > 1 ? `<button class="remove-item" type="button" data-cart-remove="${index}">Remover</button>` : ""}
+            </span>
+          </div>
+        `).join("");
+      }
+      renderCouponSelect(subtotal);
+      document.getElementById("checkoutSubtotal").textContent = formatMoney(subtotal);
+      document.getElementById("checkoutDiscountRow").style.display = discount > 0 ? "flex" : "none";
+      document.getElementById("checkoutDiscount").textContent = `- ${formatMoney(discount)}`;
+      document.getElementById("checkoutTotal").textContent = formatMoney(subtotal - discount);
       document.getElementById("checkoutDelivery").textContent = scheduleText;
       renderPayment();
       document.getElementById("itemsJson").value = JSON.stringify([
-        { slug: state.product, qty: state.qty, unit_price: state.price }
+        ...items.map((item) => ({ slug: item.product, qty: item.qty, unit_price: item.price }))
       ]);
       if (orderNotes) {
         orderNotes.value = [
           "Pedido iniciado pelo app Central Águas",
           `Agendamento: ${scheduleText}`,
           `Pagamento preferido: ${paymentLabel(state.paymentMethod)}`,
+          state.couponCode ? `Cupom aplicado: ${state.couponCode}` : "",
+          discount > 0 ? `Desconto: ${formatMoney(discount)}` : "",
           customerNotes ? `Observações: ${customerNotes}` : "",
         ].filter(Boolean).join(" | ");
       }
       updateLocationDisplay();
+    }
+
+    function renderCouponSelect(subtotal = cartSubtotal()) {
+      const couponSummary = document.getElementById("couponSummary");
+      const couponSelect = document.getElementById("couponSelect");
+      const couponHelp = document.getElementById("couponHelp");
+      if (!couponSummary || !couponSelect || !couponHelp) return;
+      if (!availableCoupons.length) {
+        couponSummary.style.display = "none";
+        state.couponCode = "";
+        return;
+      }
+      couponSummary.style.display = "grid";
+      couponSelect.innerHTML = [
+        `<option value="">Sem cupom</option>`,
+        ...availableCoupons.map((coupon) => {
+          const disabled = subtotal < Number(coupon.minOrderValue || 0);
+          const suffix = disabled ? ` - ${coupon.minOrderLabel}` : "";
+          return `<option value="${escapeHtml(coupon.code)}" ${disabled ? "disabled" : ""}>${escapeHtml(coupon.code)} - ${escapeHtml(coupon.discountLabel)}${escapeHtml(suffix)}</option>`;
+        })
+      ].join("");
+      if (state.couponCode && !availableCoupons.some((coupon) => coupon.code === state.couponCode && subtotal >= Number(coupon.minOrderValue || 0))) {
+        state.couponCode = "";
+      }
+      couponSelect.value = state.couponCode;
+      const coupon = selectedCoupon();
+      couponHelp.textContent = coupon
+        ? `${coupon.title} aplicado no pedido.`
+        : "Escolha um cupom disponível para este pedido.";
     }
 
     document.addEventListener("click", (event) => {
@@ -2715,19 +2977,39 @@
         updateCheckout();
       }
 
+      const cartStepButton = event.target.closest("[data-cart-step]");
+      if (cartStepButton) {
+        const index = Number(cartStepButton.closest("[data-cart-quantity]")?.dataset.cartQuantity);
+        const item = activeCartItems()[index];
+        if (item) {
+          item.qty = Math.max(1, Number(item.qty || 1) + Number(cartStepButton.dataset.cartStep || 0));
+          syncPrimaryFromCart();
+          updateCheckout();
+        }
+      }
+
+      const cartRemoveButton = event.target.closest("[data-cart-remove]");
+      if (cartRemoveButton) {
+        const index = Number(cartRemoveButton.dataset.cartRemove);
+        state.cart.splice(index, 1);
+        syncPrimaryFromCart();
+        updateCheckout();
+      }
+
       const add = event.target.closest("[data-product]");
       if (add) {
-        applyProductSelection({
+        const product = {
           product: add.dataset.product,
           description: add.dataset.description,
           price: add.dataset.price,
           image: add.dataset.image
-        });
+        };
         const card = add.closest(".product-row");
-        state.description = add.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description;
+        product.description = add.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description;
         const qty = card?.querySelector("output")?.textContent;
-        state.qty = Number(qty || 1);
-        updateCheckout();
+        addProductToCart(product, Number(qty || 1));
+        add.textContent = "Adicionado";
+        setTimeout(() => { add.textContent = "Adicionar"; }, 1100);
       }
 
       const selectable = event.target.closest(".choice-card, .period-row");
@@ -2791,6 +3073,8 @@
       const copyCoupon = event.target.closest("[data-copy-coupon]");
       if (copyCoupon) {
         const code = copyCoupon.dataset.copyCoupon || "";
+        state.couponCode = code;
+        updateCheckout();
         if (code && navigator.clipboard) {
           navigator.clipboard.writeText(code).catch(() => {});
         }
@@ -2919,6 +3203,11 @@
       profile.done = 0;
       saveHydrationProfile(profile);
       renderHydration();
+    });
+
+    document.getElementById("couponSelect")?.addEventListener("change", (event) => {
+      state.couponCode = event.target.value || "";
+      updateCheckout();
     });
 
     document.getElementById("orderForm")?.addEventListener("submit", () => {
