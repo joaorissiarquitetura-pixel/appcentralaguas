@@ -17,7 +17,6 @@ public class FcmTokenReporter {
 
     public static void report(Context context, String token) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        if (token.equals(prefs.getString(TOKEN_KEY, ""))) return;
 
         new Thread(() -> {
             try {
