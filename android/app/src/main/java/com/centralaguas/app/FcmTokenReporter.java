@@ -15,6 +15,31 @@ public class FcmTokenReporter {
     private static final String PREFS = "central_aguas_app";
     private static final String TOKEN_KEY = "last_fcm_token";
 
+    public static void reportDiagnostic(Context context, String status, String detail) {
+        new Thread(() -> {
+            try {
+                String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+                JSONObject payload = new JSONObject();
+                payload.put("device_id", "android-" + androidId);
+                payload.put("status", status);
+                payload.put("detail", detail == null ? "" : detail);
+                payload.put("platform", "android");
+
+                HttpURLConnection connection = (HttpURLConnection) new URL(context.getString(R.string.fcm_diagnostic_url)).openConnection();
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setDoOutput(true);
+                byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+                try (OutputStream output = connection.getOutputStream()) {
+                    output.write(body);
+                }
+                connection.getResponseCode();
+                connection.disconnect();
+            } catch (Exception ignored) {
+            }
+        }).start();
+    }
+
     public static void report(Context context, String token) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
 

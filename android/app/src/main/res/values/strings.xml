@@ -3,4 +3,5 @@
     <string name="app_name">Central Aguas</string>
     <string name="app_start_url">https://app.centralaguas.com.br/app</string>
     <string name="fcm_token_url">https://app.centralaguas.com.br/api/app/fcm-token</string>
+    <string name="fcm_diagnostic_url">https://app.centralaguas.com.br/api/app/fcm-diagnostic</string>
 </resources>

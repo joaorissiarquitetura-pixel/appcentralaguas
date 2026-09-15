@@ -120,7 +120,19 @@ public class MainActivity extends Activity {
 
     private void syncFcmToken() {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
-            if (!task.isSuccessful() || task.getResult() == null) return;
+            if (!task.isSuccessful()) {
+                Exception exception = task.getException();
+                FcmTokenReporter.reportDiagnostic(
+                    this,
+                    "fcm_failed",
+                    exception != null ? exception.toString() : "Firebase token task failed"
+                );
+                return;
+            }
+            if (task.getResult() == null) {
+                FcmTokenReporter.reportDiagnostic(this, "fcm_empty", "Firebase returned an empty token");
+                return;
+            }
             FcmTokenReporter.report(this, task.getResult());
         });
     }

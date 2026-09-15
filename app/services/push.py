@@ -111,7 +111,11 @@ def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> boo
         messaging.send(message)
         return True
     except Exception as exc:
+        error_text = str(exc)
         logger.warning("FCM push failed for device_id=%s: %s", device.device_id, exc)
+        if "NotRegistered" in error_text or "SenderId mismatch" in error_text:
+            device.fcm_token = None
+            device.fcm_token_updated_at = None
         return False
 
 

@@ -39,6 +39,13 @@ class FcmTokenPayload(BaseModel):
     platform: str = "android"
 
 
+class FcmDiagnosticPayload(BaseModel):
+    device_id: str
+    status: str
+    detail: str = ""
+    platform: str = "android"
+
+
 class LocationCheckPayload(BaseModel):
     device_id: str = ""
     lat: float | None = None
@@ -163,6 +170,25 @@ def save_fcm_token(payload: FcmTokenPayload, request: Request, db: Session = Dep
     device.fcm_token = token
     device.fcm_token_updated_at = datetime.utcnow()
     device.user_agent = request.headers.get("user-agent", "")
+    device.last_seen_at = datetime.utcnow()
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/fcm-diagnostic")
+def save_fcm_diagnostic(payload: FcmDiagnosticPayload, request: Request, db: Session = Depends(get_db)):
+    device_id = payload.device_id.strip()
+    if not device_id:
+        return {"ok": False, "error": "device_id_required"}
+
+    device = db.scalar(select(AppDevice).where(AppDevice.device_id == device_id))
+    if not device:
+        device = AppDevice(device_id=device_id)
+        db.add(device)
+
+    device.platform = payload.platform[:40]
+    device.notification_permission = payload.status[:20]
+    device.user_agent = f"{request.headers.get('user-agent', '')} | fcm={payload.detail[:240]}"
     device.last_seen_at = datetime.utcnow()
     db.commit()
     return {"ok": True}
