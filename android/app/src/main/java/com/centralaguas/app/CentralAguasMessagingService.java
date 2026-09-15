@@ -23,13 +23,15 @@ public class CentralAguasMessagingService extends FirebaseMessagingService {
         super.onMessageReceived(message);
         String title = message.getNotification() != null ? message.getNotification().getTitle() : message.getData().get("title");
         String body = message.getNotification() != null ? message.getNotification().getBody() : message.getData().get("body");
+        String url = message.getData().get("url");
         showNotification(
             title != null ? title : "Central Águas",
-            body != null ? body : "Você tem uma novidade no app."
+            body != null ? body : "Você tem uma novidade no app.",
+            url != null ? url : "/app"
         );
     }
 
-    private void showNotification(String title, String body) {
+    private void showNotification(String title, String body, String url) {
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -41,6 +43,7 @@ public class CentralAguasMessagingService extends FirebaseMessagingService {
         }
 
         Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra(MainActivity.EXTRA_TARGET_URL, url);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
             this,

@@ -33,6 +33,7 @@
       --ca-pill: 999px;
       --ca-safe-top: env(safe-area-inset-top, 0px);
       --ca-safe-bottom: env(safe-area-inset-bottom, 0px);
+      --ca-system-bottom: max(var(--ca-safe-bottom), 28px);
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -90,13 +91,13 @@
     }
     .phone-stage {
       min-height: 100vh;
-      padding: 0 0 calc(112px + var(--ca-safe-bottom));
+      padding: 0 0 calc(118px + var(--ca-system-bottom));
       background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
     }
     .app-screen {
       display: none;
-      min-height: calc(100vh - 112px - var(--ca-safe-bottom));
-      padding: calc(14px + var(--ca-safe-top)) 14px 24px;
+      min-height: calc(100vh - 118px - var(--ca-system-bottom));
+      padding: calc(14px + var(--ca-safe-top)) 14px 30px;
       background: var(--ca-white);
     }
     .app-screen.is-active { display: block; }
@@ -1113,13 +1114,13 @@
       border-top: 1px solid var(--ca-line);
       background: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(14px);
-      padding-bottom: var(--ca-safe-bottom);
+      padding-bottom: var(--ca-system-bottom);
     }
     .bottom-nav-inner {
       width: min(100%, 460px);
       min-height: 76px;
       margin: 0 auto;
-      padding: 8px 8px 12px;
+      padding: 8px 8px 10px;
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 3px;
@@ -1288,10 +1289,10 @@
           </div>
         </article>
         <div class="category-row" aria-label="Categorias">
-          <button class="category-tile" type="button" data-go="store" data-store-category-go="galao"><i class="bi bi-droplet-fill"></i><span>Galão</span></button>
-          <button class="category-tile" type="button" data-go="store" data-store-category-go="fardos"><i class="bi bi-basket-fill"></i><span>Fardos</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="galao20"><i class="bi bi-droplet-fill"></i><span>Galão 20L</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="galao10"><i class="bi bi-droplet"></i><span>Galão 10L</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="descartaveis"><i class="bi bi-basket-fill"></i><span>Descartáveis</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="gas"><i class="bi bi-fire"></i><span>Gás</span></button>
-          <button class="category-tile" type="button" data-go="store" data-store-category-go="galao"><i class="bi bi-cart4"></i><span>Loja</span></button>
         </div>
         <button class="gotinha-nudge" type="button" data-go="gotinha">
           <img src="/static/assets/gotinha/emotions/alegria.webp" alt="">
@@ -1367,13 +1368,13 @@
         </header>
         <input class="search-field" type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
         <div class="chip-row" aria-label="Categorias da loja">
-          <button class="chip active" type="button" data-store-category="galao">Galão</button>
-          <button class="chip" type="button" data-store-category="fardos">Fardos</button>
+          <button class="chip active" type="button" data-store-category="galao20">Galão 20L</button>
+          <button class="chip" type="button" data-store-category="galao10">Galão 10L</button>
+          <button class="chip" type="button" data-store-category="descartaveis">Descartáveis</button>
           <button class="chip" type="button" data-store-category="gas">Gás</button>
-          <button class="chip" type="button" data-store-category="conveniencia">Conveniência</button>
         </div>
         {% for offer in quick_offers %}
-          <article class="app-card product-row" data-product-category="{{ offer.category or 'galao' }}">
+          <article class="app-card product-row" data-product-category="{{ offer.category or 'galao20' }}">
             <img src="{{ offer.image_url or '/static/img/20.png' }}" alt="{{ offer.name }}">
             <div class="product-info">
               <strong>{{ offer.name }}</strong>
@@ -1817,7 +1818,7 @@
       lat: "",
       lng: "",
       paymentMethod: "pix",
-      storeCategory: "galao",
+      storeCategory: "galao20",
       notes: "Pedido iniciado pelo app Central Águas"
     };
     const hydrationDefaults = {
@@ -2033,7 +2034,7 @@
     }
 
     function renderStoreCategory() {
-      const category = state.storeCategory || "galao";
+      const category = state.storeCategory || "galao20";
       const rows = [...document.querySelectorAll("[data-product-category]")];
       let visible = 0;
       rows.forEach((row) => {
@@ -2715,7 +2716,7 @@
 
       const storeCategory = event.target.closest("[data-store-category]");
       if (storeCategory) {
-        state.storeCategory = storeCategory.dataset.storeCategory || "galao";
+        state.storeCategory = storeCategory.dataset.storeCategory || "galao20";
         renderStoreCategory();
       }
 

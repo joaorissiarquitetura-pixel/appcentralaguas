@@ -2,6 +2,7 @@ package com.centralaguas.app;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Insets;
@@ -20,6 +21,7 @@ import android.webkit.WebViewClient;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 public class MainActivity extends Activity {
+    public static final String EXTRA_TARGET_URL = "com.centralaguas.app.TARGET_URL";
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 1002;
     private WebView webView;
@@ -76,9 +78,40 @@ public class MainActivity extends Activity {
             }
         });
 
-        webView.loadUrl(getString(R.string.app_start_url));
+        webView.loadUrl(resolveStartUrl(getIntent()));
         requestNotificationPermission();
         syncFcmToken();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (webView != null) {
+            webView.loadUrl(resolveStartUrl(intent));
+        }
+    }
+
+    private String resolveStartUrl(Intent intent) {
+        String baseUrl = getString(R.string.app_start_url);
+        if (intent == null) {
+            return baseUrl;
+        }
+        String targetUrl = intent.getStringExtra(EXTRA_TARGET_URL);
+        if (targetUrl == null || targetUrl.trim().isEmpty()) {
+            targetUrl = intent.getStringExtra("url");
+        }
+        if (targetUrl == null || targetUrl.trim().isEmpty()) {
+            return baseUrl;
+        }
+        targetUrl = targetUrl.trim();
+        if (targetUrl.startsWith("https://app.centralaguas.com.br/")) {
+            return targetUrl;
+        }
+        if (targetUrl.startsWith("/")) {
+            return "https://app.centralaguas.com.br" + targetUrl;
+        }
+        return baseUrl;
     }
 
     private void configureSystemBars() {

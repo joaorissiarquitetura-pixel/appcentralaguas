@@ -73,12 +73,14 @@ def _catalog_image_for_name(name: str) -> str | None:
 
 def _product_category(name: str, description: str = "") -> str:
     text = f"{name} {description}".lower()
-    if "fardo" in text:
-        return "fardos"
     if "gás" in text or "gas" in text:
         return "gas"
-    if "garrafão" in text or "garrafao" in text or "galão" in text or "galao" in text or "20l" in text or "10l" in text:
-        return "galao"
+    if "fardo" in text or "descart" in text or "garrafa" in text or "copo" in text or "pet" in text:
+        return "descartaveis"
+    if "10l" in text or "10 l" in text:
+        return "galao10"
+    if "20l" in text or "20 l" in text or "garrafão" in text or "garrafao" in text or "galão" in text or "galao" in text:
+        return "galao20"
     return "conveniencia"
 
 
@@ -170,7 +172,7 @@ def _fallback_shop_offer() -> SimpleNamespace:
         badge="Pedido rápido",
         image_url="/static/img/20.png",
         stock_status="disponivel",
-        category="galao",
+        category="galao20",
         rating_count=0,
         rating_average=0,
         customer_rating=None,
