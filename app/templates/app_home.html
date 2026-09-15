@@ -125,35 +125,16 @@
     }
     .app-topbar.home h1 { color: var(--ca-white); }
     .top-brand {
-      display: inline-grid;
-      grid-template-columns: 31px minmax(0, 1fr);
+      display: inline-flex;
       align-items: center;
-      gap: 7px;
       min-width: 0;
       color: var(--ca-white);
     }
-    .top-brand-drop {
-      width: 28px;
-      height: 34px;
+    .top-brand-logo {
+      width: min(172px, 48vw);
+      max-height: 44px;
       object-fit: contain;
       filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
-    }
-    .top-brand-copy {
-      min-width: 0;
-      display: grid;
-      gap: 2px;
-    }
-    .top-brand-name {
-      color: var(--ca-white);
-      font: 800 1.34rem/0.92 "Montserrat", Arial, sans-serif;
-      letter-spacing: 0;
-    }
-    .top-brand-subtitle {
-      color: rgba(255, 255, 255, 0.9);
-      font: 800 0.43rem/1.05 "Montserrat", Arial, sans-serif;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      white-space: nowrap;
     }
     .icon-button {
       width: 38px;
@@ -931,16 +912,22 @@
     }
     .gotinha-hero {
       display: grid;
-      justify-items: center;
-      text-align: center;
-      gap: 10px;
-      padding: 12px 0 8px;
+      grid-template-columns: 92px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0 4px;
     }
-    .gotinha-hero img { width: 126px; }
+    .gotinha-hero img {
+      width: 90px;
+      height: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 14px 22px rgba(11, 76, 203, 0.16));
+    }
     .gotinha-hero h2 { margin: 0; color: var(--ca-primary); font: 700 1.18rem/1.12 "Montserrat", Arial, sans-serif; }
+    .gotinha-hero p { margin: 6px 0 0; }
     .hydration-card {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       padding: 14px;
       border: 1px solid rgba(179, 229, 255, 0.62);
       border-radius: var(--ca-card);
@@ -955,11 +942,11 @@
     }
     .hydration-form {
       display: grid;
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
     }
     .hydration-form.profile-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
     }
     .hydration-field {
       display: grid;
@@ -987,7 +974,7 @@
     }
     .reminder-chip {
       min-height: 34px;
-      padding: 0 10px;
+      padding: 0 9px;
       border: 1px solid var(--ca-line);
       border-radius: var(--ca-pill);
       background: var(--ca-white);
@@ -997,6 +984,10 @@
       gap: 6px;
       font-weight: 700;
       font-size: 0.78rem;
+    }
+    .reminder-chip.more {
+      color: #344054;
+      background: var(--ca-soft);
     }
     .hydration-breakdown {
       display: grid;
@@ -1273,11 +1264,7 @@
       <div class="screen-inner">
         <header class="app-topbar home">
           <div class="top-brand" aria-label="Central Águas">
-            <img class="top-brand-drop" src="/static/img/logo_central_drop.png" alt="" aria-hidden="true">
-            <span class="top-brand-copy">
-              <span class="top-brand-name">Central</span>
-              <span class="top-brand-subtitle">Distribuidora de água mineral</span>
-            </span>
+            <img class="top-brand-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
           </div>
           <button class="icon-button" type="button" data-go="gotinha" aria-label="Notificações"><i class="bi bi-bell-fill"></i></button>
           <button class="icon-button" type="button" data-go="{% if customer_logged_in %}menu{% else %}login{% endif %}" aria-label="Perfil"><i class="bi bi-person-fill"></i></button>
@@ -1704,9 +1691,11 @@
           <span></span>
         </header>
         <div class="gotinha-hero">
-          <img src="/static/assets/gotinha/emotions/alegria.webp" alt="Gotinha da Central Águas">
-          <h2>Sempre com você na sua rotina.</h2>
-          <p class="muted">Lembretes, dicas e um cuidado a mais para o seu dia.</p>
+          <img src="/static/assets/gotinha/emotions/determinacao.webp" alt="Gotinha da Central Águas" data-gotinha-emotion-image>
+          <div>
+            <h2 data-gotinha-mood-title>Vamos cuidar da água de hoje.</h2>
+            <p class="muted" data-gotinha-mood-copy>A Gotinha acompanha seu ritmo e muda conforme sua rotina.</p>
+          </div>
         </div>
         <section class="hydration-card" aria-labelledby="hydrationTitle">
           <div class="hydration-head">
@@ -1725,12 +1714,12 @@
                 <option value="corrida" {% if hydration_profile.rhythm == "familia" %}selected{% endif %}>Dia corrido</option>
               </select>
             </div>
-          </div>
-          <div class="hydration-form profile-grid">
             <div class="hydration-field">
               <label for="hydrationWeight">Peso</label>
               <input id="hydrationWeight" type="number" min="25" max="180" step="1" inputmode="decimal" placeholder="kg" data-hydration-weight>
             </div>
+          </div>
+          <div class="hydration-form profile-grid">
             <div class="hydration-field">
               <label for="hydrationSex">Perfil</label>
               <select id="hydrationSex" data-hydration-sex>
@@ -1747,7 +1736,6 @@
             </div>
             <output data-hydration-goal>--</output>
           </div>
-          <p class="hydration-source">Fonte base: National Academies/IOM. A referência original é água total do dia, incluindo bebidas e parte dos alimentos; aqui a Gotinha converte para uma meta prática em copos de 300 ml.</p>
           <div class="hydration-breakdown">
             <span class="blue-icon"><i class="bi bi-cup-straw"></i></span>
             <span>
@@ -1773,9 +1761,6 @@
           </div>
           <button class="primary-button" type="button" data-water-done>Registrar copo agora</button>
         </section>
-        <button class="menu-row" type="button" data-water-done><span class="blue-icon"><i class="bi bi-plus-circle"></i></span><span class="row-copy"><strong>Hidratação</strong><span>Registrar agora</span></span><i class="bi bi-chevron-right"></i></button>
-        <button class="menu-row" type="button" data-go="house"><span class="blue-icon"><i class="bi bi-house-fill"></i></span><span class="row-copy"><strong>Minha casa</strong><span>Acompanhar galões</span></span><i class="bi bi-chevron-right"></i></button>
-        <button class="menu-row" type="button" data-go="loyalty"><span class="blue-icon"><i class="bi bi-star-fill"></i></span><span class="row-copy"><strong>Minhas conquistas</strong><span>Ver progresso</span></span><i class="bi bi-chevron-right"></i></button>
       </div>
     </section>
 
@@ -2756,6 +2741,42 @@
       });
     }
 
+    function hydrationMood(profile, plan, done) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const expected = plan.times.filter((time) => {
+        const [hour, minute] = time.split(":").map(Number);
+        return hour * 60 + minute <= currentMinutes;
+      }).length;
+      const behind = expected - done;
+      if (done >= plan.count) {
+        return {
+          emotion: "alegria",
+          title: "Meta completa por hoje.",
+          copy: "A Gotinha ficou feliz com sua constância."
+        };
+      }
+      if (behind >= 3) {
+        return {
+          emotion: "tristeza",
+          title: "A Gotinha sentiu sua falta.",
+          copy: "Já passou bastante tempo. Que tal registrar um copo agora?"
+        };
+      }
+      if (behind >= 1) {
+        return {
+          emotion: "sede",
+          title: "Hora de matar a sede.",
+          copy: "Você está um pouco atrás da rotina de hoje."
+        };
+      }
+      return {
+        emotion: "determinacao",
+        title: "Vamos cuidar da água de hoje.",
+        copy: "A Gotinha acompanha seu ritmo e te lembra na hora certa."
+      };
+    }
+
     function renderHydration() {
       const routineSelect = document.querySelector("[data-hydration-routine]");
       const weightInput = document.querySelector("[data-hydration-weight]");
@@ -2768,6 +2789,9 @@
       const goalCopy = document.querySelector("[data-hydration-goal-copy]");
       const cupPlan = document.querySelector("[data-hydration-cup-plan]");
       const cupCopy = document.querySelector("[data-hydration-cup-copy]");
+      const moodImage = document.querySelector("[data-gotinha-emotion-image]");
+      const moodTitle = document.querySelector("[data-gotinha-mood-title]");
+      const moodCopy = document.querySelector("[data-gotinha-mood-copy]");
       if (!routineSelect || !weightInput || !sexSelect || !times || !message || !count || !bar || !goal || !goalCopy || !cupPlan || !cupCopy) return;
 
       const profile = loadHydrationProfile();
@@ -2776,15 +2800,26 @@
       sexSelect.value = profile.sex || "neutral";
       const plan = hydrationPlan(profile);
       const done = Math.min(Number(profile.done || 0), plan.count);
+      const mood = hydrationMood(profile, plan, done);
 
-      times.innerHTML = plan.times.map((time) => `<span class="reminder-chip"><i class="bi bi-bell"></i>${time} · ${plan.cupMl} ml</span>`).join("");
+      const visibleTimes = plan.times.slice(0, 4);
+      const hiddenCount = Math.max(plan.times.length - visibleTimes.length, 0);
+      times.innerHTML = [
+        ...visibleTimes.map((time) => `<span class="reminder-chip"><i class="bi bi-bell"></i>${time} · ${plan.cupMl} ml</span>`),
+        hiddenCount ? `<span class="reminder-chip more">+${hiddenCount} horários</span>` : ""
+      ].filter(Boolean).join("");
       message.textContent = plan.message;
       goal.textContent = plan.goalLabel;
       goalCopy.textContent = plan.goalCopy;
       cupPlan.textContent = `${plan.goalLabel} = ${plan.count} copos de ${plan.cupMl} ml`;
-      cupCopy.textContent = "Cada horário acima vira um lembrete depois que a pessoa aprovar a notificação.";
+      cupCopy.textContent = notificationsEnabled()
+        ? "Lembretes ativos com registro direto pela notificação."
+        : "Ative as notificações para a Gotinha avisar nos horários.";
       count.textContent = `${done} de ${plan.count} copos`;
       bar.style.width = `${Math.round((done / plan.count) * 100)}%`;
+      if (moodImage) moodImage.src = `/static/assets/gotinha/emotions/${mood.emotion}.webp`;
+      if (moodTitle) moodTitle.textContent = mood.title;
+      if (moodCopy) moodCopy.textContent = mood.copy;
       renderNotificationStatus(plan);
       scheduleHydrationNotifications();
     }
