@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from typing import Iterable
 
@@ -18,6 +19,9 @@ except ImportError:
     messaging = None
 
 
+logger = logging.getLogger(__name__)
+
+
 def push_configured() -> bool:
     return bool(settings.VAPID_PRIVATE_KEY and settings.VAPID_PUBLIC_KEY)
 
@@ -27,17 +31,20 @@ def fcm_configured() -> bool:
 
 
 def ensure_firebase_app() -> bool:
-    if not firebase_admin or not credentials:
-        return False
-    if firebase_admin._apps:
-        return True
-    if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
-        service_account = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
-        firebase_admin.initialize_app(credentials.Certificate(service_account))
-        return True
-    if settings.FIREBASE_SERVICE_ACCOUNT_FILE:
-        firebase_admin.initialize_app(credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_FILE))
-        return True
+    try:
+        if not firebase_admin or not credentials:
+            return False
+        if firebase_admin._apps:
+            return True
+        if settings.FIREBASE_SERVICE_ACCOUNT_JSON:
+            service_account = json.loads(settings.FIREBASE_SERVICE_ACCOUNT_JSON)
+            firebase_admin.initialize_app(credentials.Certificate(service_account))
+            return True
+        if settings.FIREBASE_SERVICE_ACCOUNT_FILE:
+            firebase_admin.initialize_app(credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_FILE))
+            return True
+    except Exception as exc:
+        logger.warning("Firebase initialization failed: %s", exc)
     return False
 
 
@@ -75,14 +82,20 @@ def send_web_push(subscription: PushSubscription, title: str, body: str, url: st
             vapid_claims={"sub": settings.VAPID_SUBJECT},
         )
         return True
-    except WebPushException:
+    except WebPushException as exc:
+        logger.warning("Web push failed for subscription_id=%s: %s", subscription.id, exc)
+        return False
+    except Exception as exc:
+        logger.warning("Web push failed unexpectedly for subscription_id=%s: %s", subscription.id, exc)
         return False
 
 
 def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> bool:
-    if not device.fcm_token or not ensure_firebase_app() or not messaging:
+    if not device.fcm_token:
         return False
     try:
+        if not ensure_firebase_app() or not messaging:
+            return False
         message = messaging.Message(
             token=device.fcm_token,
             notification=messaging.Notification(title=title, body=body),
@@ -97,7 +110,8 @@ def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> boo
         )
         messaging.send(message)
         return True
-    except Exception:
+    except Exception as exc:
+        logger.warning("FCM push failed for device_id=%s: %s", device.device_id, exc)
         return False
 
 

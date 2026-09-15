@@ -604,52 +604,63 @@ def send_app_notification(
 ):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
-
-    notification = AppNotification(
-        title=title.strip()[:120],
-        body=body.strip(),
-        target=target if target in {"all", "customers"} else "all",
-        url=url.strip() or "/app",
-        status="queued",
-        created_by_attendant_id=admin.id,
-    )
-    db.add(notification)
-    db.flush()
-    log_admin_action(
-        db,
-        action="notification_created",
-        actor_attendant_id=admin.id,
-        entity_type="app_notification",
-        entity_id=notification.id,
-        details={"title": notification.title, "target": notification.target, "url": notification.url},
-        request=request,
-    )
-    db.commit()
-
-    query = select(PushSubscription).where(PushSubscription.active == True)
-    if notification.target == "customers":
-        query = query.where(PushSubscription.customer_id.is_not(None))
-    blocked_device_ids = {
-        row[0]
-        for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
-    }
-    subscriptions = [
-        subscription
-        for subscription in db.execute(query).scalars().all()
-        if subscription.device_id not in blocked_device_ids
-    ]
-    send_notification_to_subscriptions(db, notification, subscriptions)
-
-    device_query = select(AppDevice).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))
-    if notification.target == "customers":
-        device_query = device_query.where(AppDevice.customer_id.is_not(None))
-    devices = db.execute(device_query).scalars().all()
-    send_notification_to_app_devices(db, notification, devices)
-
     redirect_to = "/admin/app" if "/admin/app" in request.headers.get("referer", "") else "/admin/site"
-    if not push_configured() and not fcm_configured():
-        return RedirectResponse(f"{redirect_to}?success=Notificação%20registrada.%20Configure%20Firebase%20ou%20VAPID%20para%20envio%20push.", status_code=303)
-    return RedirectResponse(f"{redirect_to}?success=Notificação%20enviada", status_code=303)
+
+    try:
+        notification = AppNotification(
+            title=title.strip()[:120],
+            body=body.strip(),
+            target=target if target in {"all", "customers"} else "all",
+            url=url.strip() or "/app",
+            status="queued",
+            created_by_attendant_id=admin.id,
+        )
+        db.add(notification)
+        db.flush()
+        log_admin_action(
+            db,
+            action="notification_created",
+            actor_attendant_id=admin.id,
+            entity_type="app_notification",
+            entity_id=notification.id,
+            details={"title": notification.title, "target": notification.target, "url": notification.url},
+            request=request,
+        )
+        db.commit()
+
+        query = select(PushSubscription).where(PushSubscription.active == True)
+        if notification.target == "customers":
+            query = query.where(PushSubscription.customer_id.is_not(None))
+        blocked_device_ids = {
+            row[0]
+            for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
+        }
+        subscriptions = [
+            subscription
+            for subscription in db.execute(query).scalars().all()
+            if subscription.device_id not in blocked_device_ids
+        ]
+        send_notification_to_subscriptions(db, notification, subscriptions)
+
+        device_query = select(AppDevice).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))
+        if notification.target == "customers":
+            device_query = device_query.where(AppDevice.customer_id.is_not(None))
+        devices = db.execute(device_query).scalars().all()
+        send_notification_to_app_devices(db, notification, devices)
+
+        if not push_configured() and not fcm_configured():
+            return RedirectResponse(f"{redirect_to}?success=Notificação%20registrada.%20Configure%20Firebase%20ou%20VAPID%20para%20envio%20push.", status_code=303)
+        if (notification.sent_count or 0) > 0:
+            return RedirectResponse(f"{redirect_to}?success=Notificação%20enviada%20para%20{notification.sent_count}%20dispositivo(s)", status_code=303)
+        return RedirectResponse(f"{redirect_to}?err=Notificação%20registrada,%20mas%20nenhum%20dispositivo%20aceitou%20o%20envio.%20Confira%20os%20logs%20do%20Coolify.", status_code=303)
+    except Exception:
+        db.rollback()
+        return RedirectResponse(f"{redirect_to}?err=Falha%20ao%20registrar%20notificação.%20Confira%20os%20logs%20do%20Coolify.", status_code=303)
+
+
+@router.get("/notifications/send")
+def send_app_notification_get():
+    return RedirectResponse("/admin/app", status_code=303)
 
 
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---
