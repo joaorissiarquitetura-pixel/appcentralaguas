@@ -28,29 +28,44 @@ APP_DEVICE_COLUMN_SPECS = {
 }
 
 
+def _compiled_column_type(column) -> str:
+    return column.type.compile(dialect=engine.dialect)
+
+
+def _ensure_missing_columns(table_name: str, column_specs: dict[str, str]) -> None:
+    inspector = inspect(engine)
+    if table_name not in inspector.get_table_names():
+        return
+    existing_columns = {column["name"] for column in inspector.get_columns(table_name)}
+    with engine.begin() as conn:
+        for column_name, sql_type in column_specs.items():
+            if column_name in existing_columns:
+                continue
+            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {sql_type}"))
+
+
+def _ensure_model_columns(table_model) -> None:
+    column_specs = {
+        column.name: _compiled_column_type(column)
+        for column in table_model.__table__.columns
+        if not column.primary_key
+    }
+    _ensure_missing_columns(table_model.__tablename__, column_specs)
+
+
 def ensure_runtime_schema_updates() -> None:
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
     for table_model in (Coupon, AppDevice, PushSubscription, LocationAccessLog, AppNotification, AdminAuditLog):
         table_model.__table__.create(bind=engine, checkfirst=True)
+        _ensure_model_columns(table_model)
 
     if "products" not in table_names:
         return
 
-    existing_columns = {column["name"] for column in inspector.get_columns("products")}
-
-    with engine.begin() as conn:
-        for column_name, sql_type in PRODUCT_COLUMN_SPECS.items():
-            if column_name in existing_columns:
-                continue
-            conn.execute(text(f"ALTER TABLE products ADD COLUMN {column_name} {sql_type}"))
+    _ensure_missing_columns("products", PRODUCT_COLUMN_SPECS)
 
     if "app_devices" not in inspector.get_table_names():
         return
 
-    existing_device_columns = {column["name"] for column in inspector.get_columns("app_devices")}
-    with engine.begin() as conn:
-        for column_name, sql_type in APP_DEVICE_COLUMN_SPECS.items():
-            if column_name in existing_device_columns:
-                continue
-            conn.execute(text(f"ALTER TABLE app_devices ADD COLUMN {column_name} {sql_type}"))
+    _ensure_missing_columns("app_devices", APP_DEVICE_COLUMN_SPECS)

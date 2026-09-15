@@ -1,5 +1,6 @@
 import os
 import hmac
+import logging
 from pathlib import Path
 from uuid import uuid4
 
@@ -24,6 +25,7 @@ from ..services.push import fcm_configured, push_configured, send_notification_t
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/admin")
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("app/static/uploads/products")
 
@@ -653,8 +655,9 @@ def send_app_notification(
         if (notification.sent_count or 0) > 0:
             return RedirectResponse(f"{redirect_to}?success=Notificação%20enviada%20para%20{notification.sent_count}%20dispositivo(s)", status_code=303)
         return RedirectResponse(f"{redirect_to}?err=Notificação%20registrada,%20mas%20nenhum%20dispositivo%20aceitou%20o%20envio.%20Confira%20os%20logs%20do%20Coolify.", status_code=303)
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        logger.exception("Admin notification send failed: %s", exc)
         return RedirectResponse(f"{redirect_to}?err=Falha%20ao%20registrar%20notificação.%20Confira%20os%20logs%20do%20Coolify.", status_code=303)
 
 
