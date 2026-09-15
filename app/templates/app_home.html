@@ -439,6 +439,53 @@
       font-weight: 800;
     }
     .cart-indicator.is-visible { display: inline-flex; }
+    .floating-cart {
+      position: fixed;
+      left: 50%;
+      bottom: calc(86px + var(--ca-system-bottom));
+      z-index: 22;
+      width: min(calc(100% - 28px), 420px);
+      min-height: 48px;
+      transform: translateX(-50%) translateY(12px);
+      display: none;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 16px;
+      background: #101828;
+      color: #fff;
+      box-shadow: 0 16px 34px rgba(16, 24, 40, 0.24);
+      cursor: pointer;
+    }
+    .floating-cart.is-visible { display: grid; }
+    .floating-cart i {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(179, 229, 255, 0.18);
+      color: #B3E5FF;
+      font-size: 1rem;
+    }
+    .floating-cart strong {
+      display: block;
+      font: 800 0.84rem/1.1 "Montserrat", Arial, sans-serif;
+    }
+    .floating-cart span {
+      display: block;
+      margin-top: 2px;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.72rem;
+    }
+    .floating-cart em {
+      font-style: normal;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+    }
     .choice-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
     .choice-card {
       min-height: 66px;
@@ -771,8 +818,13 @@
     }
     .checkout-actions {
       display: grid;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 12px;
+      margin-top: 14px;
+      padding-top: 4px;
+    }
+    .checkout-actions .primary-button,
+    .checkout-actions .secondary-button {
+      min-height: 50px;
     }
     .checkout-warning {
       display: none;
@@ -1200,6 +1252,8 @@
     .nav-item i { color: var(--ca-primary); font-size: 1.1rem; line-height: 1; }
     .nav-item.is-active { background: rgba(179, 229, 255, 0.38); color: var(--ca-primary); }
     body.login-mode .bottom-nav { display: none; }
+    body.login-mode .floating-cart,
+    body.checkout-mode .floating-cart { display: none !important; }
     @keyframes splashLogoSequence {
       0% { opacity: 0; transform: translateY(8px) scale(0.96); }
       15% { opacity: 1; transform: translateY(0) scale(1); }
@@ -1864,6 +1918,13 @@
     </section>
   </main>
 
+  <button class="floating-cart" type="button" data-go="checkout" data-floating-cart>
+    <i class="bi bi-cart-check-fill"></i>
+    <strong>Ver carrinho</strong>
+    <span data-floating-cart-label>Itens adicionados</span>
+    <em data-floating-cart-total>R$ 0,00</em>
+  </button>
+
   <nav class="bottom-nav" aria-label="Navegação do app">
     <div class="bottom-nav-inner">
       <button class="nav-item is-active" type="button" data-go="home"><i class="bi bi-house-door-fill"></i><span>Início</span></button>
@@ -2286,6 +2347,19 @@
         const label = indicator.querySelector("span");
         if (label) label.textContent = qty > 0 ? `No carrinho (${qty})` : "No carrinho";
       });
+      updateFloatingCart();
+    }
+
+    function updateFloatingCart() {
+      const button = document.querySelector("[data-floating-cart]");
+      if (!button) return;
+      const items = activeCartItems();
+      const totalQty = items.reduce((total, item) => total + Number(item.qty || 0), 0);
+      const label = button.querySelector("[data-floating-cart-label]");
+      const total = button.querySelector("[data-floating-cart-total]");
+      button.classList.toggle("is-visible", totalQty > 0);
+      if (label) label.textContent = `${totalQty} ${totalQty === 1 ? "item" : "itens"} no carrinho`;
+      if (total) total.textContent = formatMoney(cartTotal());
     }
 
     function reorderFromHouseStock() {
@@ -2336,6 +2410,21 @@
     }
 
     function deliveryNotificationStatusText() {
+      const bridge = nativeHydrationBridge();
+      if (bridge) {
+        if (state.deliveryStartHour === "") {
+          return "Escolha um horário para receber atualizações do pedido.";
+        }
+        if (!deliveryNotificationsEnabled()) {
+          return "Ative para receber avisos do pedido no celular.";
+        }
+        try {
+          if (!bridge.isNotificationPermissionGranted()) {
+            return "Permissão do Android pendente. Toque para ativar e confirme no celular.";
+          }
+        } catch {}
+        return "Avisos do pedido ativos neste aparelho.";
+      }
       if (!("Notification" in window)) {
         return "Este navegador não permite notificações.";
       }
@@ -2374,7 +2463,12 @@
       const toggle = document.querySelector("[data-delivery-notification-toggle]");
       const status = document.querySelector("[data-delivery-notification-status]");
       if (!toggle || !status) return;
-      const isOn = deliveryNotificationsEnabled() && "Notification" in window && Notification.permission === "granted";
+      const bridge = nativeHydrationBridge();
+      let nativeAllowed = false;
+      if (bridge) {
+        try { nativeAllowed = bridge.isNotificationPermissionGranted(); } catch {}
+      }
+      const isOn = deliveryNotificationsEnabled() && (bridge ? nativeAllowed : "Notification" in window && Notification.permission === "granted");
       toggle.classList.toggle("is-on", isOn);
       toggle.setAttribute("aria-label", isOn ? "Desativar aviso do pedido" : "Permitir aviso do pedido");
       status.textContent = deliveryNotificationStatusText();
@@ -2395,6 +2489,19 @@
     }
 
     async function toggleDeliveryNotifications() {
+      const bridge = nativeHydrationBridge();
+      if (bridge) {
+        if (deliveryNotificationsEnabled()) {
+          localStorage.setItem(deliveryNotificationKey, "off");
+          clearDeliveryNotification();
+          renderDeliveryNotificationStatus();
+          return;
+        }
+        localStorage.setItem(deliveryNotificationKey, "on");
+        try { bridge.requestNotificationPermission(); } catch {}
+        renderDeliveryNotificationStatus();
+        return;
+      }
       if (!("Notification" in window)) {
         renderDeliveryNotificationStatus();
         return;
@@ -2417,6 +2524,11 @@
       }
       renderDeliveryNotificationStatus();
     }
+
+    window.centralAguasRefreshNotificationStatus = () => {
+      renderDeliveryNotificationStatus();
+      renderNotificationStatus(hydrationPlan(loadHydrationProfile()));
+    };
 
     function loadHydrationProfile() {
       try {
@@ -3020,6 +3132,7 @@
         onboarding.style.display = name === "login" ? "grid" : "none";
       }
       document.body.classList.toggle("login-mode", name === "login");
+      document.body.classList.toggle("checkout-mode", name === "checkout");
       screens.forEach((screen) => {
         screen.classList.toggle("is-active", screen.dataset.screen === name);
       });
@@ -3042,6 +3155,7 @@
       if (name === "address") {
         setLocationStatus(addressIssue() || "Endereço pronto para entrega.");
       }
+      updateFloatingCart();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -3133,6 +3247,7 @@
         ].filter(Boolean).join(" | ");
       }
       updateLocationDisplay();
+      updateFloatingCart();
     }
 
     function renderCouponSelect(subtotal = cartSubtotal()) {
@@ -3191,7 +3306,7 @@
         const next = go.dataset.go;
         if (next) {
           event.preventDefault();
-          if ((next === "delivery" || next === "checkout") && !ensureOrderAddress()) {
+          if (next === "delivery" && !ensureOrderAddress()) {
             return;
           }
           if (next === "coupons") {

@@ -2,7 +2,6 @@ package com.centralaguas.app;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.webkit.JavascriptInterface;
 
 public class CentralAguasBridge {
@@ -25,7 +24,7 @@ public class CentralAguasBridge {
     @JavascriptInterface
     public boolean requestNotificationPermission() {
         activity.requestNotificationPermissionFromBridge();
-        return activity.hasNotificationPermission() || Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
+        return activity.hasNotificationPermission();
     }
 
     @JavascriptInterface

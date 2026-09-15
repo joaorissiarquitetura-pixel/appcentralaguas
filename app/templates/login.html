@@ -16,7 +16,7 @@
   .auth-card {
     overflow: hidden;
     border: 1px solid rgba(11, 76, 203, 0.12);
-    border-radius: 28px;
+    border-radius: 24px;
     background: #fff;
     box-shadow: 0 24px 70px rgba(15, 45, 92, 0.12);
   }
@@ -51,9 +51,9 @@
   }
   .auth-body {
     display: grid;
-    gap: 16px;
+    gap: 14px;
     padding: 20px;
-    background: linear-gradient(180deg, rgba(179, 229, 255, 0.2), #fff 34%);
+    background: #fff;
   }
   .auth-title {
     display: grid;
@@ -72,7 +72,7 @@
   }
   .auth-form {
     display: grid;
-    gap: 13px;
+    gap: 12px;
   }
   .auth-field {
     display: grid;
@@ -106,7 +106,7 @@
     font-weight: 700;
   }
   .auth-strip {
-    display: grid;
+    display: none;
     grid-template-columns: 34px minmax(0, 1fr);
     gap: 10px;
     align-items: center;
@@ -143,6 +143,53 @@
     gap: 10px;
     align-items: center;
   }
+  .auth-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: -2px;
+  }
+  .remember-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #344054;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+  .remember-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--ca-primary);
+  }
+  .forgot-link {
+    border: 0;
+    background: transparent;
+    color: var(--ca-primary);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+  }
+  .biometric-button {
+    display: none;
+    min-height: 46px;
+    border: 1px solid rgba(11, 76, 203, 0.18);
+    border-radius: 14px;
+    background: #f6fbff;
+    color: var(--ca-primary);
+    font-weight: 800;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .login-hint {
+    margin: 0;
+    color: #667085;
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
   @media (max-width: 520px) {
     .auth-shell {
       max-width: none;
@@ -168,21 +215,20 @@
 
     <div class="auth-body">
       <div class="auth-title">
-        <span class="section-label">Acesso unificado</span>
         <h1>Entre na sua conta.</h1>
-        <p>Acompanhe pontos, pedidos e dados do seu atendimento em um só lugar.</p>
+        <p>Acompanhe seus pedidos, pontos e cupons em um só lugar.</p>
       </div>
 
       {% if error %}
         <div class="alert alert-danger mb-0">{{ error }}</div>
       {% endif %}
 
-      <form method="post" action="/login" class="auth-form">
+      <form method="post" action="/login" class="auth-form" data-login-form>
         <div class="auth-field">
           <label for="loginPhone">Telefone ou e-mail</label>
           <div class="auth-input">
             <i class="bi bi-person"></i>
-            <input id="loginPhone" name="phone" placeholder="(17) 99999-9999" required>
+            <input id="loginPhone" name="phone" placeholder="(17) 99999-9999" autocomplete="username" required>
           </div>
         </div>
 
@@ -190,20 +236,22 @@
           <label for="loginPassword">Senha</label>
           <div class="auth-input">
             <i class="bi bi-lock"></i>
-            <input id="loginPassword" name="password" type="password" placeholder="Sua senha atual" required>
+            <input id="loginPassword" name="password" type="password" placeholder="Sua senha" autocomplete="current-password" required>
           </div>
         </div>
 
-        <button type="submit" class="ca-pill ca-primary w-100">Entrar</button>
-      </form>
+        <div class="auth-options">
+          <label class="remember-check">
+            <input type="checkbox" name="remember_me" value="1" data-remember-login checked>
+            <span>Lembrar de mim</span>
+          </label>
+          <a class="forgot-link" href="{{ password_reset_link or '#' }}" target="_blank" rel="noopener">Esqueci a senha</a>
+        </div>
 
-      <div class="auth-strip">
-        <i class="bi bi-award"></i>
-        <span>
-          <strong>Cartão fidelidade preservado</strong>
-          <span>Seu saldo e histórico continuam vinculados ao telefone cadastrado.</span>
-        </span>
-      </div>
+        <button class="biometric-button" type="button" data-biometric-login><i class="bi bi-fingerprint"></i> Entrar com digital</button>
+        <button type="submit" class="ca-pill ca-primary w-100">Entrar</button>
+        <p class="login-hint">Ao lembrar o acesso, este aparelho continua identificado para receber notificações do app.</p>
+      </form>
 
       <div class="auth-link-row">
         <span>
@@ -215,4 +263,21 @@
     </div>
   </article>
 </section>
+<script>
+  (() => {
+    const phone = document.querySelector("#loginPhone");
+    const remember = document.querySelector("[data-remember-login]");
+    const form = document.querySelector("[data-login-form]");
+    const savedPhone = localStorage.getItem("centralAguas.rememberedLogin") || "";
+    if (phone && savedPhone) phone.value = savedPhone;
+    form?.addEventListener("submit", () => {
+      if (!phone || !remember) return;
+      if (remember.checked) {
+        localStorage.setItem("centralAguas.rememberedLogin", phone.value.trim());
+      } else {
+        localStorage.removeItem("centralAguas.rememberedLogin");
+      }
+    });
+  })();
+</script>
 {% endblock %}

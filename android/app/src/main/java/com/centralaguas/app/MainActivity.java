@@ -219,5 +219,11 @@ public class MainActivity extends Activity {
             pendingGeoCallback = null;
             pendingGeoOrigin = null;
         }
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST && webView != null) {
+            webView.evaluateJavascript(
+                "window.centralAguasRefreshNotificationStatus && window.centralAguasRefreshNotificationStatus();",
+                null
+            );
+        }
     }
 }

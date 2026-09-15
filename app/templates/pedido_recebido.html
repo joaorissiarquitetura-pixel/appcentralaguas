@@ -136,7 +136,7 @@
   }
   .order-flow {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
   }
   .order-step {
@@ -154,11 +154,45 @@
     color: #0b4ccb;
     font-size: 1.05rem;
   }
+  .order-step.is-muted {
+    opacity: 0.68;
+  }
   .order-step span {
     color: #344054;
     font-size: 0.72rem;
     font-weight: 800;
     line-height: 1.15;
+  }
+  .order-next {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid rgba(0, 180, 240, 0.18);
+    border-radius: 16px;
+    background: #f0fbff;
+  }
+  .order-next i {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(179, 229, 255, 0.55);
+    color: #0b4ccb;
+  }
+  .order-next strong {
+    display: block;
+    color: #101828;
+    font: 800 0.88rem/1.15 "Montserrat", Arial, sans-serif;
+  }
+  .order-next span {
+    display: block;
+    margin-top: 3px;
+    color: #53627a;
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
   .order-actions {
     display: grid;
@@ -180,6 +214,9 @@
     .order-actions {
       grid-template-columns: 1fr;
     }
+    .order-flow {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>
 
@@ -197,13 +234,22 @@
       <div class="order-title">
         <span class="order-pill">Pedido enviado</span>
         <h1>Agora é com a nossa equipe.</h1>
-        <p>A atendente já consegue visualizar sua solicitação e confirmar os detalhes pelo atendimento.</p>
+        <p>A Central já recebeu sua solicitação. Quando o gestor de pedidos do GRJ estiver integrado, cada mudança de status vai aparecer aqui e chegar por notificação.</p>
       </div>
 
       <div class="order-flow" aria-label="Status do pedido">
-        <div class="order-step"><i class="bi bi-send-check"></i><span>Solicitação recebida</span></div>
-        <div class="order-step"><i class="bi bi-headset"></i><span>Confirmação da equipe</span></div>
-        <div class="order-step"><i class="bi bi-truck"></i><span>{{ 'Retirada' if order.fulfillment == 'pickup' else 'Entrega' }}</span></div>
+        <div class="order-step"><i class="bi bi-send-check"></i><span>Recebido</span></div>
+        <div class="order-step is-muted"><i class="bi bi-headset"></i><span>Confirmando</span></div>
+        <div class="order-step is-muted"><i class="bi bi-truck"></i><span>{{ 'Pronto para retirada' if order.fulfillment == 'pickup' else 'Saiu para entrega' }}</span></div>
+        <div class="order-step is-muted"><i class="bi bi-award"></i><span>Concluído + pontos</span></div>
+      </div>
+
+      <div class="order-next">
+        <i class="bi bi-bell-fill"></i>
+        <span>
+          <strong>Próximos avisos</strong>
+          <span>Você será avisado quando o pedido for confirmado, sair para entrega e for concluído. Na conclusão, os pontos de fidelidade entram no app.</span>
+        </span>
       </div>
 
       <section class="order-panel" aria-label="Resumo do pedido">

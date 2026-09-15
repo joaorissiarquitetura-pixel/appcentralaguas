@@ -738,10 +738,14 @@ def shop_rating_placeholder():
 # --- LOGIN ---
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
+    reset_message = urllib.parse.quote("Olá, preciso redefinir minha senha do app Central Águas.")
+    whatsapp_number = settings.BUSINESS_WHATSAPP_NUMBER.strip().replace("+", "")
     return templates.TemplateResponse(
         request=request,
         name="login.html",
-        context=_chrome_hidden_context(),
+        context=_chrome_hidden_context(
+            password_reset_link=f"https://wa.me/{whatsapp_number}?text={reset_message}",
+        ),
     )
 
 
@@ -756,10 +760,15 @@ def login_action(
     customer = db.scalar(select(Customer).where(Customer.phone == phone_n))
 
     if not customer or not verify_password(password, customer.pin_hash):
+        reset_message = urllib.parse.quote("Olá, preciso redefinir minha senha do app Central Águas.")
+        whatsapp_number = settings.BUSINESS_WHATSAPP_NUMBER.strip().replace("+", "")
         return templates.TemplateResponse(
             request=request,
             name="login.html",
-            context=_chrome_hidden_context(error="WhatsApp ou Senha invalidos."),
+            context=_chrome_hidden_context(
+                error="WhatsApp ou senha inválidos.",
+                password_reset_link=f"https://wa.me/{whatsapp_number}?text={reset_message}",
+            ),
             status_code=400,
         )
 
