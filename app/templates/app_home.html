@@ -1220,6 +1220,265 @@
       font-size: 0.72rem;
       line-height: 1.35;
     }
+    .hydration-dashboard {
+      display: grid;
+      gap: 12px;
+    }
+    .hydration-summary {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid rgba(179, 229, 255, 0.65);
+      border-radius: 20px;
+      background: linear-gradient(180deg, #F7FCFF 0%, #FFFFFF 100%);
+      box-shadow: var(--ca-shadow);
+    }
+    .hydration-mascot {
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+    }
+    .hydration-mascot img {
+      width: 92px;
+      height: 100px;
+      object-fit: contain;
+      filter: drop-shadow(0 14px 20px rgba(11, 76, 203, 0.15));
+      mix-blend-mode: multiply;
+      animation: floatDrop 4.8s ease-in-out infinite;
+    }
+    .hydration-streak {
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: var(--ca-pill);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #FFF4D6;
+      color: #9A5B00;
+      font-size: 0.7rem;
+      font-weight: 800;
+    }
+    .hydration-main {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+    .hydration-main h2 {
+      margin: 0;
+      color: var(--ca-primary);
+      font: 800 1.12rem/1.12 "Montserrat", Arial, sans-serif;
+    }
+    .hydration-total {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      color: #101828;
+      font-family: "Montserrat", Arial, sans-serif;
+    }
+    .hydration-total strong {
+      font-size: 2.45rem;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .hydration-total span {
+      color: var(--ca-muted);
+      font-weight: 800;
+    }
+    .hydration-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .hydration-mini {
+      min-height: 62px;
+      padding: 9px;
+      border-radius: 14px;
+      background: var(--ca-soft);
+      display: grid;
+      align-content: center;
+      gap: 3px;
+    }
+    .hydration-mini span {
+      color: var(--ca-muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+    .hydration-mini strong {
+      color: #101828;
+      font: 800 0.82rem/1.08 "Montserrat", Arial, sans-serif;
+    }
+    .hydration-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      padding: 5px;
+      border-radius: 16px;
+      background: var(--ca-soft);
+      border: 1px solid var(--ca-line);
+    }
+    .hydration-tab {
+      min-height: 38px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: #667085;
+      font-size: 0.74rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .hydration-tab.is-active {
+      background: var(--ca-primary);
+      color: #fff;
+      box-shadow: 0 8px 16px rgba(11, 76, 203, 0.16);
+    }
+    .hydration-panel { display: none; }
+    .hydration-panel.is-active {
+      display: grid;
+      gap: 12px;
+    }
+    .hydration-action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .drink-options {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 7px;
+    }
+    .drink-chip {
+      min-height: 38px;
+      border: 1px solid var(--ca-line);
+      border-radius: 12px;
+      background: var(--ca-white);
+      color: var(--ca-primary);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .drink-chip.is-active {
+      background: rgba(179, 229, 255, 0.46);
+      border-color: rgba(11, 76, 203, 0.28);
+    }
+    .history-card {
+      padding: 14px;
+      border: 1px solid var(--ca-line);
+      border-radius: var(--ca-card);
+      background: var(--ca-white);
+      display: grid;
+      gap: 12px;
+    }
+    .history-head,
+    .history-range {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .history-head strong,
+    .history-range strong {
+      font: 800 0.95rem/1.1 "Montserrat", Arial, sans-serif;
+      color: #101828;
+    }
+    .history-bars {
+      min-height: 150px;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      align-items: end;
+      padding: 10px 0 2px;
+      border-bottom: 1px solid var(--ca-line);
+    }
+    .history-bar {
+      min-width: 0;
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      align-items: end;
+      color: var(--ca-muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+    .history-bar span {
+      width: 12px;
+      min-height: 6px;
+      border-radius: 999px 999px 4px 4px;
+      background: var(--ca-primary);
+      opacity: 0.92;
+    }
+    .record-list {
+      display: grid;
+      gap: 8px;
+    }
+    .record-row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: 14px;
+      background: var(--ca-soft);
+    }
+    .record-row button {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ca-primary);
+      cursor: pointer;
+    }
+    .reminder-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .reminder-mode {
+      min-height: 76px;
+      padding: 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+      color: #344054;
+      display: grid;
+      gap: 5px;
+      align-content: center;
+      text-align: left;
+      cursor: pointer;
+    }
+    .reminder-mode strong {
+      color: #101828;
+      font: 800 0.78rem/1.1 "Montserrat", Arial, sans-serif;
+    }
+    .reminder-mode span {
+      font-size: 0.68rem;
+      color: var(--ca-muted);
+    }
+    .reminder-mode.is-active {
+      border-color: var(--ca-primary);
+      background: rgba(179, 229, 255, 0.38);
+      color: var(--ca-primary);
+    }
+    .setting-row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+    }
+    .setting-row .notification-toggle { justify-self: end; }
+    .profile-note {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(179, 229, 255, 0.26);
+      color: #344054;
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
     .notification-panel {
       display: grid;
       grid-template-columns: 34px minmax(0, 1fr) auto;
@@ -1842,112 +2101,190 @@
           <h1>Minha Gotinha</h1>
           <span></span>
         </header>
-        <div class="gotinha-hero">
-          <img src="/static/assets/gotinha/emotions/curiosidade.webp" alt="Gotinha da Central Águas" data-gotinha-emotion-image>
-          <div>
-            <h2 data-gotinha-mood-title>Vamos cuidar da água de hoje.</h2>
-            <p class="muted" data-gotinha-mood-copy>A Gotinha acompanha seu ritmo e muda conforme sua rotina.</p>
-          </div>
-        </div>
-        <section class="hydration-card" aria-labelledby="hydrationTitle">
-          <div class="hydration-head">
-            <span class="blue-icon"><i class="bi bi-droplet-fill"></i></span>
-            <span class="row-copy">
-              <strong id="hydrationTitle">Lembretes de água</strong>
-              <span data-hydration-message>{{ hydration_profile.message }}</span>
-            </span>
-          </div>
-          <div class="hydration-setup-actions">
-            <button class="compact-link" type="button" data-hydration-edit>Editar rotina</button>
-          </div>
-          <div class="hydration-setup" data-hydration-setup>
-            <div class="hydration-form">
-              <div class="hydration-field">
-                <label for="hydrationRoutine">Rotina</label>
-                <select id="hydrationRoutine" data-hydration-routine>
-                  <option value="calma" {% if hydration_profile.rhythm == "individual" %}selected{% endif %}>Dia calmo</option>
-                  <option value="normal" {% if hydration_profile.rhythm == "casa" %}selected{% endif %}>Rotina normal</option>
-                  <option value="corrida" {% if hydration_profile.rhythm == "familia" %}selected{% endif %}>Dia corrido</option>
-                </select>
-              </div>
-              <div class="hydration-field">
-                <label for="hydrationWeight">Peso</label>
-                <input id="hydrationWeight" type="number" min="25" max="180" step="1" inputmode="decimal" placeholder="kg" data-hydration-weight>
+        <section class="hydration-dashboard" aria-labelledby="hydrationTitle">
+          <div class="hydration-summary">
+            <div class="hydration-mascot">
+              <img src="/static/assets/gotinha/emotions/curiosidade.webp" alt="Gotinha da Central Águas" data-gotinha-emotion-image>
+              <span class="hydration-streak"><i class="bi bi-fire"></i><span data-hydration-streak>0 dia</span></span>
+            </div>
+            <div class="hydration-main">
+              <h2 id="hydrationTitle" data-gotinha-mood-title>Vamos cuidar da água de hoje.</h2>
+              <p class="muted small" data-gotinha-mood-copy>A Gotinha acompanha seu ritmo e te lembra na hora certa.</p>
+              <div class="hydration-total"><strong data-hydration-total>0</strong><span>ml</span></div>
+              <div class="hydration-track" aria-hidden="true"><span data-hydration-bar></span></div>
+              <div class="hydration-mini-grid">
+                <div class="hydration-mini"><span>Meta</span><strong data-hydration-goal>--</strong></div>
+                <div class="hydration-mini"><span>Progresso</span><strong data-hydration-percent>0%</strong></div>
+                <div class="hydration-mini"><span>Próximo</span><strong data-hydration-next>--</strong></div>
               </div>
             </div>
-            <div class="hydration-form">
-              <div class="hydration-field">
-                <label for="hydrationCupMl">Copo preferido</label>
-                <select id="hydrationCupMl" data-hydration-cup>
-                  <option value="300">Padrão 300 ml</option>
-                  <option value="200">Copo 200 ml</option>
-                  <option value="250">Copo 250 ml</option>
-                  <option value="400">Garrafa 400 ml</option>
-                  <option value="500">Garrafa 500 ml</option>
-                </select>
+          </div>
+
+          <nav class="hydration-tabs" aria-label="Controle da Gotinha">
+            <button class="hydration-tab is-active" type="button" data-hydration-tab="today">Hoje</button>
+            <button class="hydration-tab" type="button" data-hydration-tab="history">Histórico</button>
+            <button class="hydration-tab" type="button" data-hydration-tab="reminders">Lembretes</button>
+            <button class="hydration-tab" type="button" data-hydration-tab="profile">Perfil</button>
+          </nav>
+
+          <div class="hydration-panel is-active" data-hydration-panel="today">
+            <div class="hydration-card">
+              <div class="hydration-head">
+                <span class="blue-icon"><i class="bi bi-cup-straw"></i></span>
+                <span class="row-copy">
+                  <strong data-hydration-cup-plan>Meta dividida em copos</strong>
+                  <span data-hydration-cup-copy>Escolha o volume e registre sem abrir mão da rotina.</span>
+                </span>
               </div>
-              <div class="hydration-field">
-                <label for="hydrationWork">Tipo de trabalho</label>
-                <select id="hydrationWork" data-hydration-work>
-                  <option value="leve">Sentado/leve</option>
-                  <option value="movimento">Em movimento</option>
-                  <option value="pesado">Pesado/calor</option>
-                </select>
+              <div class="drink-options" aria-label="Volume para registrar">
+                <button class="drink-chip" type="button" data-drink-amount="200">200 ml</button>
+                <button class="drink-chip" type="button" data-drink-amount="250">250 ml</button>
+                <button class="drink-chip is-active" type="button" data-drink-amount="300">300 ml</button>
+                <button class="drink-chip" type="button" data-drink-amount="500">500 ml</button>
               </div>
-            </div>
-            <div class="hydration-form">
-              <div class="hydration-field">
-                <label for="hydrationLunch">Almoço</label>
-                <input id="hydrationLunch" type="time" data-hydration-lunch>
-              </div>
-              <div class="hydration-field">
-                <label for="hydrationDinner">Jantar</label>
-                <input id="hydrationDinner" type="time" data-hydration-dinner>
-              </div>
-            </div>
-            <div class="hydration-form profile-grid">
-              <div class="hydration-field">
-                <label for="hydrationSex">Perfil</label>
-                <select id="hydrationSex" data-hydration-sex>
-                  <option value="female">Mulher</option>
-                  <option value="male">Homem</option>
-                  <option value="neutral">Geral</option>
-                </select>
+              <div class="hydration-action-row">
+                <button class="secondary-button" type="button" data-hydration-adjust-cup>Usar como copo</button>
+                <button class="primary-button" type="button" data-water-done>+ Beber</button>
               </div>
             </div>
-            <button class="secondary-button" type="button" data-hydration-save>Salvar rotina</button>
-          </div>
-          <div class="hydration-goal">
-            <div>
-              <span>Meta estimada de água</span>
-              <strong data-hydration-goal-copy>Com base no seu perfil</strong>
+            <div class="history-card">
+              <div class="history-head">
+                <strong>Registros de hoje</strong>
+                <button class="compact-link" type="button" data-water-clear-day>Limpar</button>
+              </div>
+              <div class="record-list" data-hydration-records></div>
             </div>
-            <output data-hydration-goal>--</output>
           </div>
-          <div class="hydration-breakdown">
-            <span class="blue-icon"><i class="bi bi-cup-straw"></i></span>
-            <span>
-              <strong data-hydration-cup-plan>Meta dividida em copos</strong>
-              <span data-hydration-cup-copy>Os avisos serão distribuídos ao longo do dia.</span>
-            </span>
-          </div>
-          <div class="reminder-times" data-reminder-times aria-label="Horários sugeridos"></div>
-          <div class="notification-panel">
-            <span class="blue-icon"><i class="bi bi-bell-fill"></i></span>
-            <span class="row-copy">
-              <strong>Notificações</strong>
-              <span data-notification-status>Ative para receber os lembretes da Gotinha.</span>
-            </span>
-            <button class="notification-toggle" type="button" data-notification-toggle aria-label="Ativar notificações"></button>
-          </div>
-          <div class="hydration-progress">
-            <div class="hydration-progress-top">
-              <span>Hoje</span>
-              <span data-hydration-count>0 de {{ hydration_profile.reminder_count }}</span>
+
+          <div class="hydration-panel" data-hydration-panel="history">
+            <div class="history-card">
+              <div class="history-range">
+                <strong data-history-title>Semana atual</strong>
+                <span class="muted small" data-history-average>Média 0 ml</span>
+              </div>
+              <div class="history-bars" data-history-bars></div>
+              <div class="hydration-mini-grid">
+                <div class="hydration-mini"><span>Total</span><strong data-history-total>0 ml</strong></div>
+                <div class="hydration-mini"><span>Melhor dia</span><strong data-history-best>0 ml</strong></div>
+                <div class="hydration-mini"><span>Meta</span><strong data-history-goal>--</strong></div>
+              </div>
             </div>
-            <div class="hydration-track" aria-hidden="true"><span data-hydration-bar></span></div>
           </div>
-          <button class="primary-button" type="button" data-water-done>Registrar copo agora</button>
+
+          <div class="hydration-panel" data-hydration-panel="reminders">
+            <div class="hydration-card">
+              <div class="hydration-head">
+                <span class="blue-icon"><i class="bi bi-bell-fill"></i></span>
+                <span class="row-copy">
+                  <strong>Lembretes inteligentes</strong>
+                  <span data-notification-status>Ative para receber os lembretes da Gotinha.</span>
+                </span>
+              </div>
+              <div class="reminder-mode-grid">
+                <button class="reminder-mode" type="button" data-reminder-mode="standard"><strong>Padrão</strong><span>sono e refeições</span></button>
+                <button class="reminder-mode" type="button" data-reminder-mode="interval"><strong>Intervalo</strong><span>de tempos em tempos</span></button>
+                <button class="reminder-mode" type="button" data-reminder-mode="custom"><strong>Personalizado</strong><span>horários do plano</span></button>
+              </div>
+              <div class="reminder-times" data-reminder-times aria-label="Horários sugeridos"></div>
+              <div class="setting-row">
+                <span class="blue-icon"><i class="bi bi-bell"></i></span>
+                <span class="row-copy"><strong>Notificações</strong><span>Com botão Bebi água no Android</span></span>
+                <button class="notification-toggle" type="button" data-notification-toggle aria-label="Ativar notificações"></button>
+              </div>
+              <div class="setting-row">
+                <span class="blue-icon"><i class="bi bi-check2-circle"></i></span>
+                <span class="row-copy"><strong>Parar ao bater a meta</strong><span>Evita avisos desnecessários</span></span>
+                <button class="notification-toggle" type="button" data-hydration-toggle="stopAtGoal" aria-label="Parar ao bater a meta"></button>
+              </div>
+              <div class="setting-row">
+                <span class="blue-icon"><i class="bi bi-calendar-week"></i></span>
+                <span class="row-copy"><strong>Fim de semana separado</strong><span>Use horários mais leves sábado e domingo</span></span>
+                <button class="notification-toggle" type="button" data-hydration-toggle="weekendMode" aria-label="Fim de semana separado"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="hydration-panel" data-hydration-panel="profile">
+            <div class="hydration-card">
+              <div class="hydration-head">
+                <span class="blue-icon"><i class="bi bi-person-heart"></i></span>
+                <span class="row-copy">
+                  <strong>Perfil da rotina</strong>
+                  <span data-hydration-message>{{ hydration_profile.message }}</span>
+                </span>
+              </div>
+              <div class="profile-note">
+                Configure uma vez. A Gotinha usa peso, copo, trabalho e refeições para distribuir melhor os lembretes ao longo do dia.
+              </div>
+              <div class="hydration-setup" data-hydration-setup>
+                <div class="hydration-form">
+                  <div class="hydration-field">
+                    <label for="hydrationRoutine">Rotina</label>
+                    <select id="hydrationRoutine" data-hydration-routine>
+                      <option value="calma" {% if hydration_profile.rhythm == "individual" %}selected{% endif %}>Dia calmo</option>
+                      <option value="normal" {% if hydration_profile.rhythm == "casa" %}selected{% endif %}>Rotina normal</option>
+                      <option value="corrida" {% if hydration_profile.rhythm == "familia" %}selected{% endif %}>Dia corrido</option>
+                    </select>
+                  </div>
+                  <div class="hydration-field">
+                    <label for="hydrationWeight">Peso</label>
+                    <input id="hydrationWeight" type="number" min="25" max="180" step="1" inputmode="decimal" placeholder="kg" data-hydration-weight>
+                  </div>
+                </div>
+                <div class="hydration-form">
+                  <div class="hydration-field">
+                    <label for="hydrationCupMl">Copo preferido</label>
+                    <select id="hydrationCupMl" data-hydration-cup>
+                      <option value="200">Copo 200 ml</option>
+                      <option value="250">Copo 250 ml</option>
+                      <option value="300">Padrão 300 ml</option>
+                      <option value="400">Garrafa 400 ml</option>
+                      <option value="500">Garrafa 500 ml</option>
+                    </select>
+                  </div>
+                  <div class="hydration-field">
+                    <label for="hydrationWork">Tipo de trabalho</label>
+                    <select id="hydrationWork" data-hydration-work>
+                      <option value="leve">Sentado/leve</option>
+                      <option value="movimento">Em movimento</option>
+                      <option value="pesado">Pesado/calor</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="hydration-form">
+                  <div class="hydration-field">
+                    <label for="hydrationWake">Acorda</label>
+                    <input id="hydrationWake" type="time" data-hydration-wake>
+                  </div>
+                  <div class="hydration-field">
+                    <label for="hydrationSleep">Dormir</label>
+                    <input id="hydrationSleep" type="time" data-hydration-sleep>
+                  </div>
+                </div>
+                <div class="hydration-form">
+                  <div class="hydration-field">
+                    <label for="hydrationLunch">Almoço</label>
+                    <input id="hydrationLunch" type="time" data-hydration-lunch>
+                  </div>
+                  <div class="hydration-field">
+                    <label for="hydrationDinner">Jantar</label>
+                    <input id="hydrationDinner" type="time" data-hydration-dinner>
+                  </div>
+                </div>
+                <div class="hydration-form profile-grid">
+                  <div class="hydration-field">
+                    <label for="hydrationSex">Perfil</label>
+                    <select id="hydrationSex" data-hydration-sex>
+                      <option value="female">Mulher</option>
+                      <option value="male">Homem</option>
+                      <option value="neutral">Geral</option>
+                    </select>
+                  </div>
+                </div>
+                <button class="secondary-button" type="button" data-hydration-save>Salvar rotina</button>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </section>
@@ -2032,11 +2369,18 @@
       weight: "",
       sex: "neutral",
       cupMl: 300,
+      selectedDrinkMl: 300,
+      wakeTime: "08:00",
+      sleepTime: "23:00",
       lunchTime: "12:00",
       dinnerTime: "19:30",
       workType: "leve",
+      reminderMode: "standard",
+      stopAtGoal: true,
+      weekendMode: false,
       setupComplete: false,
       done: 0,
+      records: [],
       date: new Date().toISOString().slice(0, 10)
     };
     const hydrationKey = "centralAguas.hydrationProfile";
@@ -2594,10 +2938,26 @@
       try {
         const saved = JSON.parse(localStorage.getItem(hydrationKey) || "{}");
         const today = hydrationDefaults.date;
+        const rawRecords = Array.isArray(saved.records) ? saved.records : [];
+        const records = rawRecords
+          .filter((record) => record && String(record.date || "").slice(0, 10) === today)
+          .map((record) => ({
+            date: today,
+            at: record.at || new Date().toISOString(),
+            amountMl: Math.max(0, Math.min(1500, Number(record.amountMl || record.amount || saved.cupMl || hydrationDefaults.cupMl)))
+          }))
+          .filter((record) => record.amountMl > 0);
+        const doneMl = records.reduce((sum, record) => sum + record.amountMl, 0);
+        const savedDone = saved.date === today ? Number(saved.done || 0) : 0;
+        const legacyDoneMl = rawRecords.length || savedDone > 40
+          ? savedDone
+          : savedDone * Number(saved.selectedDrinkMl || saved.cupMl || hydrationDefaults.cupMl);
         return {
           ...hydrationDefaults,
           ...saved,
-          done: saved.date === today ? Number(saved.done || 0) : 0,
+          selectedDrinkMl: Number(saved.selectedDrinkMl || saved.cupMl || hydrationDefaults.cupMl),
+          records,
+          done: doneMl || legacyDoneMl,
           date: today
         };
       } catch {
@@ -2607,6 +2967,45 @@
 
     function saveHydrationProfile(profile) {
       localStorage.setItem(hydrationKey, JSON.stringify(profile));
+    }
+
+    function formatMl(value) {
+      const ml = Math.max(0, Math.round(Number(value || 0)));
+      return ml >= 1000
+        ? `${(ml / 1000).toLocaleString("pt-BR", { minimumFractionDigits: ml % 1000 === 0 ? 0 : 1, maximumFractionDigits: 1 })} L`
+        : `${ml} ml`;
+    }
+
+    function addHydrationRecord(amountMl) {
+      const profile = loadHydrationProfile();
+      const amount = Math.max(50, Math.min(1500, Number(amountMl || profile.selectedDrinkMl || profile.cupMl || 300)));
+      profile.records = Array.isArray(profile.records) ? profile.records : [];
+      profile.records.push({
+        date: hydrationDefaults.date,
+        at: new Date().toISOString(),
+        amountMl: amount
+      });
+      profile.done = profile.records.reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
+      profile.selectedDrinkMl = amount;
+      saveHydrationProfile(profile);
+      renderHydration();
+    }
+
+    function removeHydrationRecord(index) {
+      const profile = loadHydrationProfile();
+      profile.records = Array.isArray(profile.records) ? profile.records : [];
+      profile.records.splice(index, 1);
+      profile.done = profile.records.reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
+      saveHydrationProfile(profile);
+      renderHydration();
+    }
+
+    function clearHydrationDay() {
+      const profile = loadHydrationProfile();
+      profile.records = [];
+      profile.done = 0;
+      saveHydrationProfile(profile);
+      renderHydration();
     }
 
     function loadHouseStock() {
@@ -2712,7 +3111,7 @@
             return "Permissão do Android pendente. Toque para ativar e confirme no celular.";
           }
         } catch {}
-        const total = plan ? `${plan.count} avisos de ${plan.cupMl} ml` : "lembretes";
+        const total = plan ? `${plan.times.length} avisos de ${plan.cupMl} ml` : "lembretes";
         return `${total} ativos, com registro direto pela notificação.`;
       }
       if (!("Notification" in window)) {
@@ -2722,7 +3121,7 @@
         return "Ative e aprove a permissão para receber os avisos na hora de beber água.";
       }
       if (Notification.permission === "granted") {
-        const total = plan ? `${plan.count} avisos de ${plan.cupMl} ml` : "lembretes";
+        const total = plan ? `${plan.times.length} avisos de ${plan.cupMl} ml` : "lembretes";
         return `${total} ativos enquanto o app estiver aberto.`;
       }
       if (Notification.permission === "denied") {
@@ -2751,19 +3150,23 @@
       if (!customerLoggedIn) return;
       const bridge = nativeHydrationBridge();
       if (bridge && notificationsEnabled()) {
-        const plan = hydrationPlan(loadHydrationProfile());
+        const profile = loadHydrationProfile();
+        const plan = hydrationPlan(profile);
+        if (profile.stopAtGoal && Number(profile.done || 0) >= plan.goalMl) return;
         try {
           bridge.scheduleHydrationReminders(JSON.stringify({
             times: plan.times,
             cupMl: plan.cupMl,
-            count: plan.count,
+            count: plan.times.length,
             url: "/app?screen=gotinha"
           }));
         } catch {}
         return;
       }
       if (!("Notification" in window) || !notificationsEnabled() || Notification.permission !== "granted") return;
-      const plan = hydrationPlan(loadHydrationProfile());
+      const profile = loadHydrationProfile();
+      const plan = hydrationPlan(profile);
+      if (profile.stopAtGoal && Number(profile.done || 0) >= plan.goalMl) return;
       const now = new Date();
       plan.times.forEach((time, index) => {
         const [hour, minute] = time.split(":").map(Number);
@@ -2773,7 +3176,7 @@
         if (delay <= 0) return;
         hydrationNotificationTimers.push(setTimeout(() => {
           new Notification("Hora da água", {
-            body: `Beba 1 copo de ${plan.cupMl} ml. Aviso ${index + 1} de ${plan.count}.`,
+            body: `Beba 1 copo de ${plan.cupMl} ml. Aviso ${index + 1} de ${plan.times.length}.`,
             icon: "/static/assets/gotinha/emotions/alegria.webp"
           });
         }, delay));
@@ -2823,7 +3226,16 @@
       if (!increment) return;
       const profile = loadHydrationProfile();
       const plan = hydrationPlan(profile);
-      profile.done = Math.min(plan.count, Number(profile.done || 0) + increment);
+      const records = Array.isArray(profile.records) ? profile.records : [];
+      for (let index = 0; index < increment; index += 1) {
+        records.push({
+          date: hydrationDefaults.date,
+          at: new Date().toISOString(),
+          amountMl: plan.cupMl
+        });
+      }
+      profile.records = records;
+      profile.done = records.reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
       saveHydrationProfile(profile);
       renderHydration();
     };
@@ -3066,23 +3478,43 @@
     }
 
     function hydrationReminderTimes(count, profile) {
-      const routine = profile.routine;
-      const startHour = routine === "corrida" ? 7 : routine === "calma" ? 8 : 7.5;
-      const endHour = routine === "calma" ? 20 : 21;
-      const start = Math.round(startHour * 60);
-      const end = Math.round(endHour * 60);
+      const mode = profile.reminderMode || "standard";
+      const interval = profile.routine === "corrida" ? 75 : profile.routine === "calma" ? 120 : 90;
+      const start = timeToMinutes(profile.wakeTime, profile.routine === "corrida" ? 7 * 60 : 8 * 60);
+      const end = timeToMinutes(profile.sleepTime, profile.routine === "calma" ? 20 * 60 : 21 * 60);
       const lunch = timeToMinutes(profile.lunchTime, 12 * 60);
       const dinner = timeToMinutes(profile.dinnerTime, 19 * 60 + 30);
+      if (mode === "standard") {
+        return [
+          start + 20,
+          lunch - 60,
+          lunch + 60,
+          dinner - 60,
+          dinner + 60,
+          Math.min(end - 60, start + Math.round((end - start) * 0.72))
+        ]
+          .filter((minute, index, list) => minute >= start && minute <= end && list.indexOf(minute) === index)
+          .slice(0, count)
+          .map((minute) => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`);
+      }
       const blocked = [
         [lunch - 25, lunch + 55],
         [dinner - 25, dinner + 55]
       ];
       const available = [];
-      for (let minute = start; minute <= end; minute += 15) {
+      const step = mode === "interval" ? interval : 15;
+      for (let minute = start; minute <= end; minute += step) {
         const isMealWindow = blocked.some(([from, to]) => minute >= from && minute <= to);
         if (!isMealWindow) available.push(minute);
       }
       if (!available.length) return [];
+      if (mode === "interval") {
+        return available.slice(0, count).map((picked) => {
+          const hour = String(Math.floor(picked / 60)).padStart(2, "0");
+          const minute = String(picked % 60).padStart(2, "0");
+          return `${hour}:${minute}`;
+        });
+      }
       return Array.from({ length: count }, (_, index) => {
         const cursor = count > 1 ? index / (count - 1) : 0;
         const picked = available[Math.min(available.length - 1, Math.round(cursor * (available.length - 1)))];
@@ -3099,8 +3531,9 @@
         const [hour, minute] = time.split(":").map(Number);
         return hour * 60 + minute <= currentMinutes;
       }).length;
-      const behind = expected - done;
-      if (done >= plan.count) {
+      const doneCups = Math.floor(Number(done || 0) / plan.cupMl);
+      const behind = expected - doneCups;
+      if (done >= plan.goalMl) {
         return {
           emotion: "alegria",
           title: "Meta completa por hoje.",
@@ -3128,28 +3561,56 @@
       };
     }
 
+    function hydrationNextTime(plan, doneMl) {
+      if (!plan || doneMl >= plan.goalMl) return "Concluído";
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const next = plan.times.find((time) => {
+        const [hour, minute] = time.split(":").map(Number);
+        return hour * 60 + minute > currentMinutes;
+      });
+      return next || "Amanhã";
+    }
+
+    function hydrationHistory(profile, plan) {
+      const today = new Date();
+      return Array.from({ length: 7 }, (_, offset) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() - (6 - offset));
+        const iso = date.toISOString().slice(0, 10);
+        const amount = iso === hydrationDefaults.date
+          ? Number(profile.done || 0)
+          : 0;
+        return {
+          date: iso,
+          label: date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
+          amount,
+          percent: Math.min(100, Math.round((amount / plan.goalMl) * 100))
+        };
+      });
+    }
+
     function renderHydration() {
       const routineSelect = document.querySelector("[data-hydration-routine]");
       const weightInput = document.querySelector("[data-hydration-weight]");
       const sexSelect = document.querySelector("[data-hydration-sex]");
       const cupSelect = document.querySelector("[data-hydration-cup]");
       const workSelect = document.querySelector("[data-hydration-work]");
+      const wakeInput = document.querySelector("[data-hydration-wake]");
+      const sleepInput = document.querySelector("[data-hydration-sleep]");
       const lunchInput = document.querySelector("[data-hydration-lunch]");
       const dinnerInput = document.querySelector("[data-hydration-dinner]");
       const setup = document.querySelector("[data-hydration-setup]");
-      const editButton = document.querySelector("[data-hydration-edit]");
       const times = document.querySelector("[data-reminder-times]");
       const message = document.querySelector("[data-hydration-message]");
-      const count = document.querySelector("[data-hydration-count]");
       const bar = document.querySelector("[data-hydration-bar]");
       const goal = document.querySelector("[data-hydration-goal]");
-      const goalCopy = document.querySelector("[data-hydration-goal-copy]");
       const cupPlan = document.querySelector("[data-hydration-cup-plan]");
       const cupCopy = document.querySelector("[data-hydration-cup-copy]");
       const moodImage = document.querySelector("[data-gotinha-emotion-image]");
       const moodTitle = document.querySelector("[data-gotinha-mood-title]");
       const moodCopy = document.querySelector("[data-gotinha-mood-copy]");
-      if (!routineSelect || !weightInput || !sexSelect || !cupSelect || !workSelect || !lunchInput || !dinnerInput || !times || !message || !count || !bar || !goal || !goalCopy || !cupPlan || !cupCopy) return;
+      if (!routineSelect || !weightInput || !sexSelect || !cupSelect || !workSelect || !lunchInput || !dinnerInput || !times || !message || !bar || !goal || !cupPlan || !cupCopy) return;
 
       const profile = loadHydrationProfile();
       routineSelect.value = profile.routine;
@@ -3157,15 +3618,16 @@
       sexSelect.value = profile.sex || "neutral";
       cupSelect.value = String(profile.cupMl || 300);
       workSelect.value = profile.workType || "leve";
+      if (wakeInput) wakeInput.value = profile.wakeTime || "08:00";
+      if (sleepInput) sleepInput.value = profile.sleepTime || "23:00";
       lunchInput.value = profile.lunchTime || "12:00";
       dinnerInput.value = profile.dinnerTime || "19:30";
       const plan = hydrationPlan(profile);
-      const done = Math.min(Number(profile.done || 0), plan.count);
+      const done = Math.min(Number(profile.done || 0), plan.goalMl);
       const mood = hydrationMood(profile, plan, done);
-      if (setup) setup.style.display = profile.setupComplete ? "none" : "grid";
-      if (editButton) editButton.style.display = profile.setupComplete ? "inline-flex" : "none";
+      if (setup) setup.style.display = "grid";
 
-      const visibleTimes = plan.times.slice(0, 4);
+      const visibleTimes = plan.times.slice(0, 12);
       const hiddenCount = Math.max(plan.times.length - visibleTimes.length, 0);
       times.innerHTML = [
         ...visibleTimes.map((time) => `<span class="reminder-chip"><i class="bi bi-bell"></i>${time} · ${plan.cupMl} ml</span>`),
@@ -3173,16 +3635,72 @@
       ].filter(Boolean).join("");
       message.textContent = plan.message;
       goal.textContent = plan.goalLabel;
-      goalCopy.textContent = plan.goalCopy;
-      cupPlan.textContent = `${plan.goalLabel} = ${plan.count} copos de ${plan.cupMl} ml`;
+      cupPlan.textContent = `${plan.goalLabel} = ${Math.ceil(plan.goalMl / plan.cupMl)} copos de ${plan.cupMl} ml`;
       cupCopy.textContent = notificationsEnabled()
         ? "Lembretes ativos com registro direto pela notificação."
         : "Ative as notificações para a Gotinha avisar nos horários.";
-      count.textContent = `${done} de ${plan.count} copos`;
-      bar.style.width = `${Math.round((done / plan.count) * 100)}%`;
+      const percent = Math.min(100, Math.round((done / plan.goalMl) * 100));
+      bar.style.width = `${percent}%`;
+      document.querySelector("[data-hydration-total]")?.replaceChildren(document.createTextNode(String(Math.round(done))));
+      const percentNode = document.querySelector("[data-hydration-percent]");
+      if (percentNode) percentNode.textContent = `${percent}%`;
+      const nextNode = document.querySelector("[data-hydration-next]");
+      if (nextNode) nextNode.textContent = hydrationNextTime(plan, done);
+      const streakNode = document.querySelector("[data-hydration-streak]");
+      if (streakNode) streakNode.textContent = done >= plan.goalMl ? "1 dia" : "0 dia";
       if (moodImage) moodImage.src = `/static/assets/gotinha/emotions/${mood.emotion}.webp`;
       if (moodTitle) moodTitle.textContent = mood.title;
       if (moodCopy) moodCopy.textContent = mood.copy;
+      document.querySelectorAll("[data-drink-amount]").forEach((button) => {
+        button.classList.toggle("is-active", Number(button.dataset.drinkAmount) === Number(profile.selectedDrinkMl || profile.cupMl));
+      });
+      document.querySelectorAll("[data-reminder-mode]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.reminderMode === (profile.reminderMode || "standard"));
+      });
+      document.querySelectorAll("[data-hydration-toggle]").forEach((button) => {
+        const key = button.dataset.hydrationToggle;
+        button.classList.toggle("is-on", Boolean(profile[key]));
+      });
+      const records = Array.isArray(profile.records) ? profile.records : [];
+      const recordList = document.querySelector("[data-hydration-records]");
+      if (recordList) {
+        recordList.innerHTML = records.length ? records.slice().reverse().map((record, reverseIndex) => {
+          const index = records.length - 1 - reverseIndex;
+          const time = new Date(record.at || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          return `
+            <div class="record-row">
+              <span class="blue-icon"><i class="bi bi-droplet-fill"></i></span>
+              <span class="row-copy"><strong>${formatMl(record.amountMl)}</strong><span>${time}</span></span>
+              <button type="button" data-water-remove="${index}" aria-label="Remover registro"><i class="bi bi-trash"></i></button>
+            </div>
+          `;
+        }).join("") : `
+          <div class="record-row">
+            <span class="blue-icon"><i class="bi bi-plus-circle"></i></span>
+            <span class="row-copy"><strong>Nenhum registro hoje</strong><span>Toque em Beber quando tomar água.</span></span>
+          </div>
+        `;
+      }
+      const history = hydrationHistory(profile, plan);
+      const historyBars = document.querySelector("[data-history-bars]");
+      if (historyBars) {
+        historyBars.innerHTML = history.map((day) => `
+          <div class="history-bar" title="${day.label}: ${formatMl(day.amount)}">
+            <span style="height:${Math.max(6, day.percent * 1.2)}px"></span>
+            ${day.label}
+          </div>
+        `).join("");
+      }
+      const historyTotal = history.reduce((sum, day) => sum + day.amount, 0);
+      const historyBest = history.reduce((best, day) => Math.max(best, day.amount), 0);
+      const historyTotalNode = document.querySelector("[data-history-total]");
+      const historyAverageNode = document.querySelector("[data-history-average]");
+      const historyBestNode = document.querySelector("[data-history-best]");
+      const historyGoalNode = document.querySelector("[data-history-goal]");
+      if (historyTotalNode) historyTotalNode.textContent = formatMl(historyTotal);
+      if (historyAverageNode) historyAverageNode.textContent = `Média ${formatMl(historyTotal / history.length)}`;
+      if (historyBestNode) historyBestNode.textContent = formatMl(historyBest);
+      if (historyGoalNode) historyGoalNode.textContent = plan.goalLabel;
       renderNotificationStatus(plan);
       scheduleHydrationNotifications();
     }
@@ -3484,8 +4002,59 @@
           return;
         }
         const profile = loadHydrationProfile();
-        const plan = hydrationPlan(profile);
-        profile.done = Math.min(plan.count, Number(profile.done || 0) + 1);
+        addHydrationRecord(profile.selectedDrinkMl || profile.cupMl || 300);
+      }
+
+      const drinkAmount = event.target.closest("[data-drink-amount]");
+      if (drinkAmount) {
+        const profile = loadHydrationProfile();
+        profile.selectedDrinkMl = Number(drinkAmount.dataset.drinkAmount || profile.cupMl || 300);
+        saveHydrationProfile(profile);
+        renderHydration();
+      }
+
+      const adjustCup = event.target.closest("[data-hydration-adjust-cup]");
+      if (adjustCup) {
+        const profile = loadHydrationProfile();
+        profile.cupMl = Math.max(150, Math.min(800, Number(profile.selectedDrinkMl || profile.cupMl || 300)));
+        saveHydrationProfile(profile);
+        renderHydration();
+      }
+
+      const removeWater = event.target.closest("[data-water-remove]");
+      if (removeWater) {
+        removeHydrationRecord(Number(removeWater.dataset.waterRemove || 0));
+      }
+
+      const clearWater = event.target.closest("[data-water-clear-day]");
+      if (clearWater) {
+        clearHydrationDay();
+      }
+
+      const hydrationTab = event.target.closest("[data-hydration-tab]");
+      if (hydrationTab) {
+        const tab = hydrationTab.dataset.hydrationTab;
+        document.querySelectorAll("[data-hydration-tab]").forEach((button) => {
+          button.classList.toggle("is-active", button === hydrationTab);
+        });
+        document.querySelectorAll("[data-hydration-panel]").forEach((panel) => {
+          panel.classList.toggle("is-active", panel.dataset.hydrationPanel === tab);
+        });
+      }
+
+      const reminderMode = event.target.closest("[data-reminder-mode]");
+      if (reminderMode) {
+        const profile = loadHydrationProfile();
+        profile.reminderMode = reminderMode.dataset.reminderMode || "standard";
+        saveHydrationProfile(profile);
+        renderHydration();
+      }
+
+      const hydrationToggle = event.target.closest("[data-hydration-toggle]");
+      if (hydrationToggle) {
+        const profile = loadHydrationProfile();
+        const key = hydrationToggle.dataset.hydrationToggle;
+        profile[key] = !profile[key];
         saveHydrationProfile(profile);
         renderHydration();
       }
@@ -3646,7 +4215,6 @@
       const profile = loadHydrationProfile();
       const value = Number(event.target.value || 0);
       profile.weight = value ? Math.max(25, Math.min(180, value)) : "";
-      profile.done = 0;
       saveHydrationProfile(profile);
       renderHydration();
     });
@@ -3654,7 +4222,6 @@
     document.querySelector("[data-hydration-sex]")?.addEventListener("change", (event) => {
       const profile = loadHydrationProfile();
       profile.sex = event.target.value;
-      profile.done = 0;
       saveHydrationProfile(profile);
       renderHydration();
     });
@@ -3662,7 +4229,6 @@
     document.querySelector("[data-hydration-cup]")?.addEventListener("change", (event) => {
       const profile = loadHydrationProfile();
       profile.cupMl = Number(event.target.value || 300);
-      profile.done = 0;
       saveHydrationProfile(profile);
       renderHydration();
     });
@@ -3670,7 +4236,20 @@
     document.querySelector("[data-hydration-work]")?.addEventListener("change", (event) => {
       const profile = loadHydrationProfile();
       profile.workType = event.target.value || "leve";
-      profile.done = 0;
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.querySelector("[data-hydration-wake]")?.addEventListener("change", (event) => {
+      const profile = loadHydrationProfile();
+      profile.wakeTime = event.target.value || "08:00";
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.querySelector("[data-hydration-sleep]")?.addEventListener("change", (event) => {
+      const profile = loadHydrationProfile();
+      profile.sleepTime = event.target.value || "23:00";
       saveHydrationProfile(profile);
       renderHydration();
     });
@@ -3696,13 +4275,6 @@
       }
       const profile = loadHydrationProfile();
       profile.setupComplete = true;
-      saveHydrationProfile(profile);
-      renderHydration();
-    });
-
-    document.querySelector("[data-hydration-edit]")?.addEventListener("click", () => {
-      const profile = loadHydrationProfile();
-      profile.setupComplete = false;
       saveHydrationProfile(profile);
       renderHydration();
     });
