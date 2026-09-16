@@ -31,6 +31,14 @@ def env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def normalize_grj_public_url(value: str) -> str:
+    text = (value or "").strip()
+    for prefix in ("https://grupogrj.com.br", "http://grupogrj.com.br"):
+        if text == prefix or text.startswith(f"{prefix}/"):
+            return f"https://www.grupogrj.com.br{text[len(prefix):]}"
+    return text
+
+
 @dataclass(slots=True)
 class Settings:
     BUSINESS_NAME: str
@@ -147,13 +155,17 @@ def load_settings() -> Settings:
         ENABLE_SUBSCRIPTION_BRIDGE=env_bool("ENABLE_SUBSCRIPTION_BRIDGE", True),
         ENABLE_COMMERCIAL_MAP=env_bool("ENABLE_COMMERCIAL_MAP", True),
         ENABLE_SIGNATURE_BANNERS=env_bool("ENABLE_SIGNATURE_BANNERS", True),
-        CENTRAL_AGUAS_PRODUCTS_API_URL=os.getenv(
-            "CENTRAL_AGUAS_PRODUCTS_API_URL",
-            "https://grupogrj.com.br/api/v1/central-aguas/products",
+        CENTRAL_AGUAS_PRODUCTS_API_URL=normalize_grj_public_url(
+            os.getenv(
+                "CENTRAL_AGUAS_PRODUCTS_API_URL",
+                "https://www.grupogrj.com.br/api/v1/central-aguas/products",
+            )
         ),
-        CENTRAL_AGUAS_ORDERS_API_URL=os.getenv(
-            "CENTRAL_AGUAS_ORDERS_API_URL",
-            "https://grupogrj.com.br/api/v1/central-aguas/orders",
+        CENTRAL_AGUAS_ORDERS_API_URL=normalize_grj_public_url(
+            os.getenv(
+                "CENTRAL_AGUAS_ORDERS_API_URL",
+                "https://www.grupogrj.com.br/api/v1/central-aguas/orders",
+            )
         ),
         CENTRAL_AGUAS_APP_TOKEN=os.getenv("CENTRAL_AGUAS_APP_TOKEN", ""),
         GRJ_CATALOG_ENABLED=env_bool("GRJ_CATALOG_ENABLED", False),

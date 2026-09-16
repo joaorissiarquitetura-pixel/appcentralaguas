@@ -59,8 +59,15 @@ def _money_reward() -> str:
 
 
 def _send_order_to_grj(payload: dict) -> dict:
+    orders_url = settings.CENTRAL_AGUAS_ORDERS_API_URL.strip()
+    parsed_url = urllib.parse.urlparse(orders_url)
+    if parsed_url.hostname == "grupogrj.com.br":
+        orders_url = urllib.parse.urlunparse(
+            parsed_url._replace(netloc=parsed_url.netloc.replace("grupogrj.com.br", "www.grupogrj.com.br"))
+        )
+
     request = urllib.request.Request(
-        settings.CENTRAL_AGUAS_ORDERS_API_URL.strip(),
+        orders_url,
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {settings.CENTRAL_AGUAS_APP_TOKEN.strip()}",
