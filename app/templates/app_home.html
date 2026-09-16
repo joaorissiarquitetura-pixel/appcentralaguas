@@ -1804,7 +1804,7 @@
                 {% if offer.stock_status == "indisponivel" %}
                   <button class="mini-add" type="button" disabled>Indisponível</button>
                 {% else %}
-                  <button class="mini-add" type="button" data-product="{{ offer.name }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}">Adicionar</button>
+          <button class="mini-add" type="button" data-product="{{ offer.name }}" data-product-id="{{ offer.product_id }}" data-description="{{ offer.description }}" data-price="{{ offer.delivery_price }}" data-image="{{ offer.image_url or '/static/img/20.png' }}">Adicionar</button>
                 {% endif %}
               </div>
             </div>
@@ -2706,6 +2706,7 @@
       const card = button.closest(".product-row");
       return {
         product: button.dataset.product,
+        product_id: button.dataset.productId || "",
         description: button.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description,
         price: Number(button.dataset.price || state.price),
         image: button.dataset.image || state.image
@@ -2725,6 +2726,7 @@
       const normalizedQty = Math.max(1, Number(qty || 1));
       const normalizedProduct = {
         product: product.product || state.product,
+        product_id: product.product_id || "",
         description: product.description || state.description,
         price: Number(product.price || state.price || 0),
         image: product.image || state.image,
@@ -3960,6 +3962,7 @@
         }
         const product = {
           product: add.dataset.product,
+          product_id: add.dataset.productId || "",
           description: add.dataset.description,
           price: add.dataset.price,
           image: add.dataset.image
@@ -4296,6 +4299,14 @@
         event.preventDefault();
         return;
       }
+      const itemsJson = document.getElementById("itemsJson");
+      if (itemsJson) itemsJson.value = JSON.stringify(activeCartItems().map((item) => ({
+        produto_id: item.product_id || null,
+        descricao: item.product,
+        quantidade: Number(item.qty || 1),
+        preco_unitario: Number(item.price || 0),
+        valor_total: Number(item.price || 0) * Number(item.qty || 1),
+      })));
       saveOrderSnapshot();
       state.cart = [];
       state.couponCode = "";

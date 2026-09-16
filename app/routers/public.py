@@ -58,6 +58,29 @@ def _money_reward() -> str:
     return "R$ 10,00"
 
 
+def _send_order_to_grj(payload: dict) -> dict:
+    request = urllib.request.Request(
+        settings.CENTRAL_AGUAS_ORDERS_API_URL.strip(),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {settings.CENTRAL_AGUAS_APP_TOKEN.strip()}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "CentralAguasApp/1.0",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = json.loads(response.read().decode("utf-8"))
+            if response.status >= 400:
+                raise RuntimeError(body.get("message") or "GRJ recusou o pedido")
+            return body
+    except Exception as exc:
+        reason = getattr(exc, "reason", exc)
+        raise RuntimeError(f"Não foi possível enviar o pedido ao GRJ: {reason}") from exc
+
+
 def _product_slug(product: Product) -> str:
     return _slug_from_text(product.name) or f"produto-{product.id}"
 
@@ -682,8 +705,41 @@ def finish_shop_order(
     if not items:
         return HTMLResponse("Adicione pelo menos um produto ao carrinho.", status_code=400)
 
+    client_order_id = f"APP-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+    order_payload = {
+        "client_order_id": client_order_id,
+        "attendance_channel": "app_online",
+        "payment_method": {"pix": "Pix", "dinheiro": "Dinheiro", "cartao": "Cartao"}.get(payment_method, "Pix"),
+        "customer": {
+            "nome": name.strip() or "Cliente",
+            "telefone": normalize_phone(phone),
+            "cep": "",
+            "endereco": street.strip(),
+            "numero": number.strip(),
+            "complemento": complement.strip(),
+            "bairro": neighborhood.strip(),
+            "cidade": city.strip() or "Votuporanga",
+            "estado": "SP",
+        },
+        "items": [
+            {
+                "descricao": item.name,
+                "quantidade": item.qty,
+                "preco_unitario": item.subtotal / item.qty,
+                "valor_total": item.subtotal,
+            }
+            for item in items
+        ],
+        "customer_note": notes.strip() or None,
+        "sale_note": f"Pedido do app. Cliente: {client_order_id}",
+    }
+    try:
+        grj_order = _send_order_to_grj(order_payload)
+    except RuntimeError as exc:
+        return HTMLResponse(str(exc), status_code=502)
+
     order = SimpleNamespace(
-        code="PREVIEW",
+        code=f"#{grj_order.get('pedido_id') or client_order_id}",
         customer_name=name.strip() or "Cliente",
         customer_phone=normalize_phone(phone),
         fulfillment=fulfillment,

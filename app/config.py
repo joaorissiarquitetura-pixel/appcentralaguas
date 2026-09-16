@@ -50,6 +50,7 @@ class Settings:
     ENABLE_COMMERCIAL_MAP: bool
     ENABLE_SIGNATURE_BANNERS: bool
     CENTRAL_AGUAS_PRODUCTS_API_URL: str
+    CENTRAL_AGUAS_ORDERS_API_URL: str
     CENTRAL_AGUAS_APP_TOKEN: str
     GRJ_CATALOG_ENABLED: bool
     GRJ_FIREBIRD_HOST: str
@@ -149,6 +150,10 @@ def load_settings() -> Settings:
         CENTRAL_AGUAS_PRODUCTS_API_URL=os.getenv(
             "CENTRAL_AGUAS_PRODUCTS_API_URL",
             "https://grupogrj.com.br/api/v1/central-aguas/products",
+        ),
+        CENTRAL_AGUAS_ORDERS_API_URL=os.getenv(
+            "CENTRAL_AGUAS_ORDERS_API_URL",
+            "https://grupogrj.com.br/api/v1/central-aguas/orders",
         ),
         CENTRAL_AGUAS_APP_TOKEN=os.getenv("CENTRAL_AGUAS_APP_TOKEN", ""),
         GRJ_CATALOG_ENABLED=env_bool("GRJ_CATALOG_ENABLED", False),
