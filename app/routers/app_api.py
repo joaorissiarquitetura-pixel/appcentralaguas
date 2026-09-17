@@ -260,7 +260,13 @@ def mark_notification_opened(notification_id: int, payload: DeviceEventPayload, 
 
 
 @router.get("/orders/status")
-def app_order_status(response: Response, client_order_ids: str = "", grj_order_ids: str = ""):
+def app_order_status(
+    response: Response,
+    request: Request,
+    client_order_ids: str = "",
+    grj_order_ids: str = "",
+    app_customer_id: str = "",
+):
     response.headers["Cache-Control"] = "no-store, max-age=0"
     references = [
         item.strip()
@@ -272,12 +278,17 @@ def app_order_status(response: Response, client_order_ids: str = "", grj_order_i
         for item in grj_order_ids.replace(";", ",").split(",")
         if item.strip().isdigit()
     ][:50]
-    if not references and not grj_ids:
+    customer_id = app_customer_id.strip() or ""
+    if not customer_id:
+        current_customer_id = _current_customer_id(request)
+        if current_customer_id is not None:
+            customer_id = str(current_customer_id)
+    if not references and not grj_ids and not customer_id:
         return {"ok": True, "orders": []}
     token = settings.CENTRAL_AGUAS_APP_TOKEN.strip()
     if not token:
         return {"ok": False, "error": "grj_token_missing", "orders": []}
-    url = f"{_grj_app_status_url()}?{urllib.parse.urlencode({'client_order_ids': ','.join(references), 'grj_order_ids': ','.join(grj_ids)})}"
+    url = f"{_grj_app_status_url()}?{urllib.parse.urlencode({'client_order_ids': ','.join(references), 'grj_order_ids': ','.join(grj_ids), 'app_customer_id': customer_id})}"
     request = urllib.request.Request(
         url,
         headers={

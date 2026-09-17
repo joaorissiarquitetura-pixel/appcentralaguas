@@ -2982,11 +2982,43 @@
       }
     }
 
+    function localOrderFromGrj(remote) {
+      const remoteItems = Array.isArray(remote.items) ? remote.items : [];
+      const reference = String(remote.client_order_id || remote.payment_reference || "").trim();
+      const grjId = remote.grj_order_id || remote.id;
+      const id = reference || (grjId ? `APP-GRJ-${grjId}` : "");
+      return {
+        id,
+        clientOrderId: reference || id,
+        grjId,
+        product: remoteItems.length === 1 ? remoteItems[0].description : `${remoteItems.length || 1} produtos`,
+        description: remoteItems.map((item) => `${item.quantity}x ${item.description}`).join(", "),
+        qty: remoteItems.reduce((total, item) => total + Number(item.quantity || 0), 0),
+        total: Number(remote.total_amount || 0),
+        items: remoteItems.map((item) => ({
+          product: item.description,
+          qty: item.quantity,
+          price: item.unit_price,
+          total: item.total_amount
+        })),
+        delivery: remote.delivery_type || "Entrega a confirmar",
+        payment: normalizePayment(String(remote.payment_method || "pix").toLowerCase()),
+        status: remote.app_status === "done" ? "done" : remote.app_status || "pending",
+        appStatus: remote.app_status,
+        appStatusLabel: remote.app_status_label,
+        deliveryStatus: remote.delivery_status,
+        deliveryDriverName: remote.delivery_driver_name,
+        history: remote.history || [],
+        createdAt: remote.created_at,
+        updatedAt: remote.updated_at,
+        createdAtTimeZone: appTimeZone
+      };
+    }
+
     async function syncOrdersFromGrj() {
       const currentOrders = loadOrders();
       const references = currentOrders.map((order) => order.clientOrderId || order.id).filter((id) => String(id || "").startsWith("APP-"));
       const grjOrderIds = currentOrders.map((order) => order.grjId).filter((id) => Number(id) > 0);
-      if (!references.length && !grjOrderIds.length) return currentOrders;
       try {
         const query = new URLSearchParams({
           client_order_ids: references.join(","),
@@ -3030,6 +3062,17 @@
           notifyOrderIfNeeded(order, next);
           return next;
         });
+        const knownReferences = new Set(updated.map((order) => String(order.clientOrderId || order.id || "")));
+        const knownGrjIds = new Set(updated.map((order) => Number(order.grjId || 0)).filter(Boolean));
+        remoteOrders.forEach((remote) => {
+          const remoteReference = String(remote.client_order_id || remote.payment_reference || "");
+          const remoteGrjId = Number(remote.grj_order_id || remote.id || 0);
+          if ((remoteReference && knownReferences.has(remoteReference)) || (remoteGrjId && knownGrjIds.has(remoteGrjId))) return;
+          const created = localOrderFromGrj(remote);
+          if (!created.id) return;
+          updated.push(created);
+        });
+        updated.sort((left, right) => parseAppDate(right.updatedAt || right.createdAt) - parseAppDate(left.updatedAt || left.createdAt));
         localStorage.setItem(ordersKey, JSON.stringify(updated.slice(0, 20)));
         return updated;
       } catch {
