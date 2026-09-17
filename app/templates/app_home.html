@@ -1885,6 +1885,8 @@
           <input type="hidden" name="number" value="{{ customer.number if customer else '' }}">
           <input type="hidden" name="complement" value="{{ customer.complement if customer else '' }}">
           <input type="hidden" name="city" value="{{ customer.city if customer and customer.city else location.detail if location.detail else '' }}">
+          <input type="hidden" name="coupon_code" id="couponCodeInput" value="">
+          <input type="hidden" name="discount_amount" id="discountAmountInput" value="0">
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
           <div class="checkout-actions">
             <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
@@ -3820,6 +3822,10 @@
       document.getElementById("checkoutDiscountRow").style.display = discount > 0 ? "flex" : "none";
       document.getElementById("checkoutDiscount").textContent = `- ${formatMoney(discount)}`;
       document.getElementById("checkoutTotal").textContent = formatMoney(subtotal - discount);
+      const couponCodeInput = document.getElementById("couponCodeInput");
+      const discountAmountInput = document.getElementById("discountAmountInput");
+      if (couponCodeInput) couponCodeInput.value = state.couponCode || "";
+      if (discountAmountInput) discountAmountInput.value = String(Number(discount || 0).toFixed(2));
       document.getElementById("checkoutDelivery").textContent = scheduleText;
       renderPayment();
       document.getElementById("itemsJson").value = JSON.stringify([
@@ -4300,6 +4306,12 @@
         return;
       }
       const itemsJson = document.getElementById("itemsJson");
+      const subtotal = cartSubtotal();
+      const discount = couponDiscount(subtotal);
+      const couponCodeInput = document.getElementById("couponCodeInput");
+      const discountAmountInput = document.getElementById("discountAmountInput");
+      if (couponCodeInput) couponCodeInput.value = state.couponCode || "";
+      if (discountAmountInput) discountAmountInput.value = String(Number(discount || 0).toFixed(2));
       if (itemsJson) itemsJson.value = JSON.stringify(activeCartItems().map((item) => ({
         produto_id: item.product_id || null,
         descricao: item.product,

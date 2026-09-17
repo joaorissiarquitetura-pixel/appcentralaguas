@@ -692,6 +692,8 @@ def finish_shop_order(
     number: str = Form(""),
     complement: str = Form(""),
     city: str = Form(""),
+    coupon_code: str = Form(""),
+    discount_amount: str = Form("0"),
     notes: str = Form(""),
 ):
     cid = get_current_customer_id(request)
@@ -728,11 +730,21 @@ def finish_shop_order(
     if not items:
         return HTMLResponse("Adicione pelo menos um produto ao carrinho.", status_code=400)
 
+    try:
+        discount_value = max(0.0, float(str(discount_amount or "0").replace(",", ".")))
+    except ValueError:
+        discount_value = 0.0
+    subtotal = sum(item.subtotal for item in items)
+    discount_value = min(discount_value, subtotal)
+    coupon_code = coupon_code.strip().upper()
+
     client_order_id = f"APP-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
     order_payload = {
         "client_order_id": client_order_id,
         "attendance_channel": "app_online",
         "payment_method": {"pix": "Pix", "dinheiro": "Dinheiro", "cartao": "Cartao"}.get(payment_method, "Pix"),
+        "coupon_code": coupon_code or None,
+        "discount_amount": discount_value,
         "customer": {
             "nome": name.strip() or "Cliente",
             "telefone": normalize_phone(phone),
@@ -755,7 +767,15 @@ def finish_shop_order(
             for item in items
         ],
         "customer_note": notes.strip() or None,
-        "sale_note": f"Pedido do app. Cliente: {client_order_id}",
+        "sale_note": " | ".join(
+            part
+            for part in [
+                f"Pedido do app. Cliente: {client_order_id}",
+                f"Cupom: {coupon_code}" if coupon_code else "",
+                f"Desconto app: R$ {discount_value:.2f}" if discount_value > 0 else "",
+            ]
+            if part
+        ),
     }
     try:
         grj_order = _send_order_to_grj(order_payload)
@@ -773,7 +793,7 @@ def finish_shop_order(
         complement=complement.strip(),
         neighborhood=neighborhood.strip(),
         notes=notes.strip(),
-        total_estimate=sum(item.subtotal for item in items),
+        total_estimate=subtotal - discount_value,
     )
     return templates.TemplateResponse(
         request=request,
