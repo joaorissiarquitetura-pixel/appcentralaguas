@@ -746,6 +746,7 @@ def finish_shop_order(
         "coupon_code": coupon_code or None,
         "discount_amount": discount_value,
         "customer": {
+            "app_customer_id": str(cid),
             "nome": name.strip() or "Cliente",
             "telefone": normalize_phone(phone),
             "cep": "",
