@@ -2945,9 +2945,15 @@
     async function syncOrdersFromGrj() {
       const currentOrders = loadOrders();
       const references = currentOrders.map((order) => order.clientOrderId || order.id).filter((id) => String(id || "").startsWith("APP-"));
-      if (!references.length) return currentOrders;
+      const grjOrderIds = currentOrders.map((order) => order.grjId).filter((id) => Number(id) > 0);
+      if (!references.length && !grjOrderIds.length) return currentOrders;
       try {
-        const response = await fetch(`/api/app/orders/status?client_order_ids=${encodeURIComponent(references.join(","))}&_=${Date.now()}`, {
+        const query = new URLSearchParams({
+          client_order_ids: references.join(","),
+          grj_order_ids: grjOrderIds.join(","),
+          _: String(Date.now())
+        });
+        const response = await fetch(`/api/app/orders/status?${query.toString()}`, {
           cache: "no-store"
         });
         const data = await response.json();
@@ -2956,14 +2962,16 @@
         const byReference = new Map(remoteOrders.map((order) => [order.client_order_id || order.payment_reference, order]));
         const updated = currentOrders.map((order) => {
           const ref = order.clientOrderId || order.id;
-          const remote = byReference.get(ref) || remoteOrders.find((remoteOrder) => {
+          const remote = (order.grjId ? remoteOrders.find((remoteOrder) => Number(remoteOrder.grj_order_id || remoteOrder.id) === Number(order.grjId)) : null)
+            || byReference.get(ref)
+            || remoteOrders.find((remoteOrder) => {
             const remoteRef = String(remoteOrder.client_order_id || remoteOrder.payment_reference || "");
             return remoteRef && (remoteRef.startsWith(ref) || String(ref || "").startsWith(remoteRef));
           });
           if (!remote) return order;
           const next = {
             ...order,
-            grjId: remote.id,
+            grjId: remote.grj_order_id || remote.id || order.grjId,
             status: remote.app_status === "done" ? "done" : remote.app_status || order.status,
             appStatus: remote.app_status,
             appStatusLabel: remote.app_status_label,

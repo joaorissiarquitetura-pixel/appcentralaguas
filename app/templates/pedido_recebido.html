@@ -289,4 +289,22 @@
     </div>
   </article>
 </section>
+<script>
+  (() => {
+    const clientOrderId = {{ order.client_order_id|tojson }};
+    const grjOrderId = {{ order.grj_order_id|tojson }};
+    if (!clientOrderId || !grjOrderId) return;
+    try {
+      const key = "centralAguas.orders";
+      const orders = JSON.parse(localStorage.getItem(key) || "[]");
+      if (!Array.isArray(orders)) return;
+      const updated = orders.map((order) => {
+        const ref = order.clientOrderId || order.id;
+        if (ref !== clientOrderId) return order;
+        return { ...order, grjId: grjOrderId };
+      });
+      localStorage.setItem(key, JSON.stringify(updated.slice(0, 20)));
+    } catch {}
+  })();
+</script>
 {% endblock %}

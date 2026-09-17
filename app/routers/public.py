@@ -779,6 +779,7 @@ def finish_shop_order(
         "discount_amount": discount_value,
         "customer": {
             "app_customer_id": str(cid),
+            "app_customer_name": name.strip() or "Cliente",
             "nome": name.strip() or "Cliente",
             "telefone": normalize_phone(phone),
             "cep": "",
@@ -829,6 +830,8 @@ def finish_shop_order(
 
     order = SimpleNamespace(
         code=f"#{grj_order.get('pedido_id') or client_order_id}",
+        client_order_id=client_order_id,
+        grj_order_id=grj_order.get("pedido_id"),
         customer_name=name.strip() or "Cliente",
         customer_phone=normalize_phone(phone),
         fulfillment=fulfillment,
