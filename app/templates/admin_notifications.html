@@ -17,6 +17,9 @@
   .metric strong { display: block; color: var(--ca-navy); font-size: 1.8rem; line-height: 1; }
   .quick-list { display: grid; gap: 12px; }
   .quick-item { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--ca-line); }
+  .banner-list { display: grid; gap: 12px; }
+  .banner-item { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--ca-line); }
+  .banner-thumb { width: 96px; aspect-ratio: 16 / 9; border-radius: 8px; object-fit: cover; background: #eef5ff; border: 1px solid var(--ca-line); }
   .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
   .status-ok { background: #16a34a; }
   .status-warn { background: #f59e0b; }
@@ -24,7 +27,8 @@
   @media (max-width: 1100px) {
     .content-grid,
     .form-grid-2,
-    .metric-row { grid-template-columns: 1fr; }
+    .metric-row,
+    .banner-item { grid-template-columns: 1fr; }
   }
 </style>
 
@@ -78,12 +82,60 @@
           <div class="quick-item">
             <span>
               <strong>{{ notification.title }}</strong>
-              <span class="small-muted d-block">{{ notification.status }} · {{ notification.sent_count }} enviados · {{ notification.failed_count }} falhas</span>
+              <span class="small-muted d-block">{{ notification.status }} · {{ notification.sent_count }} enviados · {{ notification.opened_count or 0 }} abertas · {{ notification.failed_count }} falhas</span>
             </span>
-            <span class="small-muted">{{ notification.created_at.strftime('%d/%m %H:%M') }}</span>
+            <span class="small-muted">{{ format_dt(notification.created_at) }}</span>
           </div>
         {% else %}
           <div class="small-muted">Nenhuma notificação registrada ainda.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="content-grid">
+    <section class="admin-card">
+      <h2>Banner promocional no app</h2>
+      <form class="form-grid" method="post" action="/admin/notifications/banners" enctype="multipart/form-data">
+        <input class="form-control" type="text" name="title" placeholder="Título interno do banner" required>
+        <textarea class="form-control" name="body" rows="2" placeholder="Texto curto opcional"></textarea>
+        <input class="form-control" type="file" name="banner_image" accept="image/png,image/jpeg,image/webp">
+        <input class="form-control" type="url" name="image_url" placeholder="Ou cole a URL da imagem do banner">
+        <div class="form-grid-2">
+          <input class="form-control" type="text" name="link_url" value="/app" placeholder="Link ao tocar no banner">
+          <select class="form-select" name="target">
+            <option value="all">Todos os dispositivos</option>
+            <option value="customers">Clientes logados</option>
+          </select>
+        </div>
+        <div class="form-grid-2">
+          <input class="form-control" type="number" name="display_order" value="0" placeholder="Ordem">
+          <label class="form-check d-flex align-items-center gap-2 mb-0">
+            <input class="form-check-input" type="checkbox" name="active" checked>
+            <span>Banner ativo</span>
+          </label>
+        </div>
+        <button class="ca-pill ca-primary" type="submit">Salvar banner</button>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <h2>Banners cadastrados</h2>
+      <div class="banner-list">
+        {% for banner in banners %}
+          <div class="banner-item">
+            <img class="banner-thumb" src="{{ banner.image_url }}" alt="">
+            <span>
+              <strong>{{ banner.title }}</strong>
+              <span class="small-muted d-block">{{ 'ativo' if banner.active else 'inativo' }} · {{ banner.seen_count or 0 }} visualizações · {{ banner.closed_count or 0 }} fechamentos · {{ format_dt(banner.created_at) }}</span>
+              {% if banner.body %}<span class="small-muted d-block">{{ banner.body }}</span>{% endif %}
+            </span>
+            <form method="post" action="/admin/notifications/banners/{{ banner.id }}/toggle">
+              <button class="ca-pill ca-outline" type="submit">{{ 'Desativar' if banner.active else 'Ativar' }}</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="small-muted">Nenhum banner cadastrado ainda.</div>
         {% endfor %}
       </div>
     </section>

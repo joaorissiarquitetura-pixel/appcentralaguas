@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-aguas-app-v7";
+const CACHE_NAME = "central-aguas-app-v8";
 const APP_SHELL = [
   "/app",
   "/manifest.webmanifest",
@@ -77,7 +77,7 @@ self.addEventListener("push", (event) => {
     body: payload.body || "Você tem uma novidade no app.",
     icon: payload.icon || "/static/icons/icon-192.png",
     badge: "/static/icons/icon-192.png",
-    data: { url: payload.url || "/app" }
+    data: { url: payload.url || "/app", notification_id: payload.notification_id || null }
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });

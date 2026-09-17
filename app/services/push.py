@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Iterable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sqlalchemy.orm import Session
 
@@ -52,19 +53,31 @@ def vapid_private_key() -> str:
     return settings.VAPID_PRIVATE_KEY.replace("\\n", "\n")
 
 
-def send_web_push(subscription: PushSubscription, title: str, body: str, url: str = "/app") -> bool:
+def _url_with_notification_id(url: str, notification_id: int | None) -> str:
+    base_url = url or "/app"
+    if not notification_id:
+        return base_url
+    parts = urlsplit(base_url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["notification_id"] = str(notification_id)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path or "/app", urlencode(query), parts.fragment))
+
+
+def send_web_push(subscription: PushSubscription, title: str, body: str, url: str = "/app", notification_id: int | None = None) -> bool:
     if not push_configured():
         return False
     try:
         from pywebpush import WebPushException, webpush
     except ImportError:
         return False
+    tracking_url = _url_with_notification_id(url, notification_id)
 
     payload = json.dumps(
         {
             "title": title,
             "body": body,
-            "url": url or "/app",
+            "url": tracking_url,
+            "notification_id": notification_id,
             "icon": "/static/icons/icon-192.png",
         }
     )
@@ -90,16 +103,17 @@ def send_web_push(subscription: PushSubscription, title: str, body: str, url: st
         return False
 
 
-def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app") -> bool:
+def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app", notification_id: int | None = None) -> bool:
     if not device.fcm_token:
         return False
     try:
         if not ensure_firebase_app() or not messaging:
             return False
+        tracking_url = _url_with_notification_id(url, notification_id)
         message = messaging.Message(
             token=device.fcm_token,
             notification=messaging.Notification(title=title, body=body),
-            data={"url": url or "/app"},
+            data={"url": tracking_url, "notification_id": str(notification_id or "")},
             android=messaging.AndroidConfig(
                 priority="high",
                 notification=messaging.AndroidNotification(
@@ -127,7 +141,13 @@ def send_notification_to_subscriptions(
     sent = 0
     failed = 0
     for subscription in subscriptions:
-        ok = send_web_push(subscription, notification.title, notification.body, notification.url or "/app")
+        ok = send_web_push(
+            subscription,
+            notification.title,
+            notification.body,
+            notification.url or "/app",
+            notification.id,
+        )
         if ok:
             sent += 1
             subscription.last_sent_at = datetime.utcnow()
@@ -153,7 +173,7 @@ def send_notification_to_app_devices(
     sent = 0
     failed = 0
     for device in devices:
-        ok = send_fcm(device, notification.title, notification.body, notification.url or "/app")
+        ok = send_fcm(device, notification.title, notification.body, notification.url or "/app", notification.id)
         if ok:
             sent += 1
             device.last_seen_at = datetime.utcnow()

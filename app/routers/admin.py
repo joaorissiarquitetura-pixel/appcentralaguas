@@ -17,7 +17,7 @@ import time as _time
 import json
 
 from ..database import get_db
-from ..models import AppDevice, AppNotification, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
+from ..models import AppBanner, AppDevice, AppNotification, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
@@ -31,6 +31,8 @@ router = APIRouter(prefix="/admin")
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("app/static/uploads/products")
+BANNER_UPLOAD_DIR = Path("app/static/uploads/banners")
+APP_TZ = ZoneInfo("America/Sao_Paulo")
 
 # --- FUNÇÃO DE SEGURANÇA ---
 def require_admin(request: Request, db: Session) -> Attendant | None:
@@ -41,6 +43,14 @@ def require_admin(request: Request, db: Session) -> Attendant | None:
     if not admin or not is_admin(admin):
         return None
     return admin
+
+
+def _admin_datetime_label(value: datetime | None, fmt: str = "%d/%m %H:%M") -> str:
+    if not value:
+        return "-"
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(APP_TZ).strftime(fmt)
 
 
 def _valid_recovery_token(token: str) -> bool:
@@ -467,6 +477,7 @@ def admin_notifications(
     }
     subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
     latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(30)).scalars().all()
+    banners = db.execute(select(AppBanner).order_by(AppBanner.active.desc(), AppBanner.display_order.asc(), AppBanner.created_at.desc()).limit(30)).scalars().all()
 
     return templates.TemplateResponse(
         request=request,
@@ -475,11 +486,13 @@ def admin_notifications(
             "admin": admin,
             "business_name": settings.BUSINESS_NAME,
             "latest_notifications": latest_notifications,
+            "banners": banners,
             "device_count": db.scalar(select(func.count(AppDevice.id))) or 0,
             "fcm_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
             "push_active_count": sum(1 for subscription in subscriptions if subscription.active and subscription.device_id not in blocked_device_ids),
             "push_configured": push_configured(),
             "fcm_configured": fcm_configured(),
+            "format_dt": _admin_datetime_label,
             "err": err,
             "success": success,
         },
@@ -778,6 +791,81 @@ def send_app_notification(
 @router.get("/notifications/send")
 def send_app_notification_get():
     return RedirectResponse("/admin/notifications", status_code=303)
+
+
+@router.post("/notifications/banners")
+def create_app_banner(
+    request: Request,
+    title: str = Form(...),
+    body: str = Form(""),
+    image_url: str = Form(""),
+    banner_image: UploadFile | None = File(None),
+    link_url: str = Form(""),
+    target: str = Form("all"),
+    display_order: int = Form(0),
+    active: str = Form("on"),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+
+    image = image_url.strip()
+    if banner_image and banner_image.filename:
+        suffix = Path(banner_image.filename).suffix.lower()
+        if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+            return RedirectResponse("/admin/notifications?err=Imagem%20do%20banner%20deve%20ser%20JPG,%20PNG%20ou%20WEBP", status_code=303)
+        BANNER_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        filename = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:8]}{suffix}"
+        target_path = BANNER_UPLOAD_DIR / filename
+        target_path.write_bytes(banner_image.file.read())
+        image = f"/static/uploads/banners/{filename}"
+    if not image:
+        return RedirectResponse("/admin/notifications?err=Informe%20a%20URL%20da%20imagem%20do%20banner", status_code=303)
+
+    banner = AppBanner(
+        title=title.strip()[:120] or "Promoção",
+        body=body.strip() or None,
+        image_url=image[:500],
+        link_url=(link_url.strip() or None),
+        target=target if target in {"all", "customers"} else "all",
+        display_order=int(display_order or 0),
+        active=active == "on",
+        created_by_attendant_id=admin.id,
+    )
+    db.add(banner)
+    db.flush()
+    log_admin_action(
+        db,
+        action="app_banner_created",
+        actor_attendant_id=admin.id,
+        entity_type="app_banner",
+        entity_id=banner.id,
+        details={"title": banner.title, "target": banner.target, "active": bool(banner.active)},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse("/admin/notifications?success=Banner%20salvo", status_code=303)
+
+
+@router.post("/notifications/banners/{banner_id}/toggle")
+def toggle_app_banner(banner_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    banner = db.get(AppBanner, banner_id)
+    if not banner:
+        return RedirectResponse("/admin/notifications?err=Banner%20não%20encontrado", status_code=303)
+    banner.active = not bool(banner.active)
+    log_admin_action(
+        db,
+        action="app_banner_toggled",
+        actor_attendant_id=admin.id,
+        entity_type="app_banner",
+        entity_id=banner.id,
+        details={"title": banner.title, "active": bool(banner.active)},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse("/admin/notifications?success=Banner%20atualizado", status_code=303)
 
 
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---

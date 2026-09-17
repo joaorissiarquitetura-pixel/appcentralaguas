@@ -173,11 +173,56 @@ class AppNotification(Base):
     status: Mapped[str] = mapped_column(String(30), default="draft")
     sent_count: Mapped[int] = mapped_column(Integer, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    opened_count: Mapped[int] = mapped_column(Integer, default=0)
     created_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     created_by = relationship("Attendant")
+
+
+class AppNotificationEvent(Base):
+    __tablename__ = "app_notification_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    notification_id: Mapped[int] = mapped_column(ForeignKey("app_notifications.id"), index=True)
+    device_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(30), default="opened", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    notification = relationship("AppNotification")
+    customer = relationship("Customer")
+
+
+class AppBanner(Base):
+    __tablename__ = "app_banners"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(120))
+    body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_url: Mapped[str] = mapped_column(String(500))
+    link_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    target: Mapped[str] = mapped_column(String(30), default="all")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    seen_count: Mapped[int] = mapped_column(Integer, default=0)
+    closed_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    created_by = relationship("Attendant")
+
+
+class AppBannerEvent(Base):
+    __tablename__ = "app_banner_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    banner_id: Mapped[int] = mapped_column(ForeignKey("app_banners.id"), index=True)
+    device_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(30), default="seen", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    banner = relationship("AppBanner")
+    customer = relationship("Customer")
 
 
 class AdminAuditLog(Base):

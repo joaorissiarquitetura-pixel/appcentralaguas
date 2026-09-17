@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppDevice, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, LocationAccessLog, PushSubscription
 from ..services.app_access import check_service_area
 from ..services.push import push_configured
 
@@ -57,6 +57,10 @@ class LocationCheckPayload(BaseModel):
     state: str = ""
 
 
+class DeviceEventPayload(BaseModel):
+    device_id: str = ""
+
+
 def _current_customer_id(request: Request) -> int | None:
     cid = get_current_customer_id(request)
     return int(cid) if cid else None
@@ -70,6 +74,17 @@ def _blocked_response(device: AppDevice | None):
             "reason": device.block_reason or "Acesso bloqueado pelo administrador.",
         }
     return None
+
+
+def _get_or_create_device(db: Session, device_id: str) -> AppDevice | None:
+    normalized = (device_id or "").strip()
+    if not normalized:
+        return None
+    device = db.scalar(select(AppDevice).where(AppDevice.device_id == normalized))
+    if not device:
+        device = AppDevice(device_id=normalized)
+        db.add(device)
+    return device
 
 
 @router.get("/bootstrap")
@@ -90,6 +105,118 @@ def app_bootstrap():
             },
         },
     }
+
+
+@router.get("/banners")
+def app_banners(request: Request, device_id: str = "", db: Session = Depends(get_db)):
+    customer_id = _current_customer_id(request)
+    normalized_device_id = (device_id or "").strip()
+    dismissed_banner_ids = set()
+    if normalized_device_id:
+        dismissed_banner_ids = {
+            row[0]
+            for row in db.execute(
+                select(AppBannerEvent.banner_id).where(
+                    AppBannerEvent.device_id == normalized_device_id,
+                    AppBannerEvent.event_type.in_(("closed", "clicked")),
+                )
+            ).all()
+        }
+    query = select(AppBanner).where(AppBanner.active == True).order_by(AppBanner.display_order.asc(), AppBanner.created_at.desc())
+    if customer_id:
+        query = query.where(AppBanner.target.in_(("all", "customers")))
+    else:
+        query = query.where(AppBanner.target == "all")
+    banners = [
+        banner
+        for banner in db.execute(query).scalars().all()
+        if banner.id not in dismissed_banner_ids
+    ]
+    return {
+        "ok": True,
+        "banners": [
+            {
+                "id": banner.id,
+                "title": banner.title,
+                "body": banner.body or "",
+                "image_url": banner.image_url,
+                "link_url": banner.link_url or "",
+            }
+            for banner in banners[:1]
+        ],
+    }
+
+
+def _record_banner_event(db: Session, banner_id: int, payload: DeviceEventPayload, request: Request, event_type: str):
+    banner = db.get(AppBanner, banner_id)
+    if not banner:
+        return {"ok": False, "error": "banner_not_found"}
+    device_id = payload.device_id.strip()
+    customer_id = _current_customer_id(request)
+    if device_id:
+        _get_or_create_device(db, device_id)
+        existing = db.scalar(
+            select(AppBannerEvent).where(
+                AppBannerEvent.banner_id == banner_id,
+                AppBannerEvent.device_id == device_id,
+                AppBannerEvent.event_type == event_type,
+            )
+        )
+        if existing:
+            return {"ok": True, "duplicate": True}
+    db.add(AppBannerEvent(banner_id=banner_id, device_id=device_id or None, customer_id=customer_id, event_type=event_type))
+    if event_type == "seen":
+        banner.seen_count = (banner.seen_count or 0) + 1
+    elif event_type in {"closed", "clicked"}:
+        banner.closed_count = (banner.closed_count or 0) + 1
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/banners/{banner_id}/seen")
+def mark_banner_seen(banner_id: int, payload: DeviceEventPayload, request: Request, db: Session = Depends(get_db)):
+    return _record_banner_event(db, banner_id, payload, request, "seen")
+
+
+@router.post("/banners/{banner_id}/closed")
+def mark_banner_closed(banner_id: int, payload: DeviceEventPayload, request: Request, db: Session = Depends(get_db)):
+    return _record_banner_event(db, banner_id, payload, request, "closed")
+
+
+@router.post("/banners/{banner_id}/clicked")
+def mark_banner_clicked(banner_id: int, payload: DeviceEventPayload, request: Request, db: Session = Depends(get_db)):
+    return _record_banner_event(db, banner_id, payload, request, "clicked")
+
+
+@router.post("/notifications/{notification_id}/opened")
+def mark_notification_opened(notification_id: int, payload: DeviceEventPayload, request: Request, db: Session = Depends(get_db)):
+    notification = db.get(AppNotification, notification_id)
+    if not notification:
+        return {"ok": False, "error": "notification_not_found"}
+    device_id = payload.device_id.strip()
+    customer_id = _current_customer_id(request)
+    if device_id:
+        _get_or_create_device(db, device_id)
+        existing = db.scalar(
+            select(AppNotificationEvent).where(
+                AppNotificationEvent.notification_id == notification_id,
+                AppNotificationEvent.device_id == device_id,
+                AppNotificationEvent.event_type == "opened",
+            )
+        )
+        if existing:
+            return {"ok": True, "duplicate": True}
+    db.add(
+        AppNotificationEvent(
+            notification_id=notification_id,
+            device_id=device_id or None,
+            customer_id=customer_id,
+            event_type="opened",
+        )
+    )
+    notification.opened_count = (notification.opened_count or 0) + 1
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/device")

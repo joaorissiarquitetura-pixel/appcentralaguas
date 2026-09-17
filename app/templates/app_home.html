@@ -1524,6 +1524,64 @@
     .notification-toggle.is-on::before {
       transform: translateX(18px);
     }
+    .promo-banner-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(16, 24, 40, 0.48);
+      backdrop-filter: blur(4px);
+    }
+    .promo-banner-overlay.is-visible {
+      display: flex;
+    }
+    .promo-banner-card {
+      width: min(440px, 100%);
+      border: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--ca-white);
+      box-shadow: 0 22px 70px rgba(16, 24, 40, 0.28);
+      position: relative;
+    }
+    .promo-banner-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      background: #eef5ff;
+    }
+    .promo-banner-copy {
+      display: grid;
+      gap: 6px;
+      padding: 14px 16px 16px;
+    }
+    .promo-banner-copy strong {
+      color: #101828;
+      font: 800 1rem/1.2 "Montserrat", Arial, sans-serif;
+    }
+    .promo-banner-copy span {
+      color: var(--ca-muted);
+      font-size: 0.86rem;
+      line-height: 1.35;
+    }
+    .promo-banner-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      color: #101828;
+      box-shadow: 0 4px 14px rgba(16, 24, 40, 0.18);
+      display: grid;
+      place-items: center;
+    }
     .profile-head {
       display: grid;
       grid-template-columns: 48px minmax(0, 1fr) 22px;
@@ -2326,6 +2384,19 @@
     <em data-floating-cart-total>R$ 0,00</em>
   </button>
 
+  <div class="promo-banner-overlay" data-promo-banner-overlay aria-hidden="true">
+    <div class="promo-banner-card" role="dialog" aria-modal="true" aria-label="Promoção">
+      <button class="promo-banner-close" type="button" data-promo-banner-close aria-label="Fechar banner"><i class="bi bi-x-lg"></i></button>
+      <a href="/app" data-promo-banner-link>
+        <img src="" alt="" data-promo-banner-image>
+      </a>
+      <div class="promo-banner-copy">
+        <strong data-promo-banner-title></strong>
+        <span data-promo-banner-body></span>
+      </div>
+    </div>
+  </div>
+
   <nav class="bottom-nav" aria-label="Navegação do app">
     <div class="bottom-nav-inner">
       <button class="nav-item is-active" type="button" data-go="home"><i class="bi bi-house-door-fill"></i><span>Início</span></button>
@@ -2392,6 +2463,7 @@
     const paymentPreferenceKey = "centralAguas.paymentPreference";
     const ordersKey = "centralAguas.orders";
     const deviceIdKey = "centralAguas.deviceId";
+    const promoBannerDismissedKey = "centralAguas.dismissedBanners";
     const houseStockDefaults = {
       total: 4,
       full: 3,
@@ -2516,6 +2588,80 @@
       } catch {
         return { ok: false };
       }
+    }
+
+    function dismissedBannerIds() {
+      try {
+        return new Set(JSON.parse(localStorage.getItem(promoBannerDismissedKey) || "[]").map(String));
+      } catch {
+        return new Set();
+      }
+    }
+
+    function rememberDismissedBanner(bannerId) {
+      const ids = dismissedBannerIds();
+      ids.add(String(bannerId));
+      localStorage.setItem(promoBannerDismissedKey, JSON.stringify([...ids].slice(-80)));
+    }
+
+    async function trackNotificationOpenFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const notificationId = params.get("notification_id");
+      if (!notificationId) return;
+      await postAppApi(`/api/app/notifications/${encodeURIComponent(notificationId)}/opened`, {
+        device_id: getDeviceId()
+      });
+      params.delete("notification_id");
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", nextUrl);
+    }
+
+    async function closePromoBanner(banner, eventType = "closed") {
+      const overlay = document.querySelector("[data-promo-banner-overlay]");
+      if (overlay) {
+        overlay.classList.remove("is-visible");
+        overlay.setAttribute("aria-hidden", "true");
+      }
+      if (!banner?.id) return;
+      rememberDismissedBanner(banner.id);
+      await postAppApi(`/api/app/banners/${banner.id}/${eventType}`, {
+        device_id: getDeviceId()
+      });
+    }
+
+    async function loadPromoBanner() {
+      const dismissed = dismissedBannerIds();
+      try {
+        const response = await fetch(`/api/app/banners?device_id=${encodeURIComponent(getDeviceId())}`);
+        const data = await response.json();
+        const banner = (data.banners || []).find((item) => item?.id && !dismissed.has(String(item.id)));
+        if (!banner) return;
+        const overlay = document.querySelector("[data-promo-banner-overlay]");
+        const image = document.querySelector("[data-promo-banner-image]");
+        const link = document.querySelector("[data-promo-banner-link]");
+        const title = document.querySelector("[data-promo-banner-title]");
+        const body = document.querySelector("[data-promo-banner-body]");
+        const close = document.querySelector("[data-promo-banner-close]");
+        if (!overlay || !image || !link || !title || !body || !close) return;
+        image.src = banner.image_url;
+        image.alt = banner.title || "Promoção Central Águas";
+        link.href = banner.link_url || "/app";
+        title.textContent = banner.title || "";
+        body.textContent = banner.body || "";
+        close.onclick = () => closePromoBanner(banner, "closed");
+        link.onclick = async (event) => {
+          event.preventDefault();
+          rememberDismissedBanner(banner.id);
+          await postAppApi(`/api/app/banners/${banner.id}/clicked`, { device_id: getDeviceId() });
+          window.location.href = link.href;
+        };
+        overlay.classList.add("is-visible");
+        overlay.setAttribute("aria-hidden", "false");
+        await postAppApi(`/api/app/banners/${banner.id}/seen`, {
+          device_id: getDeviceId()
+        });
+      } catch {}
     }
 
     async function loadAppBootstrap() {
@@ -4335,6 +4481,8 @@
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();
+    trackNotificationOpenFromUrl();
+    loadPromoBanner();
     loadAppBootstrap().then(registerAppDevice).then(syncPushSubscription);
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

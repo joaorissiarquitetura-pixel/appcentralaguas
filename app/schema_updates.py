@@ -3,7 +3,17 @@ from __future__ import annotations
 from sqlalchemy import inspect, text
 
 from .database import engine
-from .models import AdminAuditLog, AppDevice, AppNotification, Coupon, LocationAccessLog, PushSubscription
+from .models import (
+    AdminAuditLog,
+    AppBanner,
+    AppBannerEvent,
+    AppDevice,
+    AppNotification,
+    AppNotificationEvent,
+    Coupon,
+    LocationAccessLog,
+    PushSubscription,
+)
 
 
 PRODUCT_COLUMN_SPECS = {
@@ -25,6 +35,10 @@ APP_DEVICE_COLUMN_SPECS = {
     "is_blocked": "BOOLEAN DEFAULT FALSE",
     "block_reason": "VARCHAR(180)",
     "blocked_at": "DATETIME",
+}
+
+APP_NOTIFICATION_COLUMN_SPECS = {
+    "opened_count": "INTEGER DEFAULT 0",
 }
 
 
@@ -56,7 +70,17 @@ def _ensure_model_columns(table_model) -> None:
 def ensure_runtime_schema_updates() -> None:
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
-    for table_model in (Coupon, AppDevice, PushSubscription, LocationAccessLog, AppNotification, AdminAuditLog):
+    for table_model in (
+        Coupon,
+        AppDevice,
+        PushSubscription,
+        LocationAccessLog,
+        AppNotification,
+        AppNotificationEvent,
+        AppBanner,
+        AppBannerEvent,
+        AdminAuditLog,
+    ):
         table_model.__table__.create(bind=engine, checkfirst=True)
         _ensure_model_columns(table_model)
 
@@ -69,3 +93,4 @@ def ensure_runtime_schema_updates() -> None:
         return
 
     _ensure_missing_columns("app_devices", APP_DEVICE_COLUMN_SPECS)
+    _ensure_missing_columns("app_notifications", APP_NOTIFICATION_COLUMN_SPECS)
