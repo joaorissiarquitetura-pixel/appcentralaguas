@@ -2066,8 +2066,9 @@
         </header>
         <div class="chip-row" aria-label="Filtro de pedidos">
           <button class="chip active" type="button" data-orders-filter="all">Todos</button>
-          <button class="chip" type="button" data-orders-filter="pending">Pendentes</button>
+          <button class="chip" type="button" data-orders-filter="in_progress">Andamento</button>
           <button class="chip" type="button" data-orders-filter="done">Concluídos</button>
+          <button class="chip" type="button" data-orders-filter="cancelled">Cancelados</button>
         </div>
         <div class="stack" data-orders-list></div>
       </div>
@@ -2947,13 +2948,22 @@
       if (status === "done") return "Concluído";
       if (status === "cancelled") return "Cancelado";
       if (status === "out_for_delivery") return "Saiu para entrega";
-      if (status === "accepted") return "Aceito";
+      if (status === "accepted") return "Em andamento";
       if (status === "pending_acceptance") return "Aguardando aceite";
       return "Pendente";
     }
 
     function orderIsDone(order) {
-      return ["done", "cancelled"].includes(order.appStatus || order.status);
+      return (order.appStatus || order.status) === "done";
+    }
+
+    function orderIsCancelled(order) {
+      return (order.appStatus || order.status) === "cancelled";
+    }
+
+    function orderCanBeCancelled(order) {
+      const status = order.appStatus || order.status || "pending";
+      return !["done", "cancelled", "out_for_delivery"].includes(status);
     }
 
     function orderHistory(order) {
@@ -3084,8 +3094,9 @@
       const list = document.querySelector("[data-orders-list]");
       if (!list) return;
       const orders = (sourceOrders || loadOrders()).filter((order) => {
-        if (ordersFilter === "pending") return !orderIsDone(order);
+        if (ordersFilter === "in_progress") return !orderIsDone(order) && !orderIsCancelled(order);
         if (ordersFilter === "done") return orderIsDone(order);
+        if (ordersFilter === "cancelled") return orderIsCancelled(order);
         return true;
       });
       if (!orders.length) {
@@ -3120,6 +3131,7 @@
               `).join("")}
             </div>
             ${order.deliveryDriverName ? `<span class="small muted">Entregador: ${escapeHtml(order.deliveryDriverName)}</span>` : ""}
+            ${orderCanBeCancelled(order) ? `<button class="secondary-button order-cancel-button" type="button" data-order-cancel="${escapeHtml(order.clientOrderId || order.id || "")}" data-grj-order-id="${escapeHtml(order.grjId || "")}"><i class="bi bi-x-circle"></i> Cancelar pedido</button>` : ""}
           </div>
         </article>
       `).join("");
@@ -4347,7 +4359,7 @@
       couponAction.textContent = "Inserir";
     }
 
-    document.addEventListener("click", (event) => {
+    document.addEventListener("click", async (event) => {
       const addressStrip = event.target.closest(".address-strip");
       if (addressStrip && addressStrip.closest("[data-screen='home']")) {
         event.preventDefault();
@@ -4564,8 +4576,33 @@
       }
 
       const orderCard = event.target.closest("[data-order-card]");
-      if (orderCard) {
+      if (orderCard && !event.target.closest("[data-order-cancel]")) {
         orderCard.classList.toggle("is-open");
+      }
+
+      const cancelOrderButton = event.target.closest("[data-order-cancel]");
+      if (cancelOrderButton) {
+        event.stopPropagation();
+        const orderId = cancelOrderButton.dataset.orderCancel || "";
+        if (!orderId || !window.confirm("Deseja cancelar este pedido?")) return;
+        cancelOrderButton.disabled = true;
+        try {
+          const response = await fetch("/api/app/orders/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              client_order_id: orderId,
+              grj_order_id: cancelOrderButton.dataset.grjOrderId || ""
+            })
+          });
+          const result = await response.json();
+          if (!result.ok) throw new Error(result.error || result.message || "Não foi possível cancelar o pedido.");
+          await syncOrdersFromGrj();
+          renderOrders();
+        } catch (error) {
+          window.alert(error.message || "Não foi possível cancelar o pedido.");
+          cancelOrderButton.disabled = false;
+        }
       }
 
       const couponTab = event.target.closest("[data-coupon-tab]");

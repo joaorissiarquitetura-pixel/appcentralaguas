@@ -305,6 +305,42 @@ def app_order_status(
     return {"ok": payload.get("status") == "ok", "orders": payload.get("data") or []}
 
 
+@router.post("/orders/cancel")
+async def app_order_cancel(request: Request):
+    customer_id = _current_customer_id(request)
+    if customer_id is None:
+        return {"ok": False, "error": "customer_login_required"}
+    token = settings.CENTRAL_AGUAS_APP_TOKEN.strip()
+    if not token:
+        return {"ok": False, "error": "grj_token_missing"}
+    payload = await request.json()
+    payload = payload if isinstance(payload, dict) else {}
+    payload["app_customer_id"] = str(customer_id)
+    url = _grj_app_status_url().replace("/app-status", "/app-cancel")
+    upstream = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(upstream, timeout=12) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            return result
+    except urllib.error.HTTPError as exc:
+        try:
+            result = json.loads(exc.read().decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            result = {"ok": False, "error": f"grj_http_{exc.code}"}
+        return result
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        return {"ok": False, "error": str(exc)}
+
+
 @router.post("/device")
 def register_device(payload: DeviceRegisterPayload, request: Request, db: Session = Depends(get_db)):
     device_id = payload.device_id.strip()
