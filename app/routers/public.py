@@ -1,7 +1,9 @@
 import json
+import logging
 import socket
 import ssl
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime
@@ -25,6 +27,7 @@ from ..services.loyalty import card_progress, cards_completed, points_balance
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
 DELIVERY_SURCHARGE = 2.0
+logger = logging.getLogger(__name__)
 
 
 def _app_delivery_price(base_price: float | None) -> float:
@@ -83,8 +86,18 @@ def _send_order_to_grj(payload: dict) -> dict:
             if response.status >= 400:
                 raise RuntimeError(body.get("message") or "GRJ recusou o pedido")
             return body
+    except urllib.error.HTTPError as exc:
+        raw_body = exc.read().decode("utf-8", errors="replace")
+        try:
+            body = json.loads(raw_body)
+            detail = body.get("message") or body.get("error") or raw_body
+        except json.JSONDecodeError:
+            detail = raw_body
+        logger.warning("GRJ order API returned HTTP %s: %s", exc.code, detail)
+        raise RuntimeError(f"Não foi possível enviar o pedido ao GRJ: HTTP {exc.code} - {detail}") from exc
     except Exception as exc:
         reason = getattr(exc, "reason", exc)
+        logger.warning("GRJ order API request failed: %s", reason)
         raise RuntimeError(f"Não foi possível enviar o pedido ao GRJ: {reason}") from exc
 
 
