@@ -2952,10 +2952,14 @@
         });
         const data = await response.json();
         if (!data.ok || !Array.isArray(data.orders)) return currentOrders;
-        const byReference = new Map(data.orders.map((order) => [order.client_order_id || order.payment_reference, order]));
+        const remoteOrders = data.orders || [];
+        const byReference = new Map(remoteOrders.map((order) => [order.client_order_id || order.payment_reference, order]));
         const updated = currentOrders.map((order) => {
           const ref = order.clientOrderId || order.id;
-          const remote = byReference.get(ref);
+          const remote = byReference.get(ref) || remoteOrders.find((remoteOrder) => {
+            const remoteRef = String(remoteOrder.client_order_id || remoteOrder.payment_reference || "");
+            return remoteRef && (remoteRef.startsWith(ref) || String(ref || "").startsWith(remoteRef));
+          });
           if (!remote) return order;
           const next = {
             ...order,
