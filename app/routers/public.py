@@ -6,8 +6,9 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -30,6 +31,7 @@ DELIVERY_SURCHARGE = 2.0
 logger = logging.getLogger(__name__)
 LOYALTY_COUPON_CODE = "FIDELIDADE10"
 LOYALTY_COUPON_VALUE = 10.0
+APP_TZ = ZoneInfo(settings.LOCAL_TZ)
 
 
 def _app_delivery_price(base_price: float | None) -> float:
@@ -312,11 +314,53 @@ def _home_loyalty(customer: Customer | None, db: Session) -> SimpleNamespace:
         coupon_available=completed > 0,
         missing=missing,
         message=(
-            f"{completed} recompensa{'s' if completed > 1 else ''} disponível{'is' if completed > 1 else ''}."
+            f"{completed} {'recompensas disponíveis' if completed > 1 else 'recompensa disponível'}."
             if completed
             else f"Faltam {missing} selos."
         ),
     )
+
+
+def _app_datetime_label(value: datetime | None, fmt: str = "%d/%m/%Y %H:%M") -> str:
+    if not value:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(APP_TZ).strftime(fmt)
+
+
+def _loyalty_history(customer: Customer | None, db: Session, limit: int = 20) -> list[SimpleNamespace]:
+    if not customer:
+        return []
+    try:
+        ledger = (
+            db.execute(
+                select(LoyaltyLedger)
+                .where(LoyaltyLedger.customer_id == customer.id)
+                .order_by(LoyaltyLedger.created_at.desc(), LoyaltyLedger.id.desc())
+                .limit(limit)
+            )
+            .scalars()
+            .all()
+        )
+    except SQLAlchemyError:
+        logger.exception("Loyalty history load failed for customer=%s", getattr(customer, "id", None))
+        return []
+
+    rows = []
+    for item in ledger:
+        delta = int(item.delta_points or 0)
+        rows.append(
+            SimpleNamespace(
+                id=item.id,
+                date_label=_app_datetime_label(item.created_at),
+                reason=item.reason or "Movimentação de pontos",
+                delta_points=delta,
+                positive=delta >= 0,
+                icon="bi-cart3" if "app" in (item.reason or "").lower() else "bi-bag-check",
+            )
+        )
+    return rows
 
 
 def _app_delivery_days() -> list[SimpleNamespace]:
@@ -480,6 +524,7 @@ def app_home(request: Request, db: Session = Depends(get_db)):
 
     offers, catalog_error = _shop_catalog(db)
     loyalty = _home_loyalty(customer, db)
+    loyalty_history = _loyalty_history(customer, db)
     coupons = _customer_coupons(db, int(cid) if cid else None)
     try:
         return templates.TemplateResponse(
@@ -492,6 +537,7 @@ def app_home(request: Request, db: Session = Depends(get_db)):
                 "customer_first_name": customer.name.split(" ")[0] if customer and customer.name else "",
                 "location": _home_location(customer),
                 "loyalty": loyalty,
+                "loyalty_history": loyalty_history,
                 "primary_offer": offers[0],
                 "quick_offers": offers,
                 "catalog_error": catalog_error,

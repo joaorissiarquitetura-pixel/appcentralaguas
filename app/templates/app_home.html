@@ -2102,8 +2102,22 @@
         </article>
         <button class="menu-row" type="button" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated-fill"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis para usar no app</span></span><i class="bi bi-chevron-right"></i></button>
         <h2 class="section-title">Histórico de pontos</h2>
-        <div class="history-row"><span class="blue-icon"><i class="bi bi-bag-check"></i></span><span class="row-copy"><strong>Compra na loja</strong><span>Última movimentação</span></span><strong>+1 ponto</strong></div>
-        <div class="history-row"><span class="blue-icon"><i class="bi bi-cart3"></i></span><span class="row-copy"><strong>Compra online</strong><span>Pedido pelo app</span></span><strong>+2 pontos</strong></div>
+        {% for item in loyalty_history %}
+          <div class="history-row">
+            <span class="blue-icon"><i class="bi {{ item.icon }}"></i></span>
+            <span class="row-copy">
+              <strong>{{ item.date_label }} · {{ item.reason }}</strong>
+              <span>{{ 'Última movimentação' if loop.first else 'Movimentação de pontos' }}</span>
+            </span>
+            <strong>{{ '+' if item.delta_points > 0 else '' }}{{ item.delta_points }} ponto{{ 's' if item.delta_points != 1 and item.delta_points != -1 else '' }}</strong>
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
+            <strong>Nenhuma movimentação ainda.</strong>
+            <span>Seus pontos aparecem aqui do mais recente para o mais antigo.</span>
+          </div>
+        {% endfor %}
         <button class="secondary-button" type="button" data-go="home">Voltar para o app</button>
       </div>
     </section>
