@@ -2083,10 +2083,22 @@
         </header>
         <article class="loyalty-card">
           <div class="small"><i class="bi bi-award-fill"></i> Cliente Central</div>
-          <h2>{{ loyalty.progress if loyalty.available else 0 }} de {{ loyalty_target }} pontos</h2>
+          <h2>
+            {% if loyalty.available and loyalty.completed %}
+              {{ loyalty.completed }} cartão{{ 'ões' if loyalty.completed > 1 else '' }} completo{{ 's' if loyalty.completed > 1 else '' }}
+            {% else %}
+              {{ loyalty.progress if loyalty.available else 0 }} de {{ loyalty_target }} pontos
+            {% endif %}
+          </h2>
           <div class="progress-track"><span></span></div>
-          <p class="small">Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.</p>
-          <button class="primary-button" type="button" {% if coupons.available|length %}data-go="coupons"{% else %}disabled aria-disabled="true"{% endif %}>{{ 'Usar na próxima compra' if coupons.available|length else 'Sem cupom disponível' }}</button>
+          <p class="small">
+            {% if loyalty.available and loyalty.completed %}
+              Você tem cupom de fidelidade disponível. Próximo cartão: {{ loyalty.progress }} de {{ loyalty_target }} pontos.
+            {% else %}
+              Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.
+            {% endif %}
+          </p>
+          <button class="primary-button" type="button" {% if loyalty.available and loyalty.coupon_available %}data-go="coupons"{% else %}disabled aria-disabled="true"{% endif %}>{{ 'Usar cupom disponível' if loyalty.available and loyalty.coupon_available else 'Sem cupom disponível' }}</button>
         </article>
         <button class="menu-row" type="button" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated-fill"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis para usar no app</span></span><i class="bi bi-chevron-right"></i></button>
         <h2 class="section-title">Histórico de pontos</h2>

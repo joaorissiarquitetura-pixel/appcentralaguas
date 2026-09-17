@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id, login_customer, logout_customer
 from ..config import settings
 from ..database import SessionLocal, get_db
-from ..models import Coupon, CouponRedemption, Customer, Product
+from ..models import Coupon, CouponRedemption, Customer, LoyaltyLedger, Product
 from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
@@ -28,6 +28,8 @@ templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
 DELIVERY_SURCHARGE = 2.0
 logger = logging.getLogger(__name__)
+LOYALTY_COUPON_CODE = "FIDELIDADE10"
+LOYALTY_COUPON_VALUE = 10.0
 
 
 def _app_delivery_price(base_price: float | None) -> float:
@@ -305,8 +307,15 @@ def _home_loyalty(customer: Customer | None, db: Session) -> SimpleNamespace:
         balance=balance,
         progress=progress,
         completed=completed,
+        available_rewards=completed,
+        reward_value=LOYALTY_COUPON_VALUE,
+        coupon_available=completed > 0,
         missing=missing,
-        message="Você tem recompensa disponível." if completed else f"Faltam {missing} selos.",
+        message=(
+            f"{completed} recompensa{'s' if completed > 1 else ''} disponível{'is' if completed > 1 else ''}."
+            if completed
+            else f"Faltam {missing} selos."
+        ),
     )
 
 
@@ -399,6 +408,31 @@ def _customer_coupons(db: Session, customer_id: int | None = None) -> SimpleName
 
     available = []
     unavailable = []
+    if customer_id:
+        balance = points_balance(db, int(customer_id))
+        completed = cards_completed(balance)
+        if completed > 0:
+            progress = card_progress(balance)
+            available.append(
+                SimpleNamespace(
+                    id=0,
+                    code=LOYALTY_COUPON_CODE,
+                    title="Cartão fidelidade completo",
+                    description=(
+                        f"Você tem {completed} recompensa{'s' if completed > 1 else ''}. "
+                        f"Use R$ {LOYALTY_COUPON_VALUE:.2f} de desconto nesta compra."
+                    ).replace(".", ","),
+                    discount_label=f"R$ {LOYALTY_COUPON_VALUE:.2f}".replace(".", ","),
+                    discount_type="fixed",
+                    discount_value=LOYALTY_COUPON_VALUE,
+                    validity_label="Disponível conforme regulamento da campanha",
+                    min_order_value=0,
+                    min_order_label=f"{progress} ponto{'s' if progress != 1 else ''} no próximo cartão",
+                    active=True,
+                    already_used=False,
+                    is_loyalty=True,
+                )
+            )
     for coupon in coupons:
         item = SimpleNamespace(
             id=coupon.id,
@@ -417,6 +451,7 @@ def _customer_coupons(db: Session, customer_id: int | None = None) -> SimpleName
             ),
             active=coupon.active,
             already_used=coupon.id in redeemed_coupon_ids,
+            is_loyalty=False,
         )
         if _coupon_is_available(coupon) and coupon.id not in redeemed_coupon_ids:
             available.append(item)
@@ -753,19 +788,28 @@ def finish_shop_order(
     coupon_code = coupon_code.strip().upper()
     discount_value = 0.0
     coupon = None
+    loyalty_coupon_applied = False
     if coupon_code:
-        coupon = db.scalar(select(Coupon).where(Coupon.code == coupon_code))
-        already_redeemed = bool(coupon and db.scalar(
-            select(CouponRedemption.id).where(
-                CouponRedemption.coupon_id == coupon.id,
-                CouponRedemption.customer_id == int(cid),
-            )
-        ))
-        if coupon and _coupon_is_available(coupon) and not already_redeemed:
-            discount_value = _coupon_discount_amount(coupon, subtotal)
-        if not coupon or discount_value <= 0 or already_redeemed:
-            coupon = None
-            coupon_code = ""
+        if coupon_code == LOYALTY_COUPON_CODE:
+            balance = points_balance(db, int(cid))
+            if cards_completed(balance) > 0:
+                discount_value = min(subtotal, LOYALTY_COUPON_VALUE)
+                loyalty_coupon_applied = discount_value > 0
+            if not loyalty_coupon_applied:
+                coupon_code = ""
+        else:
+            coupon = db.scalar(select(Coupon).where(Coupon.code == coupon_code))
+            already_redeemed = bool(coupon and db.scalar(
+                select(CouponRedemption.id).where(
+                    CouponRedemption.coupon_id == coupon.id,
+                    CouponRedemption.customer_id == int(cid),
+                )
+            ))
+            if coupon and _coupon_is_available(coupon) and not already_redeemed:
+                discount_value = _coupon_discount_amount(coupon, subtotal)
+            if not coupon or discount_value <= 0 or already_redeemed:
+                coupon = None
+                coupon_code = ""
 
     submitted_order_id = client_order_id.strip().upper()
     if not submitted_order_id.startswith("APP-") or len(submitted_order_id) > 80:
@@ -827,6 +871,28 @@ def finish_shop_order(
         except SQLAlchemyError:
             db.rollback()
             logger.exception("Coupon redemption save failed for coupon=%s customer=%s", coupon_code, cid)
+    if loyalty_coupon_applied and discount_value > 0:
+        try:
+            reason = f"Resgate fidelidade pedido {client_order_id}"
+            already_spent = db.scalar(
+                select(LoyaltyLedger.id).where(
+                    LoyaltyLedger.customer_id == int(cid),
+                    LoyaltyLedger.reason == reason,
+                )
+            )
+            if not already_spent:
+                db.add(
+                    LoyaltyLedger(
+                        customer_id=int(cid),
+                        delta_points=-settings.CARD_TARGET_POINTS,
+                        reason=reason,
+                        created_at=datetime.utcnow(),
+                    )
+                )
+                db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Loyalty coupon redemption save failed for customer=%s order=%s", cid, client_order_id)
 
     order = SimpleNamespace(
         code=f"#{grj_order.get('pedido_id') or client_order_id}",
