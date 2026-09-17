@@ -2553,6 +2553,7 @@
     const ordersKey = "centralAguas.orders";
     const deviceIdKey = "centralAguas.deviceId";
     const promoBannerDismissedKey = "centralAguas.dismissedBanners";
+    const appTimeZone = "America/Sao_Paulo";
     const houseStockDefaults = {
       total: 4,
       full: 3,
@@ -2596,6 +2597,43 @@
 
     function formatMoney(value) {
       return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function appDateTimeParts(date = new Date()) {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: appTimeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+      return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+    }
+
+    function parseAppDate(value) {
+      if (!value) return null;
+      if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+      const raw = String(value);
+      const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(raw)
+        ? `${raw}-03:00`
+        : raw;
+      const date = new Date(normalized);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatAppDateTime(value) {
+      const date = parseAppDate(value);
+      if (!date) return "";
+      return date.toLocaleString("pt-BR", {
+        timeZone: appTimeZone,
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
     }
 
     function escapeHtml(value) {
@@ -2851,7 +2889,8 @@
     }
 
     function newClientOrderId(date = new Date()) {
-      return `APP-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
+      const parts = appDateTimeParts(date);
+      return `APP-${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}`;
     }
 
     function loadOrders() {
@@ -2885,7 +2924,8 @@
         delivery: `${state.deliveryDay} - ${state.deliveryPeriod}`,
         payment: state.paymentMethod,
         status: "pending",
-        createdAt: now.toISOString()
+        createdAt: now.toISOString(),
+        createdAtTimeZone: appTimeZone
       });
       localStorage.setItem(ordersKey, JSON.stringify(orders.slice(0, 20)));
       return id;
@@ -3032,7 +3072,7 @@
               ${orderHistory(order).map((event) => `
                 <div class="order-history-item ${event.done ? "is-done" : ""}">
                   <i class="bi ${event.done ? "bi-check-circle-fill" : "bi-circle"}"></i>
-                  <span>${escapeHtml(event.label || "")}${event.at ? ` · ${new Date(event.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}</span>
+                  <span>${escapeHtml(event.label || "")}${event.at ? ` · ${formatAppDateTime(event.at)}` : ""}</span>
                 </div>
               `).join("")}
             </div>
