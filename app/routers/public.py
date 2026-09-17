@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id, login_customer, logout_customer
 from ..config import settings
 from ..database import SessionLocal, get_db
-from ..models import Coupon, Customer, Product
+from ..models import Coupon, CouponRedemption, Customer, Product
 from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
@@ -375,9 +375,25 @@ def _coupon_validity_label(coupon: Coupon) -> str:
     return "Sem data de expiração"
 
 
-def _customer_coupons(db: Session) -> SimpleNamespace:
+def _coupon_discount_amount(coupon: Coupon, subtotal: float) -> float:
+    if subtotal < float(coupon.min_order_value or 0):
+        return 0.0
+    if coupon.discount_type == "percent":
+        return min(subtotal, subtotal * float(coupon.discount_value or 0) / 100)
+    return min(subtotal, float(coupon.discount_value or 0))
+
+
+def _customer_coupons(db: Session, customer_id: int | None = None) -> SimpleNamespace:
     try:
         coupons = db.execute(select(Coupon).order_by(Coupon.display_order.asc(), Coupon.created_at.desc())).scalars().all()
+        redeemed_coupon_ids = set()
+        if customer_id:
+            redeemed_coupon_ids = {
+                row[0]
+                for row in db.execute(
+                    select(CouponRedemption.coupon_id).where(CouponRedemption.customer_id == int(customer_id))
+                ).all()
+            }
     except SQLAlchemyError:
         return SimpleNamespace(available=[], unavailable=[])
 
@@ -400,8 +416,9 @@ def _customer_coupons(db: Session) -> SimpleNamespace:
                 else "Sem pedido mínimo"
             ),
             active=coupon.active,
+            already_used=coupon.id in redeemed_coupon_ids,
         )
-        if _coupon_is_available(coupon):
+        if _coupon_is_available(coupon) and coupon.id not in redeemed_coupon_ids:
             available.append(item)
         else:
             unavailable.append(item)
@@ -428,7 +445,7 @@ def app_home(request: Request, db: Session = Depends(get_db)):
 
     offers, catalog_error = _shop_catalog(db)
     loyalty = _home_loyalty(customer, db)
-    coupons = _customer_coupons(db)
+    coupons = _customer_coupons(db, int(cid) if cid else None)
     try:
         return templates.TemplateResponse(
             request=request,
@@ -696,6 +713,7 @@ def finish_shop_order(
     coupon_code: str = Form(""),
     discount_amount: str = Form("0"),
     notes: str = Form(""),
+    db: Session = Depends(get_db),
 ):
     cid = get_current_customer_id(request)
     if not cid:
@@ -731,13 +749,23 @@ def finish_shop_order(
     if not items:
         return HTMLResponse("Adicione pelo menos um produto ao carrinho.", status_code=400)
 
-    try:
-        discount_value = max(0.0, float(str(discount_amount or "0").replace(",", ".")))
-    except ValueError:
-        discount_value = 0.0
     subtotal = sum(item.subtotal for item in items)
-    discount_value = min(discount_value, subtotal)
     coupon_code = coupon_code.strip().upper()
+    discount_value = 0.0
+    coupon = None
+    if coupon_code:
+        coupon = db.scalar(select(Coupon).where(Coupon.code == coupon_code))
+        already_redeemed = bool(coupon and db.scalar(
+            select(CouponRedemption.id).where(
+                CouponRedemption.coupon_id == coupon.id,
+                CouponRedemption.customer_id == int(cid),
+            )
+        ))
+        if coupon and _coupon_is_available(coupon) and not already_redeemed:
+            discount_value = _coupon_discount_amount(coupon, subtotal)
+        if not coupon or discount_value <= 0 or already_redeemed:
+            coupon = None
+            coupon_code = ""
 
     submitted_order_id = client_order_id.strip().upper()
     if not submitted_order_id.startswith("APP-") or len(submitted_order_id) > 80:
@@ -786,6 +814,18 @@ def finish_shop_order(
         grj_order = _send_order_to_grj(order_payload)
     except RuntimeError as exc:
         return HTMLResponse(str(exc), status_code=502)
+    if coupon and discount_value > 0:
+        try:
+            db.add(CouponRedemption(
+                coupon_id=coupon.id,
+                customer_id=int(cid),
+                client_order_id=client_order_id,
+                discount_amount=discount_value,
+            ))
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Coupon redemption save failed for coupon=%s customer=%s", coupon_code, cid)
 
     order = SimpleNamespace(
         code=f"#{grj_order.get('pedido_id') or client_order_id}",

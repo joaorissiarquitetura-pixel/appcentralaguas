@@ -228,6 +228,12 @@
       color: var(--ca-white);
       box-shadow: 0 12px 22px rgba(11, 76, 203, 0.17);
     }
+    .primary-button:disabled,
+    .secondary-button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
     .secondary-button { background: var(--ca-white); color: var(--ca-primary); }
     .text-button {
       min-height: 42px;
@@ -1615,9 +1621,10 @@
     .promo-banner-card img {
       display: block;
       width: 100%;
-      aspect-ratio: 16 / 10;
-      object-fit: cover;
-      background: #eef5ff;
+      height: auto;
+      max-height: min(70vh, 520px);
+      object-fit: contain;
+      background: #fff;
     }
     .promo-banner-copy {
       display: grid;
@@ -2075,7 +2082,7 @@
           <h2>{{ loyalty.progress if loyalty.available else 0 }} de {{ loyalty_target }} pontos</h2>
           <div class="progress-track"><span></span></div>
           <p class="small">Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.</p>
-          <button class="primary-button" type="button" data-go="store">Usar na próxima compra</button>
+          <button class="primary-button" type="button" {% if coupons.available|length %}data-go="coupons"{% else %}disabled aria-disabled="true"{% endif %}>{{ 'Usar na próxima compra' if coupons.available|length else 'Sem cupom disponível' }}</button>
         </article>
         <button class="menu-row" type="button" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated-fill"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis para usar no app</span></span><i class="bi bi-chevron-right"></i></button>
         <h2 class="section-title">Histórico de pontos</h2>
@@ -2110,7 +2117,7 @@
                 <span>{{ coupon.code }}</span>
                 <button type="button" data-copy-coupon="{{ coupon.code }}">Copiar</button>
               </div>
-              <div class="small muted">{{ coupon.min_order_label }} · {{ coupon.validity_label }}</div>
+              <div class="small muted">{{ 'Já usado neste cadastro' if coupon.already_used else coupon.min_order_label ~ ' · ' ~ coupon.validity_label }}</div>
               <button class="primary-button" type="button" data-apply-coupon="{{ coupon.code }}" data-go="checkout">Aplicar cupom</button>
             </article>
           {% else %}
@@ -2691,6 +2698,17 @@
         device_id: getDeviceId()
       });
       params.delete("notification_id");
+      const nextQuery = params.toString();
+      const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+      window.history.replaceState({}, "", nextUrl);
+    }
+
+    function applyHydrationDrinkFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("drink") !== "1") return;
+      const profile = loadHydrationProfile();
+      addHydrationRecord(profile.selectedDrinkMl || profile.cupMl || 300);
+      params.delete("drink");
       const nextQuery = params.toString();
       const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
       window.history.replaceState({}, "", nextUrl);
@@ -3496,6 +3514,8 @@
             times: plan.times,
             cupMl: plan.cupMl,
             count: plan.times.length,
+            title: "Hora de beber água",
+            body: `Tome um copo de água para reduzir a fadiga. ${plan.cupMl} ml agora.`,
             url: "/app?screen=gotinha"
           }));
         } catch {}
@@ -3514,7 +3534,8 @@
         if (delay <= 0) return;
         hydrationNotificationTimers.push(setTimeout(() => {
           new Notification("Hora da água", {
-            body: `Beba 1 copo de ${plan.cupMl} ml. Aviso ${index + 1} de ${plan.times.length}.`,
+            body: `Tome um copo de água para reduzir a fadiga. ${plan.cupMl} ml agora.`,
+            tag: "central-aguas-hydration",
             icon: "/static/assets/gotinha/emotions/alegria.webp"
           });
         }, delay));
@@ -4724,6 +4745,7 @@
       });
     }, 60000);
     trackNotificationOpenFromUrl();
+    applyHydrationDrinkFromUrl();
     loadPromoBanner();
     loadAppBootstrap().then(registerAppDevice).then(syncPushSubscription);
     if ("serviceWorker" in navigator) {

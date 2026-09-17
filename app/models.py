@@ -110,6 +110,18 @@ class Coupon(Base):
     display_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+class CouponRedemption(Base):
+    __tablename__ = "coupon_redemptions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    coupon_id: Mapped[int] = mapped_column(ForeignKey("coupons.id"), index=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
+    client_order_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    discount_amount: Mapped[float] = mapped_column(Float, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    coupon = relationship("Coupon")
+    customer = relationship("Customer")
+
 class AppDevice(Base):
     __tablename__ = "app_devices"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -223,6 +235,23 @@ class AppBannerEvent(Base):
 
     banner = relationship("AppBanner")
     customer = relationship("Customer")
+
+
+class AppPromotion(Base):
+    __tablename__ = "app_promotions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(120))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rule_type: Mapped[str] = mapped_column(String(40), default="custom")
+    rule_config: Mapped[str | None] = mapped_column(Text, nullable=True)
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    valid_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    created_by = relationship("Attendant")
 
 
 class AdminAuditLog(Base):

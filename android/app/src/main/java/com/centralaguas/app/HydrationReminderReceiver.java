@@ -4,6 +4,8 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -17,6 +19,8 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
     static final String EXTRA_TOTAL = "total";
     static final String EXTRA_CUP_ML = "cup_ml";
     static final String EXTRA_URL = "url";
+    static final String EXTRA_TITLE = "title";
+    static final String EXTRA_BODY = "body";
 
     private static final String CHANNEL_ID = "central_aguas_hydration";
     private static final int NOTIFICATION_ID = 55001;
@@ -47,8 +51,16 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Lembretes de água",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             );
+            channel.enableVibration(true);
+            channel.setDescription("Avisos da Gotinha com botão para registrar água.");
+            Uri sound = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI;
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_REMINDER)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+            channel.setSound(sound, audioAttributes);
             manager.createNotificationChannel(channel);
         }
 
@@ -56,8 +68,16 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
         int total = sourceIntent.getIntExtra(EXTRA_TOTAL, 1);
         int cupMl = sourceIntent.getIntExtra(EXTRA_CUP_ML, 300);
         String url = sourceIntent.getStringExtra(EXTRA_URL);
+        String title = sourceIntent.getStringExtra(EXTRA_TITLE);
+        String body = sourceIntent.getStringExtra(EXTRA_BODY);
         if (url == null || url.trim().isEmpty()) {
             url = "/app?screen=gotinha";
+        }
+        if (title == null || title.trim().isEmpty()) {
+            title = "Hora de beber água";
+        }
+        if (body == null || body.trim().isEmpty()) {
+            body = "Tome um copo de água para reduzir a fadiga. " + cupMl + " ml agora.";
         }
 
         Intent openIntent = new Intent(context, MainActivity.class);
@@ -85,11 +105,15 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
 
         builder
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Hora da água")
-            .setContentText("Beba 1 copo de " + cupMl + " ml. Aviso " + index + " de " + total + ".")
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(new Notification.BigTextStyle().bigText(body + " Aviso " + index + " de " + total + "."))
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
-            .addAction(R.mipmap.ic_launcher, "Bebi água", drankPendingIntent);
+            .setCategory(Notification.CATEGORY_REMINDER)
+            .setPriority(Notification.PRIORITY_HIGH)
+            .setDefaults(Notification.DEFAULT_ALL)
+            .addAction(R.mipmap.ic_launcher, "BEBER", drankPendingIntent);
 
         manager.notify(NOTIFICATION_ID, builder.build());
     }

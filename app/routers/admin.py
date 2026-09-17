@@ -17,7 +17,7 @@ import time as _time
 import json
 
 from ..database import get_db
-from ..models import AppBanner, AppDevice, AppNotification, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
+from ..models import AppBanner, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
@@ -478,6 +478,7 @@ def admin_notifications(
     subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
     latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(30)).scalars().all()
     banners = db.execute(select(AppBanner).order_by(AppBanner.active.desc(), AppBanner.display_order.asc(), AppBanner.created_at.desc()).limit(30)).scalars().all()
+    app_promotions = db.execute(select(AppPromotion).order_by(AppPromotion.active.desc(), AppPromotion.display_order.asc(), AppPromotion.created_at.desc()).limit(30)).scalars().all()
 
     return templates.TemplateResponse(
         request=request,
@@ -487,6 +488,7 @@ def admin_notifications(
             "business_name": settings.BUSINESS_NAME,
             "latest_notifications": latest_notifications,
             "banners": banners,
+            "app_promotions": app_promotions,
             "device_count": db.scalar(select(func.count(AppDevice.id))) or 0,
             "fcm_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
             "push_active_count": sum(1 for subscription in subscriptions if subscription.active and subscription.device_id not in blocked_device_ids),
@@ -866,6 +868,69 @@ def toggle_app_banner(banner_id: int, request: Request, db: Session = Depends(ge
     )
     db.commit()
     return RedirectResponse("/admin/notifications?success=Banner%20atualizado", status_code=303)
+
+
+@router.post("/notifications/promotions")
+def create_app_promotion(
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(""),
+    rule_type: str = Form("custom"),
+    rule_config: str = Form(""),
+    valid_from: str = Form(""),
+    valid_until: str = Form(""),
+    display_order: int = Form(0),
+    active: str = Form("on"),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    allowed_rule_types = {"bonus_points", "coupon_once", "banner_offer", "custom"}
+    promotion = AppPromotion(
+        title=title.strip()[:120] or "Promoção do app",
+        description=description.strip() or None,
+        rule_type=rule_type if rule_type in allowed_rule_types else "custom",
+        rule_config=rule_config.strip() or None,
+        valid_from=_parse_optional_datetime(valid_from),
+        valid_until=_parse_optional_datetime(valid_until),
+        display_order=int(display_order or 0),
+        active=active == "on",
+        created_by_attendant_id=admin.id,
+    )
+    db.add(promotion)
+    db.flush()
+    log_admin_action(
+        db,
+        action="app_promotion_created",
+        actor_attendant_id=admin.id,
+        entity_type="app_promotion",
+        entity_id=promotion.id,
+        details={"title": promotion.title, "rule_type": promotion.rule_type, "active": bool(promotion.active)},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse("/admin/notifications?success=Promoção%20do%20app%20salva", status_code=303)
+
+
+@router.post("/notifications/promotions/{promotion_id}/toggle")
+def toggle_app_promotion(promotion_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    promotion = db.get(AppPromotion, promotion_id)
+    if not promotion:
+        return RedirectResponse("/admin/notifications?err=Promoção%20não%20encontrada", status_code=303)
+    promotion.active = not bool(promotion.active)
+    log_admin_action(
+        db,
+        action="app_promotion_toggled",
+        actor_attendant_id=admin.id,
+        entity_type="app_promotion",
+        entity_id=promotion.id,
+        details={"title": promotion.title, "active": bool(promotion.active)},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse("/admin/notifications?success=Promoção%20atualizada", status_code=303)
 
 
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---

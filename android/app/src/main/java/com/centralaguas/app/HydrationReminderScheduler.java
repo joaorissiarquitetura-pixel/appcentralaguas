@@ -24,6 +24,8 @@ public final class HydrationReminderScheduler {
             int cupMl = payload.optInt("cupMl", 300);
             int total = payload.optInt("count", times != null ? times.length() : 0);
             String url = payload.optString("url", "/app?screen=gotinha");
+            String title = payload.optString("title", "Hora de beber água");
+            String body = payload.optString("body", "");
             if (times == null || times.length() == 0) {
                 return false;
             }
@@ -43,6 +45,8 @@ public final class HydrationReminderScheduler {
                 intent.putExtra(HydrationReminderReceiver.EXTRA_TOTAL, total);
                 intent.putExtra(HydrationReminderReceiver.EXTRA_CUP_ML, cupMl);
                 intent.putExtra(HydrationReminderReceiver.EXTRA_URL, url);
+                intent.putExtra(HydrationReminderReceiver.EXTRA_TITLE, title);
+                intent.putExtra(HydrationReminderReceiver.EXTRA_BODY, body);
                 PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context,
                     REQUEST_BASE + index,

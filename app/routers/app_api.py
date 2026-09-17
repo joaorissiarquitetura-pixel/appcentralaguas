@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppPromotion, LocationAccessLog, PushSubscription
 from ..services.app_access import check_service_area
 from ..services.push import push_configured
 
@@ -154,6 +154,35 @@ def app_banners(request: Request, device_id: str = "", db: Session = Depends(get
                 "link_url": banner.link_url or "",
             }
             for banner in banners[:1]
+        ],
+    }
+
+
+@router.get("/promotions")
+def app_promotions(request: Request, db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+    query = (
+        select(AppPromotion)
+        .where(AppPromotion.active == True)
+        .order_by(AppPromotion.display_order.asc(), AppPromotion.created_at.desc())
+    )
+    promotions = [
+        promotion
+        for promotion in db.execute(query).scalars().all()
+        if (not promotion.valid_from or promotion.valid_from <= now)
+        and (not promotion.valid_until or promotion.valid_until >= now)
+    ]
+    return {
+        "ok": True,
+        "promotions": [
+            {
+                "id": promotion.id,
+                "title": promotion.title,
+                "description": promotion.description or "",
+                "rule_type": promotion.rule_type,
+                "rule_config": promotion.rule_config or "",
+            }
+            for promotion in promotions[:20]
         ],
     }
 

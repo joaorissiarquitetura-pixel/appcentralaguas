@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-aguas-app-v8";
+const CACHE_NAME = "central-aguas-app-v9";
 const APP_SHELL = [
   "/app",
   "/manifest.webmanifest",
@@ -77,13 +77,17 @@ self.addEventListener("push", (event) => {
     body: payload.body || "Você tem uma novidade no app.",
     icon: payload.icon || "/static/icons/icon-192.png",
     badge: "/static/icons/icon-192.png",
-    data: { url: payload.url || "/app", notification_id: payload.notification_id || null }
+    tag: payload.tag || "central-aguas",
+    data: { url: payload.url || "/app", notification_id: payload.notification_id || null },
+    actions: payload.actions || []
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/app";
+  const url = event.action === "drink_water"
+    ? "/app?screen=gotinha&drink=1"
+    : event.notification.data?.url || "/app";
   event.waitUntil(clients.openWindow(url));
 });

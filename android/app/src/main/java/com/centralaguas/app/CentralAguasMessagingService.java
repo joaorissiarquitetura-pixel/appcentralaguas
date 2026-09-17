@@ -37,8 +37,9 @@ public class CentralAguasMessagingService extends FirebaseMessagingService {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Central Águas",
-                NotificationManager.IMPORTANCE_DEFAULT
+                NotificationManager.IMPORTANCE_HIGH
             );
+            channel.enableVibration(true);
             manager.createNotificationChannel(channel);
         }
 
@@ -60,7 +61,10 @@ public class CentralAguasMessagingService extends FirebaseMessagingService {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(body)
+            .setStyle(new android.app.Notification.BigTextStyle().bigText(body))
             .setContentIntent(pendingIntent)
+            .setPriority(android.app.Notification.PRIORITY_HIGH)
+            .setDefaults(android.app.Notification.DEFAULT_ALL)
             .setAutoCancel(true);
 
         manager.notify((int) System.currentTimeMillis(), builder.build());

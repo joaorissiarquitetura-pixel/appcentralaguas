@@ -10,7 +10,9 @@ from .models import (
     AppDevice,
     AppNotification,
     AppNotificationEvent,
+    AppPromotion,
     Coupon,
+    CouponRedemption,
     LocationAccessLog,
     PushSubscription,
 )
@@ -79,6 +81,8 @@ def ensure_runtime_schema_updates() -> None:
         AppNotificationEvent,
         AppBanner,
         AppBannerEvent,
+        AppPromotion,
+        CouponRedemption,
         AdminAuditLog,
     ):
         table_model.__table__.create(bind=engine, checkfirst=True)

@@ -20,6 +20,7 @@
   .banner-list { display: grid; gap: 12px; }
   .banner-item { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--ca-line); }
   .banner-thumb { width: 96px; aspect-ratio: 16 / 9; border-radius: 8px; object-fit: cover; background: #eef5ff; border: 1px solid var(--ca-line); }
+  .rule-help { padding: 12px; border: 1px solid var(--ca-line); border-radius: 12px; background: #f7fbff; }
   .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
   .status-ok { background: #16a34a; }
   .status-warn { background: #f59e0b; }
@@ -102,7 +103,7 @@
         <input class="form-control" type="file" name="banner_image" accept="image/png,image/jpeg,image/webp">
         <input class="form-control" type="url" name="image_url" placeholder="Ou cole a URL da imagem do banner">
         <div class="form-grid-2">
-          <input class="form-control" type="text" name="link_url" value="/app" placeholder="Link ao tocar no banner">
+          <input class="form-control" type="text" name="link_url" value="/app" placeholder="Link ao tocar no banner. Ex: /app?screen=coupons">
           <select class="form-select" name="target">
             <option value="all">Todos os dispositivos</option>
             <option value="customers">Clientes logados</option>
@@ -128,6 +129,7 @@
             <span>
               <strong>{{ banner.title }}</strong>
               <span class="small-muted d-block">{{ 'ativo' if banner.active else 'inativo' }} · {{ banner.seen_count or 0 }} visualizações · {{ banner.closed_count or 0 }} fechamentos · {{ format_dt(banner.created_at) }}</span>
+              {% if banner.link_url %}<span class="small-muted d-block">Destino: {{ banner.link_url }}</span>{% endif %}
               {% if banner.body %}<span class="small-muted d-block">{{ banner.body }}</span>{% endif %}
             </span>
             <form method="post" action="/admin/notifications/banners/{{ banner.id }}/toggle">
@@ -136,6 +138,57 @@
           </div>
         {% else %}
           <div class="small-muted">Nenhum banner cadastrado ainda.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="content-grid">
+    <section class="admin-card">
+      <h2>Promoções exclusivas do app</h2>
+      <form class="form-grid" method="post" action="/admin/notifications/promotions">
+        <input class="form-control" type="text" name="title" placeholder="Nome da promoção" required>
+        <textarea class="form-control" name="description" rows="2" placeholder="Texto que explica a campanha"></textarea>
+        <div class="form-grid-2">
+          <select class="form-select" name="rule_type">
+            <option value="bonus_points">Pontos extras no app</option>
+            <option value="coupon_once">Cupom uma vez por cadastro</option>
+            <option value="banner_offer">Oferta por banner</option>
+            <option value="custom">Regra personalizada</option>
+          </select>
+          <input class="form-control" type="number" name="display_order" value="0" placeholder="Ordem">
+        </div>
+        <textarea class="form-control" name="rule_config" rows="4" placeholder='Configuração. Ex: {"multiplicador":2,"limite_pontos_cliente":5}'></textarea>
+        <div class="rule-help small-muted">Use este campo para guardar regras livres, como pontos em dobro, limite por cliente, cupom uma vez por cadastro ou campanhas temporárias.</div>
+        <div class="form-grid-2">
+          <input class="form-control" type="datetime-local" name="valid_from">
+          <input class="form-control" type="datetime-local" name="valid_until">
+        </div>
+        <label class="form-check d-flex align-items-center gap-2 mb-0">
+          <input class="form-check-input" type="checkbox" name="active" checked>
+          <span>Promoção ativa</span>
+        </label>
+        <button class="ca-pill ca-primary" type="submit">Salvar promoção</button>
+      </form>
+    </section>
+
+    <section class="admin-card">
+      <h2>Promoções cadastradas</h2>
+      <div class="quick-list">
+        {% for promotion in app_promotions %}
+          <div class="quick-item">
+            <span>
+              <strong>{{ promotion.title }}</strong>
+              <span class="small-muted d-block">{{ 'ativa' if promotion.active else 'inativa' }} · {{ promotion.rule_type }} · {{ format_dt(promotion.created_at) }}</span>
+              {% if promotion.description %}<span class="small-muted d-block">{{ promotion.description }}</span>{% endif %}
+              {% if promotion.rule_config %}<code class="small-muted d-block">{{ promotion.rule_config }}</code>{% endif %}
+            </span>
+            <form method="post" action="/admin/notifications/promotions/{{ promotion.id }}/toggle">
+              <button class="ca-pill ca-outline" type="submit">{{ 'Desativar' if promotion.active else 'Ativar' }}</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="small-muted">Nenhuma promoção exclusiva cadastrada ainda.</div>
         {% endfor %}
       </div>
     </section>
