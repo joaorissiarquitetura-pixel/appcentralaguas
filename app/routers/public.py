@@ -682,6 +682,7 @@ def subscription_interest_placeholder():
 @router.post("/loja/finalizar", response_class=HTMLResponse)
 def finish_shop_order(
     request: Request,
+    client_order_id: str = Form(""),
     items_json: str = Form("[]"),
     fulfillment: str = Form("delivery"),
     payment_method: str = Form("pix"),
@@ -738,7 +739,10 @@ def finish_shop_order(
     discount_value = min(discount_value, subtotal)
     coupon_code = coupon_code.strip().upper()
 
-    client_order_id = f"APP-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+    submitted_order_id = client_order_id.strip().upper()
+    if not submitted_order_id.startswith("APP-") or len(submitted_order_id) > 80:
+        submitted_order_id = f"APP-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
+    client_order_id = submitted_order_id
     order_payload = {
         "client_order_id": client_order_id,
         "attendance_channel": "app_online",

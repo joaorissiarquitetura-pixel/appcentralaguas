@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
@@ -59,6 +63,13 @@ class LocationCheckPayload(BaseModel):
 
 class DeviceEventPayload(BaseModel):
     device_id: str = ""
+
+
+def _grj_app_status_url() -> str:
+    orders_url = settings.CENTRAL_AGUAS_ORDERS_API_URL.strip()
+    if orders_url.endswith("/orders"):
+        return f"{orders_url}/app-status"
+    return urllib.parse.urljoin(orders_url.rstrip("/") + "/", "app-status")
 
 
 def _current_customer_id(request: Request) -> int | None:
@@ -217,6 +228,35 @@ def mark_notification_opened(notification_id: int, payload: DeviceEventPayload, 
     notification.opened_count = (notification.opened_count or 0) + 1
     db.commit()
     return {"ok": True}
+
+
+@router.get("/orders/status")
+def app_order_status(client_order_ids: str = ""):
+    references = [
+        item.strip()
+        for item in client_order_ids.replace(";", ",").split(",")
+        if item.strip()
+    ][:50]
+    if not references:
+        return {"ok": True, "orders": []}
+    token = settings.CENTRAL_AGUAS_APP_TOKEN.strip()
+    if not token:
+        return {"ok": False, "error": "grj_token_missing", "orders": []}
+    url = f"{_grj_app_status_url()}?{urllib.parse.urlencode({'client_order_ids': ','.join(references)})}"
+    request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=12) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        return {"ok": False, "error": str(exc), "orders": []}
+    return {"ok": payload.get("status") == "ok", "orders": payload.get("data") or []}
 
 
 @router.post("/device")

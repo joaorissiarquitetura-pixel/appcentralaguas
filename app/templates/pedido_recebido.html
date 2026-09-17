@@ -234,7 +234,7 @@
       <div class="order-title">
         <span class="order-pill">Pedido enviado</span>
         <h1>Agora é com a nossa equipe.</h1>
-        <p>A Central já recebeu sua solicitação. Quando o gestor de pedidos do GRJ estiver integrado, cada mudança de status vai aparecer aqui e chegar por notificação.</p>
+        <p>A Central já recebeu sua solicitação. Você pode acompanhar o andamento em Meus pedidos.</p>
       </div>
 
       <div class="order-flow" aria-label="Status do pedido">
@@ -242,14 +242,6 @@
         <div class="order-step is-muted"><i class="bi bi-headset"></i><span>Confirmando</span></div>
         <div class="order-step is-muted"><i class="bi bi-truck"></i><span>{{ 'Pronto para retirada' if order.fulfillment == 'pickup' else 'Saiu para entrega' }}</span></div>
         <div class="order-step is-muted"><i class="bi bi-award"></i><span>Concluído + pontos</span></div>
-      </div>
-
-      <div class="order-next">
-        <i class="bi bi-bell-fill"></i>
-        <span>
-          <strong>Próximos avisos</strong>
-          <span>Você será avisado quando o pedido for confirmado, sair para entrega e for concluído. Na conclusão, os pontos de fidelidade entram no app.</span>
-        </span>
       </div>
 
       <section class="order-panel" aria-label="Resumo do pedido">
@@ -291,6 +283,7 @@
 
       <div class="order-actions">
         <a class="ca-pill ca-primary" href="/app">Voltar ao app</a>
+        <a class="ca-pill ca-outline" href="/app?screen=orders">Ver meus pedidos</a>
         <a class="ca-pill ca-outline" href="/loja">Novo pedido</a>
       </div>
     </div>

@@ -744,6 +744,32 @@
       font-weight: 800;
       white-space: nowrap;
     }
+    .order-card { cursor: pointer; }
+    .order-detail {
+      display: none;
+      gap: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--ca-line);
+    }
+    .order-card.is-open .order-detail { display: grid; }
+    .order-history {
+      display: grid;
+      gap: 8px;
+    }
+    .order-history-item {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+      color: var(--ca-muted);
+      font-size: 0.78rem;
+    }
+    .order-history-item i { color: var(--ca-line-strong); }
+    .order-history-item.is-done {
+      color: #101828;
+      font-weight: 700;
+    }
+    .order-history-item.is-done i { color: var(--ca-primary); }
     .coupon-tabs {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1343,6 +1369,45 @@
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+    .hydration-slider-box,
+    .hydration-day-ruler {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+    }
+    .hydration-day-ruler {
+      border-color: rgba(0, 180, 240, 0.18);
+      background: #f0fbff;
+    }
+    .hydration-slider-box label,
+    .hydration-ruler-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: #344054;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+    .hydration-slider-box input[type="range"] {
+      width: 100%;
+      accent-color: var(--ca-primary);
+    }
+    .hydration-ruler-track {
+      height: 12px;
+      border-radius: 999px;
+      background: #dde9fb;
+      overflow: hidden;
+    }
+    .hydration-ruler-track span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #00b4f0, #0b4ccb);
+    }
     .drink-options {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1933,6 +1998,7 @@
           <div class="checkout-warning" id="checkoutWarning"></div>
         </article>
         <form method="post" action="/loja/finalizar" id="orderForm">
+          <input type="hidden" name="client_order_id" id="clientOrderIdInput">
           <input type="hidden" name="items_json" id="itemsJson">
           <input type="hidden" name="fulfillment" value="delivery">
           <input type="hidden" name="payment_method" value="pix" id="paymentMethod">
@@ -2202,6 +2268,14 @@
                 <button class="drink-chip is-active" type="button" data-drink-amount="300">300 ml</button>
                 <button class="drink-chip" type="button" data-drink-amount="500">500 ml</button>
               </div>
+              <div class="hydration-slider-box">
+                <label for="drinkAmountRange"><span>Volume do copo</span><strong data-drink-amount-label>300 ml</strong></label>
+                <input id="drinkAmountRange" type="range" min="100" max="1000" step="50" value="300" data-drink-amount-range>
+              </div>
+              <div class="hydration-day-ruler">
+                <div class="hydration-ruler-top"><span data-hydration-ruler-drunk>Bebeu 0 ml</span><span data-hydration-ruler-left>Faltam --</span></div>
+                <div class="hydration-ruler-track" aria-hidden="true"><span data-hydration-ruler-bar></span></div>
+              </div>
               <div class="hydration-action-row">
                 <button class="secondary-button" type="button" data-hydration-adjust-cup>Usar como copo</button>
                 <button class="primary-button" type="button" data-water-done>+ Beber</button>
@@ -2244,6 +2318,10 @@
                 <button class="reminder-mode" type="button" data-reminder-mode="standard"><strong>Padrão</strong><span>sono e refeições</span></button>
                 <button class="reminder-mode" type="button" data-reminder-mode="interval"><strong>Intervalo</strong><span>de tempos em tempos</span></button>
                 <button class="reminder-mode" type="button" data-reminder-mode="custom"><strong>Personalizado</strong><span>horários do plano</span></button>
+              </div>
+              <div class="hydration-slider-box">
+                <label for="hydrationInterval"><span>Intervalo entre avisos</span><strong data-hydration-interval-label>90 min</strong></label>
+                <input id="hydrationInterval" type="range" min="30" max="180" step="15" value="90" data-hydration-interval>
               </div>
               <div class="reminder-times" data-reminder-times aria-label="Horários sugeridos"></div>
               <div class="setting-row">
@@ -2449,6 +2527,7 @@
       dinnerTime: "19:30",
       workType: "leve",
       reminderMode: "standard",
+      reminderIntervalMin: 90,
       stopAtGoal: true,
       weekendMode: false,
       setupComplete: false,
@@ -2750,6 +2829,10 @@
       updateCheckout();
     }
 
+    function newClientOrderId(date = new Date()) {
+      return `APP-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
+    }
+
     function loadOrders() {
       try {
         const orders = JSON.parse(localStorage.getItem(ordersKey) || "[]");
@@ -2759,14 +2842,16 @@
       }
     }
 
-    function saveOrderSnapshot() {
+    function saveOrderSnapshot(clientOrderId = "") {
       const orders = loadOrders();
       const now = new Date();
       const items = activeCartItems().map((item) => ({ ...item }));
       const subtotal = cartSubtotal();
       const discount = couponDiscount(subtotal);
+      const id = clientOrderId || newClientOrderId(now);
       orders.unshift({
-        id: `APP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`,
+        id,
+        clientOrderId: id,
         product: items.length === 1 ? items[0].product : `${items.length} produtos`,
         description: items.map((item) => `${item.qty}x ${item.product}`).join(", "),
         unitPrice: items[0]?.price || 0,
@@ -2782,6 +2867,7 @@
         createdAt: now.toISOString()
       });
       localStorage.setItem(ordersKey, JSON.stringify(orders.slice(0, 20)));
+      return id;
     }
 
     function renderPayment() {
@@ -2795,12 +2881,93 @@
       });
     }
 
-    function renderOrders() {
+    function orderStatusLabel(order) {
+      const status = order.appStatus || order.status || "pending";
+      if (status === "done") return "Concluído";
+      if (status === "cancelled") return "Cancelado";
+      if (status === "out_for_delivery") return "Saiu para entrega";
+      if (status === "accepted") return "Aceito";
+      if (status === "pending_acceptance") return "Aguardando aceite";
+      return "Pendente";
+    }
+
+    function orderIsDone(order) {
+      return ["done", "cancelled"].includes(order.appStatus || order.status);
+    }
+
+    function orderHistory(order) {
+      if (Array.isArray(order.history) && order.history.length) return order.history;
+      return [
+        { label: "Pedido enviado pelo app", done: true, at: order.createdAt },
+        { label: "Aguardando aceite da Central Águas", done: ["accepted", "out_for_delivery", "done"].includes(order.appStatus || order.status) },
+        { label: "Saiu para entrega", done: ["out_for_delivery", "done"].includes(order.appStatus || order.status) },
+        { label: "Pedido concluído", done: (order.appStatus || order.status) === "done" }
+      ];
+    }
+
+    function notifyOrderIfNeeded(oldOrder, newOrder) {
+      const oldStatus = oldOrder?.appStatus || oldOrder?.status || "pending";
+      const newStatus = newOrder?.appStatus || newOrder?.status || "pending";
+      if (oldStatus === newStatus || newStatus !== "out_for_delivery") return;
+      const driver = newOrder.deliveryDriverName || newOrder.delivery_driver_name || "";
+      const body = driver
+        ? `Seu pedido já está com ${driver}. Já já está chegando aí.`
+        : "Seu pedido saiu para entrega. Já já está chegando aí.";
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Pedido Central Águas", {
+          body,
+          icon: "/static/icons/icon-192.png"
+        });
+      }
+    }
+
+    async function syncOrdersFromGrj() {
+      const currentOrders = loadOrders();
+      const references = currentOrders.map((order) => order.clientOrderId || order.id).filter((id) => String(id || "").startsWith("APP-"));
+      if (!references.length) return currentOrders;
+      try {
+        const response = await fetch(`/api/app/orders/status?client_order_ids=${encodeURIComponent(references.join(","))}`);
+        const data = await response.json();
+        if (!data.ok || !Array.isArray(data.orders)) return currentOrders;
+        const byReference = new Map(data.orders.map((order) => [order.client_order_id || order.payment_reference, order]));
+        const updated = currentOrders.map((order) => {
+          const ref = order.clientOrderId || order.id;
+          const remote = byReference.get(ref);
+          if (!remote) return order;
+          const next = {
+            ...order,
+            grjId: remote.id,
+            status: remote.app_status === "done" ? "done" : remote.app_status || order.status,
+            appStatus: remote.app_status,
+            appStatusLabel: remote.app_status_label,
+            deliveryStatus: remote.delivery_status,
+            deliveryDriverName: remote.delivery_driver_name,
+            history: remote.history || order.history,
+            items: remote.items?.length ? remote.items.map((item) => ({
+              product: item.description,
+              qty: item.quantity,
+              price: item.unit_price,
+              total: item.total_amount
+            })) : order.items,
+            total: Number(remote.total_amount ?? order.total ?? 0),
+            updatedAt: remote.updated_at || order.updatedAt
+          };
+          notifyOrderIfNeeded(order, next);
+          return next;
+        });
+        localStorage.setItem(ordersKey, JSON.stringify(updated.slice(0, 20)));
+        return updated;
+      } catch {
+        return currentOrders;
+      }
+    }
+
+    function renderOrders(sourceOrders = null) {
       const list = document.querySelector("[data-orders-list]");
       if (!list) return;
-      const orders = loadOrders().filter((order) => {
-        if (ordersFilter === "pending") return order.status !== "done";
-        if (ordersFilter === "done") return order.status === "done";
+      const orders = (sourceOrders || loadOrders()).filter((order) => {
+        if (ordersFilter === "pending") return !orderIsDone(order);
+        if (ordersFilter === "done") return orderIsDone(order);
         return true;
       });
       if (!orders.length) {
@@ -2814,16 +2981,28 @@
         return;
       }
       list.innerHTML = orders.map((order) => `
-        <article class="order-card">
+        <article class="order-card" data-order-card="${escapeHtml(order.clientOrderId || order.id || "")}">
           <div class="order-card-top">
             <span class="blue-icon"><i class="bi bi-bag-check"></i></span>
             <span class="row-copy">
               <strong>${order.id || "Pedido do app"}</strong>
               <span>${order.product || "Produto"} · ${order.qty || 1} un. · ${formatMoney(Number(order.total || 0))}</span>
             </span>
-            <span class="order-status">${order.status === "done" ? "Concluído" : "Pendente"}</span>
+            <span class="order-status">${escapeHtml(order.appStatusLabel || orderStatusLabel(order))}</span>
           </div>
           <span class="small muted">${order.delivery || "Entrega a confirmar"} · ${paymentLabel(order.payment)}</span>
+          <div class="order-detail">
+            <strong>Histórico do pedido</strong>
+            <div class="order-history">
+              ${orderHistory(order).map((event) => `
+                <div class="order-history-item ${event.done ? "is-done" : ""}">
+                  <i class="bi ${event.done ? "bi-check-circle-fill" : "bi-circle"}"></i>
+                  <span>${escapeHtml(event.label || "")}${event.at ? ` · ${new Date(event.at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}</span>
+                </div>
+              `).join("")}
+            </div>
+            ${order.deliveryDriverName ? `<span class="small muted">Entregador: ${escapeHtml(order.deliveryDriverName)}</span>` : ""}
+          </div>
         </article>
       `).join("");
     }
@@ -3089,15 +3268,16 @@
         const saved = JSON.parse(localStorage.getItem(hydrationKey) || "{}");
         const today = hydrationDefaults.date;
         const rawRecords = Array.isArray(saved.records) ? saved.records : [];
-        const records = rawRecords
-          .filter((record) => record && String(record.date || "").slice(0, 10) === today)
+        const allRecords = rawRecords
+          .filter((record) => record)
           .map((record) => ({
-            date: today,
+            date: String(record.date || record.at || today).slice(0, 10),
             at: record.at || new Date().toISOString(),
             amountMl: Math.max(0, Math.min(1500, Number(record.amountMl || record.amount || saved.cupMl || hydrationDefaults.cupMl)))
           }))
           .filter((record) => record.amountMl > 0);
-        const doneMl = records.reduce((sum, record) => sum + record.amountMl, 0);
+        const todayRecords = allRecords.filter((record) => record.date === today);
+        const doneMl = todayRecords.reduce((sum, record) => sum + record.amountMl, 0);
         const savedDone = saved.date === today ? Number(saved.done || 0) : 0;
         const legacyDoneMl = rawRecords.length || savedDone > 40
           ? savedDone
@@ -3106,7 +3286,7 @@
           ...hydrationDefaults,
           ...saved,
           selectedDrinkMl: Number(saved.selectedDrinkMl || saved.cupMl || hydrationDefaults.cupMl),
-          records,
+          records: allRecords,
           done: doneMl || legacyDoneMl,
           date: today
         };
@@ -3135,7 +3315,9 @@
         at: new Date().toISOString(),
         amountMl: amount
       });
-      profile.done = profile.records.reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
+      profile.done = profile.records
+        .filter((record) => record.date === hydrationDefaults.date)
+        .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
       profile.selectedDrinkMl = amount;
       saveHydrationProfile(profile);
       renderHydration();
@@ -3144,15 +3326,21 @@
     function removeHydrationRecord(index) {
       const profile = loadHydrationProfile();
       profile.records = Array.isArray(profile.records) ? profile.records : [];
-      profile.records.splice(index, 1);
-      profile.done = profile.records.reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
+      const todayIndexes = profile.records
+        .map((record, recordIndex) => ({ record, recordIndex }))
+        .filter((item) => item.record.date === hydrationDefaults.date);
+      const target = todayIndexes[index];
+      if (target) profile.records.splice(target.recordIndex, 1);
+      profile.done = profile.records
+        .filter((record) => record.date === hydrationDefaults.date)
+        .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
       saveHydrationProfile(profile);
       renderHydration();
     }
 
     function clearHydrationDay() {
       const profile = loadHydrationProfile();
-      profile.records = [];
+      profile.records = (Array.isArray(profile.records) ? profile.records : []).filter((record) => record.date !== hydrationDefaults.date);
       profile.done = 0;
       saveHydrationProfile(profile);
       renderHydration();
@@ -3629,7 +3817,7 @@
 
     function hydrationReminderTimes(count, profile) {
       const mode = profile.reminderMode || "standard";
-      const interval = profile.routine === "corrida" ? 75 : profile.routine === "calma" ? 120 : 90;
+      const interval = Math.max(30, Math.min(180, Number(profile.reminderIntervalMin || (profile.routine === "corrida" ? 75 : profile.routine === "calma" ? 120 : 90))));
       const start = timeToMinutes(profile.wakeTime, profile.routine === "corrida" ? 7 * 60 : 8 * 60);
       const end = timeToMinutes(profile.sleepTime, profile.routine === "calma" ? 20 * 60 : 21 * 60);
       const lunch = timeToMinutes(profile.lunchTime, 12 * 60);
@@ -3724,13 +3912,14 @@
 
     function hydrationHistory(profile, plan) {
       const today = new Date();
+      const records = Array.isArray(profile.records) ? profile.records : [];
       return Array.from({ length: 7 }, (_, offset) => {
         const date = new Date(today);
         date.setDate(today.getDate() - (6 - offset));
         const iso = date.toISOString().slice(0, 10);
-        const amount = iso === hydrationDefaults.date
-          ? Number(profile.done || 0)
-          : 0;
+        const amount = records
+          .filter((record) => record.date === iso)
+          .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
         return {
           date: iso,
           label: date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
@@ -3760,6 +3949,10 @@
       const moodImage = document.querySelector("[data-gotinha-emotion-image]");
       const moodTitle = document.querySelector("[data-gotinha-mood-title]");
       const moodCopy = document.querySelector("[data-gotinha-mood-copy]");
+      const drinkRange = document.querySelector("[data-drink-amount-range]");
+      const drinkLabel = document.querySelector("[data-drink-amount-label]");
+      const intervalRange = document.querySelector("[data-hydration-interval]");
+      const intervalLabel = document.querySelector("[data-hydration-interval-label]");
       if (!routineSelect || !weightInput || !sexSelect || !cupSelect || !workSelect || !lunchInput || !dinnerInput || !times || !message || !bar || !goal || !cupPlan || !cupCopy) return;
 
       const profile = loadHydrationProfile();
@@ -3772,6 +3965,10 @@
       if (sleepInput) sleepInput.value = profile.sleepTime || "23:00";
       lunchInput.value = profile.lunchTime || "12:00";
       dinnerInput.value = profile.dinnerTime || "19:30";
+      if (drinkRange) drinkRange.value = String(profile.selectedDrinkMl || profile.cupMl || 300);
+      if (drinkLabel) drinkLabel.textContent = formatMl(profile.selectedDrinkMl || profile.cupMl || 300);
+      if (intervalRange) intervalRange.value = String(profile.reminderIntervalMin || 90);
+      if (intervalLabel) intervalLabel.textContent = `${profile.reminderIntervalMin || 90} min`;
       const plan = hydrationPlan(profile);
       const done = Math.min(Number(profile.done || 0), plan.goalMl);
       const mood = hydrationMood(profile, plan, done);
@@ -3794,6 +3991,12 @@
       document.querySelector("[data-hydration-total]")?.replaceChildren(document.createTextNode(String(Math.round(done))));
       const percentNode = document.querySelector("[data-hydration-percent]");
       if (percentNode) percentNode.textContent = `${percent}%`;
+      const rulerBar = document.querySelector("[data-hydration-ruler-bar]");
+      const rulerDrunk = document.querySelector("[data-hydration-ruler-drunk]");
+      const rulerLeft = document.querySelector("[data-hydration-ruler-left]");
+      if (rulerBar) rulerBar.style.width = `${percent}%`;
+      if (rulerDrunk) rulerDrunk.textContent = `Bebeu ${formatMl(done)}`;
+      if (rulerLeft) rulerLeft.textContent = done >= plan.goalMl ? "Meta batida" : `Faltam ${formatMl(plan.goalMl - done)}`;
       const nextNode = document.querySelector("[data-hydration-next]");
       if (nextNode) nextNode.textContent = hydrationNextTime(plan, done);
       const streakNode = document.querySelector("[data-hydration-streak]");
@@ -3811,7 +4014,7 @@
         const key = button.dataset.hydrationToggle;
         button.classList.toggle("is-on", Boolean(profile[key]));
       });
-      const records = Array.isArray(profile.records) ? profile.records : [];
+      const records = (Array.isArray(profile.records) ? profile.records : []).filter((record) => record.date === hydrationDefaults.date);
       const recordList = document.querySelector("[data-hydration-records]");
       if (recordList) {
         recordList.innerHTML = records.length ? records.slice().reverse().map((record, reverseIndex) => {
@@ -3876,6 +4079,7 @@
       }
       if (name === "orders") {
         renderOrders();
+        syncOrdersFromGrj().then(renderOrders);
       }
       if (name === "store") {
         renderStoreCategory();
@@ -3970,6 +4174,9 @@
       document.getElementById("checkoutTotal").textContent = formatMoney(subtotal - discount);
       const couponCodeInput = document.getElementById("couponCodeInput");
       const discountAmountInput = document.getElementById("discountAmountInput");
+      const clientOrderIdInput = document.getElementById("clientOrderIdInput");
+      const clientOrderId = newClientOrderId();
+      if (clientOrderIdInput) clientOrderIdInput.value = clientOrderId;
       if (couponCodeInput) couponCodeInput.value = state.couponCode || "";
       if (discountAmountInput) discountAmountInput.value = String(Number(discount || 0).toFixed(2));
       document.getElementById("checkoutDelivery").textContent = scheduleText;
@@ -4232,6 +4439,12 @@
           button.classList.toggle("active", button === ordersFilterButton);
         });
         renderOrders();
+        syncOrdersFromGrj().then(renderOrders);
+      }
+
+      const orderCard = event.target.closest("[data-order-card]");
+      if (orderCard) {
+        orderCard.classList.toggle("is-open");
       }
 
       const couponTab = event.target.closest("[data-coupon-tab]");
@@ -4384,6 +4597,22 @@
     document.querySelector("[data-hydration-cup]")?.addEventListener("change", (event) => {
       const profile = loadHydrationProfile();
       profile.cupMl = Number(event.target.value || 300);
+      profile.selectedDrinkMl = profile.cupMl;
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.querySelector("[data-drink-amount-range]")?.addEventListener("input", (event) => {
+      const profile = loadHydrationProfile();
+      profile.selectedDrinkMl = Math.max(100, Math.min(1000, Number(event.target.value || profile.cupMl || 300)));
+      saveHydrationProfile(profile);
+      renderHydration();
+    });
+
+    document.querySelector("[data-hydration-interval]")?.addEventListener("input", (event) => {
+      const profile = loadHydrationProfile();
+      profile.reminderIntervalMin = Math.max(30, Math.min(180, Number(event.target.value || 90)));
+      profile.reminderMode = "interval";
       saveHydrationProfile(profile);
       renderHydration();
     });
@@ -4465,7 +4694,7 @@
         preco_unitario: Number(item.price || 0),
         valor_total: Number(item.price || 0) * Number(item.qty || 1),
       })));
-      saveOrderSnapshot();
+      saveOrderSnapshot(clientOrderId);
       state.cart = [];
       state.couponCode = "";
     });
@@ -4481,6 +4710,19 @@
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();
+    syncOrdersFromGrj().then((orders) => {
+      if (document.querySelector('[data-screen="orders"]')?.classList.contains("is-active")) {
+        renderOrders(orders);
+      }
+    });
+    setInterval(() => {
+      if (!loadOrders().length) return;
+      syncOrdersFromGrj().then((orders) => {
+        if (document.querySelector('[data-screen="orders"]')?.classList.contains("is-active")) {
+          renderOrders(orders);
+        }
+      });
+    }, 60000);
     trackNotificationOpenFromUrl();
     loadPromoBanner();
     loadAppBootstrap().then(registerAppDevice).then(syncPushSubscription);
