@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-aguas-app-v9";
+const CACHE_NAME = "central-aguas-app-v10";
 const APP_SHELL = [
   "/app",
   "/manifest.webmanifest",
@@ -33,6 +33,11 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin === self.location.origin && requestUrl.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    return;
+  }
+
   const isNavigation = event.request.mode === "navigate";
   const isAppHtml = requestUrl.origin === self.location.origin && requestUrl.pathname === "/app";
 

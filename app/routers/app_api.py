@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -260,7 +260,8 @@ def mark_notification_opened(notification_id: int, payload: DeviceEventPayload, 
 
 
 @router.get("/orders/status")
-def app_order_status(client_order_ids: str = ""):
+def app_order_status(response: Response, client_order_ids: str = ""):
+    response.headers["Cache-Control"] = "no-store, max-age=0"
     references = [
         item.strip()
         for item in client_order_ids.replace(";", ",").split(",")

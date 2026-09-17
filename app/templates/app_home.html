@@ -61,6 +61,9 @@
       animation:
         splashOut 800ms ease 7200ms forwards;
     }
+    .app-splash.is-skipped {
+      display: none;
+    }
     .splash-inner { display: grid; justify-items: center; gap: 22px; }
     .splash-logo {
       width: min(82vw, 430px);
@@ -1772,7 +1775,7 @@
   </style>
 </head>
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
-  <div class="app-splash" aria-hidden="true">
+  <div class="app-splash{% if request.query_params.get('skip_splash') == '1' %} is-skipped{% endif %}" aria-hidden="true">
     <div class="splash-inner">
       <img class="splash-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
       <div class="splash-loader"><span></span></div>
@@ -2944,7 +2947,9 @@
       const references = currentOrders.map((order) => order.clientOrderId || order.id).filter((id) => String(id || "").startsWith("APP-"));
       if (!references.length) return currentOrders;
       try {
-        const response = await fetch(`/api/app/orders/status?client_order_ids=${encodeURIComponent(references.join(","))}`);
+        const response = await fetch(`/api/app/orders/status?client_order_ids=${encodeURIComponent(references.join(","))}&_=${Date.now()}`, {
+          cache: "no-store"
+        });
         const data = await response.json();
         if (!data.ok || !Array.isArray(data.orders)) return currentOrders;
         const byReference = new Map(data.orders.map((order) => [order.client_order_id || order.payment_reference, order]));
