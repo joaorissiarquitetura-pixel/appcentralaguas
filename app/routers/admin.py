@@ -4,6 +4,9 @@ import logging
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import quote
+import urllib.error
+import urllib.parse
+import urllib.request
 from uuid import uuid4
 
 from fastapi import APIRouter, Request, Form, Depends, File, UploadFile
@@ -51,6 +54,13 @@ def _admin_datetime_label(value: datetime | None, fmt: str = "%d/%m %H:%M") -> s
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(APP_TZ).strftime(fmt)
+
+
+def _grj_app_status_url() -> str:
+    orders_url = settings.CENTRAL_AGUAS_ORDERS_API_URL.strip()
+    if orders_url.endswith("/orders"):
+        return f"{orders_url}/app-status"
+    return urllib.parse.urljoin(orders_url.rstrip("/") + "/", "app-status")
 
 
 def _valid_recovery_token(token: str) -> bool:
@@ -578,6 +588,99 @@ def admin_app_status(request: Request, db: Session = Depends(get_db)):
             "denied": db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == False)) or 0,
         },
     }
+
+
+@router.get("/app/grj-order-test", response_class=JSONResponse)
+def admin_app_grj_order_test(
+    request: Request,
+    client_order_id: str = "",
+    grj_order_id: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+
+    references = [
+        item.strip()
+        for item in client_order_id.replace(";", ",").split(",")
+        if item.strip()
+    ][:50]
+    grj_ids = [
+        item.strip()
+        for item in grj_order_id.replace(";", ",").split(",")
+        if item.strip().isdigit()
+    ][:50]
+    token = settings.CENTRAL_AGUAS_APP_TOKEN.strip()
+    diagnostic = {
+        "ok": False,
+        "config": {
+            "orders_api_url": settings.CENTRAL_AGUAS_ORDERS_API_URL,
+            "app_status_url": _grj_app_status_url(),
+            "token_configured": bool(token),
+        },
+        "input": {
+            "client_order_ids": references,
+            "grj_order_ids": grj_ids,
+        },
+        "request_url": "",
+        "http_status": None,
+        "payload_status": "",
+        "orders_count": 0,
+        "orders": [],
+        "error": "",
+        "raw_preview": "",
+    }
+    if not references and not grj_ids:
+        diagnostic["error"] = "Informe client_order_id=APP-... ou grj_order_id=123."
+        return diagnostic
+    if not token:
+        diagnostic["error"] = "CENTRAL_AGUAS_APP_TOKEN nao configurado no app."
+        return diagnostic
+
+    query = urllib.parse.urlencode(
+        {
+            "client_order_ids": ",".join(references),
+            "grj_order_ids": ",".join(grj_ids),
+        }
+    )
+    url = f"{_grj_app_status_url()}?{query}"
+    diagnostic["request_url"] = url
+    api_request = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(api_request, timeout=12) as api_response:
+            diagnostic["http_status"] = api_response.status
+            raw_body = api_response.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        diagnostic["http_status"] = exc.code
+        raw_body = exc.read().decode("utf-8", errors="replace")
+        diagnostic["error"] = f"GRJ respondeu HTTP {exc.code}."
+    except (urllib.error.URLError, TimeoutError) as exc:
+        diagnostic["error"] = f"Falha ao chamar GRJ: {exc}"
+        return diagnostic
+
+    diagnostic["raw_preview"] = raw_body[:2000]
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError as exc:
+        diagnostic["error"] = diagnostic["error"] or f"Resposta do GRJ nao e JSON valido: {exc}"
+        return diagnostic
+
+    orders = payload.get("data") if isinstance(payload, dict) else []
+    diagnostic["payload_status"] = str(payload.get("status", "")) if isinstance(payload, dict) else ""
+    diagnostic["orders"] = orders if isinstance(orders, list) else []
+    diagnostic["orders_count"] = len(diagnostic["orders"])
+    diagnostic["ok"] = 200 <= int(diagnostic["http_status"] or 0) < 300 and diagnostic["payload_status"] == "ok"
+    if diagnostic["ok"] and diagnostic["orders_count"] == 0:
+        diagnostic["error"] = "GRJ respondeu OK, mas nao encontrou pedido para essa referencia."
+    return diagnostic
 
 
 @router.post("/app/devices/{device_id}/toggle-block")
