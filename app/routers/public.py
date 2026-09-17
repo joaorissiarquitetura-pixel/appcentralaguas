@@ -711,15 +711,18 @@ def finish_shop_order(
 
     items = []
     for raw_item in raw_items if isinstance(raw_items, list) else []:
-        qty = int(raw_item.get("qty") or 1)
-        unit_price = float(raw_item.get("unit_price") or raw_item.get("price") or 0)
-        if qty <= 0:
+        qty = int(raw_item.get("qty") or raw_item.get("quantidade") or 1)
+        unit_price = float(raw_item.get("unit_price") or raw_item.get("preco_unitario") or raw_item.get("price") or 0)
+        total_price = float(raw_item.get("valor_total") or (unit_price * qty))
+        if qty <= 0 or total_price <= 0:
             continue
         items.append(
             SimpleNamespace(
-                name=raw_item.get("slug", "Produto"),
+                product_id=raw_item.get("produto_id") or raw_item.get("product_id"),
+                name=raw_item.get("descricao") or raw_item.get("slug") or raw_item.get("product") or "Produto",
                 qty=qty,
-                subtotal=unit_price * qty,
+                unit_price=unit_price or (total_price / qty),
+                subtotal=total_price,
             )
         )
     if not items:
@@ -743,9 +746,10 @@ def finish_shop_order(
         },
         "items": [
             {
+                "produto_id": item.product_id,
                 "descricao": item.name,
                 "quantidade": item.qty,
-                "preco_unitario": item.subtotal / item.qty,
+                "preco_unitario": item.unit_price,
                 "valor_total": item.subtotal,
             }
             for item in items
