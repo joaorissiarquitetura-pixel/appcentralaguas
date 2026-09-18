@@ -554,6 +554,7 @@ def admin_app_backend(
             "location_denied_count": location_denied_count,
             "push_configured": push_configured(),
             "fcm_configured": fcm_configured(),
+            "format_dt": _admin_datetime_label,
             "service_area": {
                 "city": settings.SERVICE_AREA_CITY,
                 "state": settings.SERVICE_AREA_STATE,

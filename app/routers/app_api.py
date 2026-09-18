@@ -5,7 +5,7 @@ import logging
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
@@ -99,6 +99,28 @@ def _get_or_create_device(db: Session, device_id: str) -> AppDevice | None:
         device = AppDevice(device_id=normalized)
         db.add(device)
     return device
+
+
+def _link_recent_native_fcm_device(db: Session, customer_id: int | None) -> list[int]:
+    if customer_id is None:
+        return []
+    cutoff = datetime.utcnow() - timedelta(minutes=45)
+    candidates = db.execute(
+        select(AppDevice)
+        .where(
+            AppDevice.customer_id.is_(None),
+            AppDevice.fcm_token.is_not(None),
+            AppDevice.is_blocked.is_not(True),
+            AppDevice.device_id.like("android-%"),
+            AppDevice.last_seen_at >= cutoff,
+        )
+        .order_by(AppDevice.last_seen_at.desc())
+        .limit(2)
+    ).scalars().all()
+    if len(candidates) != 1:
+        return []
+    candidates[0].customer_id = customer_id
+    return [candidates[0].id]
 
 
 def _order_status_value(order: dict) -> str:
@@ -479,8 +501,9 @@ def register_device(payload: DeviceRegisterPayload, request: Request, db: Sessio
     device.location_permission = payload.location_permission[:20] or None
     device.user_agent = request.headers.get("user-agent", "")
     device.last_seen_at = datetime.utcnow()
+    linked_native_device_ids = _link_recent_native_fcm_device(db, current_customer_id)
     db.commit()
-    return {"ok": True, "device_id": device.device_id, "blocked": False}
+    return {"ok": True, "device_id": device.device_id, "blocked": False, "linked_native_device_ids": linked_native_device_ids}
 
 
 @router.post("/push-subscription")

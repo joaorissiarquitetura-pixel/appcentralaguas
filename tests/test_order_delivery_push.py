@@ -4,7 +4,7 @@ from unittest.mock import patch
 from tests.test_support import get_session, reset_database
 
 from app.models import AppDevice, AppNotification, AppOrderPushEvent, Customer
-from app.routers.app_api import FcmTokenPayload, _notify_order_status_changes, save_fcm_token
+from app.routers.app_api import DeviceRegisterPayload, FcmTokenPayload, _notify_order_status_changes, register_device, save_fcm_token
 
 
 class RequestStub:
@@ -80,6 +80,41 @@ class OrderDeliveryPushTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(device.customer_id, customer.id)
         self.assertEqual(device.fcm_token, "new-token")
+
+    def test_webview_registration_links_recent_native_fcm_device(self):
+        customer = Customer(
+            name="Cliente WebView",
+            phone="17999990002",
+            pin_hash="hash",
+            referral_code="TESTE2",
+            card_token="token-teste-2",
+        )
+        self.db.add(customer)
+        self.db.commit()
+        native = AppDevice(
+            device_id="android-abc123",
+            platform="android",
+            notification_permission="granted",
+            fcm_token="native-token",
+        )
+        self.db.add(native)
+        self.db.commit()
+
+        result = register_device(
+            DeviceRegisterPayload(
+                device_id="ca-webview-1",
+                platform="android-webview",
+                app_version="1.0.0",
+                notification_permission="unsupported",
+                location_permission="unknown",
+            ),
+            RequestStub(customer.id),
+            self.db,
+        )
+
+        self.db.refresh(native)
+        self.assertEqual(native.customer_id, customer.id)
+        self.assertEqual(result["linked_native_device_ids"], [native.id])
 
 
 if __name__ == "__main__":
