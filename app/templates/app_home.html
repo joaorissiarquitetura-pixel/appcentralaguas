@@ -59,7 +59,7 @@
       background-image: linear-gradient(180deg, #0f5edc 0%, #0B4CCB 58%, #083A9A 100%);
       color: var(--ca-white);
       animation:
-        splashOut 260ms ease 1400ms forwards;
+        splashOut 800ms ease 7200ms forwards;
     }
     .app-splash.is-skipped {
       display: none;
@@ -72,7 +72,7 @@
       filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.18));
       opacity: 0;
       transform: translateY(4px) scale(0.98);
-      animation: splashLogoSequence 1400ms ease forwards;
+      animation: splashLogoSequence 7200ms ease forwards;
     }
     .splash-loader {
       display: none;
@@ -1806,9 +1806,9 @@
   </style>
 </head>
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
-  <div class="app-splash{% if request.query_params.get('skip_splash') == '1' %} is-skipped{% endif %}" aria-hidden="true">
+  <div class="app-splash{% if request.query_params.get('skip_splash') == '1' and request.query_params.get('screen') %} is-skipped{% endif %}" aria-hidden="true">
     <div class="splash-inner">
-      <img class="splash-logo" src="/static/img/logo_central_oficial.png" alt="Central Águas">
+      <img class="splash-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
