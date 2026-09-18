@@ -614,6 +614,24 @@
     button.period-row,
     button.menu-row { width: 100%; cursor: pointer; }
     .period-row.is-selected { border-color: var(--ca-primary); box-shadow: 0 0 0 3px rgba(11, 76, 203, 0.08); }
+    .data-list {
+      display: grid;
+      gap: 10px;
+    }
+    .data-row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-white);
+    }
+    .address-history-list {
+      display: grid;
+      gap: 10px;
+    }
     .radio-dot {
       width: 18px;
       height: 18px;
@@ -2072,6 +2090,13 @@
           </div>
           <button class="secondary-button" type="button" data-address-edit><i class="bi bi-plus-lg"></i> Adicionar outro endereço</button>
         </article>
+        <article class="app-card pad">
+          <div class="history-head">
+            <strong>Endereços usados em pedidos</strong>
+            <span class="small muted">Últimos locais registrados no app</span>
+          </div>
+          <div class="address-history-list" data-address-history-list></div>
+        </article>
         <section class="location-search {% if location.has_address %}is-hidden{% endif %}" aria-label="Alterar endereço" data-address-editor>
           <button class="period-row" type="button" data-location-current>
             <span class="blue-icon"><i class="bi bi-crosshair"></i></span>
@@ -2108,6 +2133,50 @@
           </section>
         </section>
         <button class="primary-button" type="button" data-go="delivery">Continuar</button>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="profile">
+      <div class="screen-inner stack">
+        <header class="app-topbar">
+          <button class="icon-button" type="button" data-go="menu" aria-label="Voltar"><i class="bi bi-arrow-left"></i></button>
+          <h1>Meus dados</h1>
+          <span></span>
+        </header>
+        <article class="app-card pad">
+          <div class="history-head">
+            <strong>Cadastro</strong>
+            <span class="small muted">Dados informados na criação da conta</span>
+          </div>
+          <div class="data-list">
+            <div class="data-row">
+              <span class="blue-icon"><i class="bi bi-person"></i></span>
+              <span class="row-copy"><strong>Nome</strong><span>{{ customer.name if customer and customer.name else 'Não informado' }}</span></span>
+            </div>
+            <div class="data-row">
+              <span class="blue-icon"><i class="bi bi-whatsapp"></i></span>
+              <span class="row-copy"><strong>Telefone / WhatsApp</strong><span>{{ customer.phone if customer and customer.phone else 'Não informado' }}</span></span>
+            </div>
+            <div class="data-row">
+              <span class="blue-icon"><i class="bi bi-calendar-heart"></i></span>
+              <span class="row-copy"><strong>Data de nascimento</strong><span>{% if customer and customer.birth_date %}{{ customer.birth_date.strftime('%d/%m/%Y') }}{% else %}Não informada{% endif %}</span></span>
+            </div>
+            <div class="data-row">
+              <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
+              <span class="row-copy"><strong>Cliente desde</strong><span>{% if customer and customer.created_at %}{{ customer.created_at.strftime('%d/%m/%Y') }}{% else %}Não informado{% endif %}</span></span>
+            </div>
+          </div>
+        </article>
+        <article class="app-card pad">
+          <div class="history-head">
+            <strong>Endereço principal</strong>
+            <button class="compact-link" type="button" data-go="address">Alterar</button>
+          </div>
+          <div class="data-row">
+            <span class="blue-icon"><i class="bi bi-geo-alt"></i></span>
+            <span class="row-copy"><strong>{{ location.label }}</strong><span>{% if location.detail %}{{ location.detail }}{% else %}Endereço ainda não completo{% endif %}</span></span>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -2704,7 +2773,7 @@
         <a class="menu-row" href="/app?screen=coupons" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis · {{ coupons.unavailable|length }} indisponíveis</span></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Meus endereços</strong></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=payment" data-go="payment"><span class="blue-icon"><i class="bi bi-credit-card"></i></span><span class="row-copy"><strong>Formas de pagamento</strong></span><i class="bi bi-chevron-right"></i></a>
-        <a class="menu-row" href="/app?screen=address" data-go="address"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong></span><i class="bi bi-chevron-right"></i></a>
+        <a class="menu-row" href="/app?screen=profile" data-go="profile"><span class="blue-icon"><i class="bi bi-person-gear"></i></span><span class="row-copy"><strong>Meus dados</strong><span>Cadastro, telefone e nascimento</span></span><i class="bi bi-chevron-right"></i></a>
         <a class="menu-row" href="/app?screen=gotinha" data-go="gotinha"><span class="blue-icon"><i class="bi bi-question-circle"></i></span><span class="row-copy"><strong>Ajuda</strong></span><i class="bi bi-chevron-right"></i></a>
         {% if customer_logged_in %}
           <a class="menu-row" href="/logout"><span class="blue-icon"><i class="bi bi-box-arrow-right"></i></span><span class="row-copy"><strong>Sair</strong></span><i class="bi bi-chevron-right"></i></a>
@@ -3014,7 +3083,7 @@
     }
 
     function requiresLogin(screenName) {
-      return ["store", "checkout", "delivery", "payment", "address", "house", "gotinha", "loyalty", "orders", "coupons"].includes(screenName);
+      return ["store", "checkout", "delivery", "payment", "address", "profile", "house", "gotinha", "loyalty", "orders", "coupons"].includes(screenName);
     }
 
     function selectedCoupon() {
@@ -3272,6 +3341,14 @@
       const subtotal = cartSubtotal();
       const discount = couponDiscount(subtotal);
       const id = clientOrderId || newClientOrderId(now);
+      const address = {
+        label: state.locationLabel || state.locationBaseLabel || "",
+        street: state.street || "",
+        number: state.number || "",
+        complement: state.complement || "",
+        neighborhood: state.neighborhood || "",
+        city: state.city || ""
+      };
       orders.unshift({
         id,
         clientOrderId: id,
@@ -3286,12 +3363,71 @@
         items,
         delivery: `${state.deliveryDay} - ${state.deliveryPeriod}`,
         payment: state.paymentMethod,
+        address,
+        addressLabel: address.label,
         status: "pending",
         createdAt: now.toISOString(),
         createdAtTimeZone: appTimeZone
       });
       localStorage.setItem(ordersKey, JSON.stringify(orders.slice(0, 20)));
       return id;
+    }
+
+    function addressLabelFromOrder(order) {
+      const address = order?.address || {};
+      const line = address.label || order?.addressLabel || [
+        address.street || order?.street,
+        address.number || order?.number
+      ].filter(Boolean).join(", ");
+      const detail = [
+        address.complement || order?.complement,
+        address.neighborhood || order?.neighborhood,
+        address.city || order?.city
+      ].filter(Boolean).join(" - ");
+      return [line, detail].filter(Boolean).join(" - ");
+    }
+
+    function orderAddressHistory() {
+      const seen = new Set();
+      const current = {
+        label: state.locationLabel || state.locationBaseLabel || "",
+        createdAt: ""
+      };
+      return [current, ...loadOrders().map((order) => ({
+        label: addressLabelFromOrder(order),
+        createdAt: order.createdAt || order.updatedAt || ""
+      }))].filter((item) => {
+        const key = normalizeText(item.label || "");
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 6);
+    }
+
+    function renderAddressHistory() {
+      const list = document.querySelector("[data-address-history-list]");
+      if (!list) return;
+      const addresses = orderAddressHistory();
+      if (!addresses.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <span class="blue-icon"><i class="bi bi-geo-alt"></i></span>
+            <strong>Nenhum endereço usado ainda.</strong>
+            <span>Quando fizer pedidos pelo app, os locais aparecem aqui.</span>
+          </div>
+        `;
+        return;
+      }
+      list.innerHTML = addresses.map((item, index) => `
+        <div class="summary-row">
+          <span class="blue-icon"><i class="bi ${index === 0 ? "bi-house-door-fill" : "bi-geo-alt"}"></i></span>
+          <span class="row-copy">
+            <strong>${index === 0 ? "Endereço principal" : "Pedido anterior"}</strong>
+            <span>${escapeHtml(item.label)}</span>
+          </span>
+          <span class="small muted">${item.createdAt ? formatAppDate(item.createdAt) : ""}</span>
+        </div>
+      `).join("");
     }
 
     function renderPayment() {
@@ -4910,6 +5046,7 @@
       }
       if (name === "address") {
         setLocationStatus(addressIssue() || "Endereço pronto para entrega.");
+        renderAddressHistory();
       }
       updateFloatingCart();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -5706,6 +5843,7 @@
     renderOrders();
     renderStoreCategory();
     updateCartIndicators();
+    renderAddressHistory();
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();
