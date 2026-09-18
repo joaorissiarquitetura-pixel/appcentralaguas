@@ -27,7 +27,7 @@ from ..config import settings
 from ..services.address import geocode_structured
 from ..services.audit import log_admin_action
 from ..services.grj_catalog import GRJCatalogUnavailable, fetch_grj_products
-from ..services.push import fcm_configured, push_configured, send_notification_to_app_devices, send_notification_to_subscriptions
+from ..services.push import fcm_configured, push_configured, send_fcm, send_notification_to_app_devices, send_notification_to_subscriptions
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/admin")
@@ -588,6 +588,92 @@ def admin_app_status(request: Request, db: Session = Depends(get_db)):
             "denied": db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == False)) or 0,
         },
     }
+
+
+def _diagnose_fcm_device(db: Session, device: AppDevice | None, admin: Attendant | None = None) -> dict:
+    diagnostic = {
+        "ok": False,
+        "fcm_configured": fcm_configured(),
+        "send_attempted": False,
+        "send_ok": False,
+        "notification_id": None,
+        "device": None,
+        "checks": [],
+        "probable_reason": "",
+    }
+    if not device:
+        diagnostic["probable_reason"] = "Dispositivo nao encontrado."
+        diagnostic["checks"].append({"name": "device_exists", "ok": False})
+        return diagnostic
+
+    diagnostic["device"] = {
+        "id": device.id,
+        "device_id": device.device_id,
+        "customer_id": device.customer_id,
+        "customer_name": device.customer.name if device.customer else "",
+        "platform": device.platform or "",
+        "notification_permission": device.notification_permission or "",
+        "has_fcm_token": bool(device.fcm_token),
+        "is_blocked": bool(device.is_blocked),
+        "last_seen_at": device.last_seen_at.isoformat() if device.last_seen_at else None,
+    }
+    checks = [
+        ("firebase_configured", diagnostic["fcm_configured"], "Firebase FCM nao esta configurado no backend."),
+        ("device_not_blocked", not bool(device.is_blocked), "Dispositivo bloqueado no painel."),
+        ("has_fcm_token", bool(device.fcm_token), "Celular nao registrou token FCM."),
+        ("customer_linked", device.customer_id is not None, "Token FCM esta sem cliente vinculado."),
+        (
+            "permission_not_denied",
+            (device.notification_permission or "").lower() != "denied",
+            "Permissao de notificacao esta negada no celular.",
+        ),
+    ]
+    for name, ok, reason in checks:
+        diagnostic["checks"].append({"name": name, "ok": bool(ok), "reason": "" if ok else reason})
+        if not ok and not diagnostic["probable_reason"]:
+            diagnostic["probable_reason"] = reason
+
+    if diagnostic["probable_reason"]:
+        return diagnostic
+
+    notification = AppNotification(
+        title="Central Aguas",
+        body="Teste de notificacao do app Central Aguas. Se chegou aqui, o FCM deste celular esta funcionando.",
+        target="diagnostic",
+        url="/app?screen=orders&skip_splash=1",
+        status="queued",
+        created_by_attendant_id=admin.id if admin else None,
+    )
+    db.add(notification)
+    db.flush()
+    diagnostic["notification_id"] = notification.id
+    diagnostic["send_attempted"] = True
+
+    ok = send_fcm(device, notification.title, notification.body, notification.url or "/app", notification.id)
+    notification.sent_count = 1 if ok else 0
+    notification.failed_count = 0 if ok else 1
+    notification.status = "sent" if ok else "failed"
+    notification.sent_at = datetime.utcnow()
+    db.commit()
+
+    diagnostic["send_ok"] = bool(ok)
+    diagnostic["ok"] = bool(ok)
+    if not ok:
+        diagnostic["probable_reason"] = "Firebase recusou ou nao entregou o token. Veja o log do Coolify para o erro FCM detalhado."
+    return diagnostic
+
+
+@router.post("/app/devices/{device_id}/test-push", response_class=JSONResponse)
+def admin_app_device_test_push(
+    device_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+    device = db.get(AppDevice, device_id)
+    return _diagnose_fcm_device(db, device, admin)
 
 
 @router.get("/app/grj-order-test", response_class=JSONResponse)

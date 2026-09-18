@@ -153,6 +153,9 @@
                   {% endif %}
                   <button class="ca-pill ca-outline" type="submit">{{ 'Desbloquear' if device.is_blocked else 'Bloquear' }}</button>
                 </form>
+                <form class="mt-2" method="post" action="/admin/app/devices/{{ device.id }}/test-push" target="_blank">
+                  <button class="ca-pill ca-primary" type="submit">Testar push</button>
+                </form>
               </td>
             </tr>
           {% else %}
