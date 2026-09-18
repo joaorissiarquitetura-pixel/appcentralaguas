@@ -12,6 +12,7 @@ def fake_request():
         {
             "base_url": "http://testserver/",
             "session": {},
+            "query_params": {},
         },
     )()
 

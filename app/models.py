@@ -206,6 +206,22 @@ class AppNotificationEvent(Base):
     customer = relationship("Customer")
 
 
+class AppOrderPushEvent(Base):
+    __tablename__ = "app_order_push_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    event_key: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    client_order_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    grj_order_id: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(40))
+    sent_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    customer = relationship("Customer")
+
+
 class AppBanner(Base):
     __tablename__ = "app_banners"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

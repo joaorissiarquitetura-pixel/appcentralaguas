@@ -2648,6 +2648,7 @@
     let hydrationNotificationTimers = [];
     let deliveryNotificationTimer = null;
     let ordersFilter = "all";
+    let ordersSyncInFlight = false;
     let couponReturnScreen = "menu";
     let appBootstrap = { push: { configured: false, public_key: "" } };
     const checkoutCoupons = [
@@ -2717,6 +2718,16 @@
         month: "2-digit",
         hour: "2-digit",
         minute: "2-digit"
+      });
+    }
+
+    function formatAppDate(value) {
+      const date = parseAppDate(value);
+      if (!date) return "";
+      return date.toLocaleDateString("pt-BR", {
+        timeZone: appTimeZone,
+        day: "2-digit",
+        month: "2-digit"
       });
     }
 
@@ -3181,6 +3192,20 @@
       }
     }
 
+    async function refreshOrdersFromGrj() {
+      if (ordersSyncInFlight) return loadOrders();
+      ordersSyncInFlight = true;
+      try {
+        const orders = await syncOrdersFromGrj();
+        if (document.querySelector('[data-screen="orders"]')?.classList.contains("is-active")) {
+          renderOrders(orders);
+        }
+        return orders;
+      } finally {
+        ordersSyncInFlight = false;
+      }
+    }
+
     function renderOrders(sourceOrders = null) {
       const list = document.querySelector("[data-orders-list]");
       if (!list) return;
@@ -3217,7 +3242,7 @@
               ${orderHistory(order).map((event) => `
                 <div class="order-history-item ${event.done ? "is-done" : ""}">
                   <i class="bi ${event.done ? "bi-check-circle-fill" : "bi-circle"}"></i>
-                  <span>${escapeHtml(event.label || "")}${event.at ? ` · ${formatAppDateTime(event.at)}` : ""}</span>
+                  <span>${escapeHtml(event.label || "")}${event.at ? ` · ${formatAppDate(event.at)}` : ""}</span>
                 </div>
               `).join("")}
             </div>
@@ -3392,7 +3417,7 @@
         if (deliveryReminderDelay(state.deliveryStartHour) <= 0) {
           return "Horário próximo: não dá para programar aviso 30 minutos antes.";
         }
-        return `Aviso programado para ${deliveryReminderTimeLabel(state.deliveryStartHour)}.`;
+        return "Aviso do pedido ativado neste aparelho.";
       }
       if (Notification.permission === "denied") {
         return "Notificações bloqueadas no navegador.";
@@ -4358,7 +4383,7 @@
       }
       if (name === "orders") {
         renderOrders();
-        syncOrdersFromGrj().then(renderOrders);
+        refreshOrdersFromGrj();
       }
       if (name === "store") {
         renderStoreCategory();
@@ -4379,7 +4404,7 @@
         if (isToday && now.getHours() >= hour) continue;
         periods.push({
           label: deliveryPeriodLabel(hour),
-          detail: `Aviso às ${deliveryReminderTimeLabel(hour)}`,
+          detail: "A equipe confirma conforme a rota",
           startHour: String(hour),
         });
       }
@@ -5049,19 +5074,16 @@
     renderHouseStock();
     renderHydration();
     renderNotificationStatus();
-    syncOrdersFromGrj().then((orders) => {
-      if (document.querySelector('[data-screen="orders"]')?.classList.contains("is-active")) {
-        renderOrders(orders);
+    refreshOrdersFromGrj();
+    setInterval(() => {
+      if (!document.querySelector('[data-screen="orders"]')?.classList.contains("is-active")) return;
+      refreshOrdersFromGrj();
+    }, 12000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        refreshOrdersFromGrj();
       }
     });
-    setInterval(() => {
-      if (!loadOrders().length) return;
-      syncOrdersFromGrj().then((orders) => {
-        if (document.querySelector('[data-screen="orders"]')?.classList.contains("is-active")) {
-          renderOrders(orders);
-        }
-      });
-    }, 60000);
     trackNotificationOpenFromUrl();
     applyHydrationDrinkFromUrl();
     loadPromoBanner();

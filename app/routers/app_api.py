@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -9,16 +10,18 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppPromotion, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, LocationAccessLog, PushSubscription
 from ..services.app_access import check_service_area
-from ..services.push import push_configured
+from ..services.push import push_configured, send_fcm
 
 router = APIRouter(prefix="/api/app", tags=["App"])
+logger = logging.getLogger(__name__)
 
 
 class DeviceRegisterPayload(BaseModel):
@@ -96,6 +99,90 @@ def _get_or_create_device(db: Session, device_id: str) -> AppDevice | None:
         device = AppDevice(device_id=normalized)
         db.add(device)
     return device
+
+
+def _order_status_value(order: dict) -> str:
+    return str(order.get("app_status") or order.get("status") or "").strip().lower()
+
+
+def _delivery_driver_name(order: dict) -> str:
+    return str(order.get("delivery_driver_name") or order.get("driver_name") or order.get("entregador") or "").strip()
+
+
+def _order_reference(order: dict) -> tuple[str, str]:
+    client_order_id = str(order.get("client_order_id") or order.get("payment_reference") or "").strip()
+    grj_order_id = str(order.get("grj_order_id") or order.get("id") or "").strip()
+    return client_order_id, grj_order_id
+
+
+def _notify_out_for_delivery(db: Session, customer_id: int | None, orders: list[dict]) -> None:
+    if not customer_id:
+        return
+    devices = db.execute(
+        select(AppDevice).where(
+            AppDevice.customer_id == customer_id,
+            AppDevice.fcm_token.is_not(None),
+            AppDevice.is_blocked.is_not(True),
+        )
+    ).scalars().all()
+    if not devices:
+        return
+
+    for order in orders:
+        if not isinstance(order, dict) or _order_status_value(order) != "out_for_delivery":
+            continue
+        client_order_id, grj_order_id = _order_reference(order)
+        reference = client_order_id or grj_order_id
+        if not reference:
+            continue
+        event_key = f"out_for_delivery:{customer_id}:{reference}"
+        if db.scalar(select(AppOrderPushEvent.id).where(AppOrderPushEvent.event_key == event_key)):
+            continue
+
+        driver = _delivery_driver_name(order)
+        body = (
+            f"Seu pedido ja esta com {driver}. Ja ja esta chegando ai."
+            if driver
+            else "Seu pedido saiu para entrega. Ja ja esta chegando ai."
+        )
+        notification = AppNotification(
+            title="Pedido saiu para entrega",
+            body=body,
+            target="customer",
+            url="/app?screen=orders&skip_splash=1",
+            status="queued",
+        )
+        db.add(notification)
+        db.flush()
+
+        sent = 0
+        failed = 0
+        for device in devices:
+            if send_fcm(device, notification.title, notification.body, notification.url or "/app", notification.id):
+                sent += 1
+                device.last_seen_at = datetime.utcnow()
+            else:
+                failed += 1
+
+        notification.sent_count = sent
+        notification.failed_count = failed
+        notification.status = "sent" if sent else "failed"
+        notification.sent_at = datetime.utcnow()
+        db.add(
+            AppOrderPushEvent(
+                event_key=event_key,
+                customer_id=customer_id,
+                client_order_id=client_order_id or None,
+                grj_order_id=grj_order_id or None,
+                status="out_for_delivery",
+                sent_count=sent,
+                failed_count=failed,
+            )
+        )
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
 
 
 @router.get("/bootstrap")
@@ -263,6 +350,7 @@ def mark_notification_opened(notification_id: int, payload: DeviceEventPayload, 
 def app_order_status(
     response: Response,
     request: Request,
+    db: Session = Depends(get_db),
     client_order_ids: str = "",
     grj_order_ids: str = "",
     app_customer_id: str = "",
@@ -302,7 +390,13 @@ def app_order_status(
             payload = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
         return {"ok": False, "error": str(exc), "orders": []}
-    return {"ok": payload.get("status") == "ok", "orders": payload.get("data") or []}
+    orders = payload.get("data") or []
+    try:
+        _notify_out_for_delivery(db, int(customer_id) if str(customer_id).isdigit() else None, orders)
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Automatic out-for-delivery push failed: %s", exc)
+    return {"ok": payload.get("status") == "ok", "orders": orders}
 
 
 @router.post("/orders/cancel")
