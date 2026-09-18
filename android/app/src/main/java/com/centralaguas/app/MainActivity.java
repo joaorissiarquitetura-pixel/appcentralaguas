@@ -8,17 +8,23 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Insets;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
+import android.view.animation.DecelerateInterpolator;
 import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 
@@ -26,7 +32,15 @@ public class MainActivity extends Activity {
     public static final String EXTRA_TARGET_URL = "com.centralaguas.app.TARGET_URL";
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 1002;
+    private static final long STARTUP_SPLASH_MIN_MS = 1800L;
+    private static final long STARTUP_SPLASH_MAX_MS = 5200L;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private WebView webView;
+    private View startupSplash;
+    private ImageView startupLogo;
+    private long startupSplashCreatedAt;
+    private boolean startupPageFinished;
+    private boolean startupSplashClosing;
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
 
@@ -36,12 +50,19 @@ public class MainActivity extends Activity {
 
         configureSystemBars();
 
+        FrameLayout rootView = new FrameLayout(this);
+
         webView = new WebView(this);
         webView.setBackgroundColor(Color.WHITE);
         webView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         webView.setFitsSystemWindows(true);
         applySystemBarInsets(webView);
-        setContentView(webView);
+        rootView.addView(webView, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        createStartupSplash(rootView);
+        setContentView(rootView);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
             webView.requestApplyInsets();
         }
@@ -67,6 +88,8 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                startupPageFinished = true;
+                finishStartupSplashWhenReady(false);
                 flushHydrationActionsToWeb();
             }
         });
@@ -88,8 +111,91 @@ public class MainActivity extends Activity {
         });
 
         webView.loadUrl(resolveStartUrl(getIntent()));
+        mainHandler.postDelayed(() -> finishStartupSplashWhenReady(true), STARTUP_SPLASH_MAX_MS);
         requestNotificationPermission();
         syncFcmToken();
+    }
+
+    private void createStartupSplash(FrameLayout rootView) {
+        startupSplashCreatedAt = System.currentTimeMillis();
+
+        FrameLayout splash = new FrameLayout(this);
+        GradientDrawable background = new GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            new int[] {
+                Color.rgb(32, 203, 237),
+                Color.rgb(5, 83, 226),
+                Color.rgb(6, 30, 151)
+            }
+        );
+        splash.setBackground(background);
+
+        startupLogo = new ImageView(this);
+        startupLogo.setImageResource(getResources().getIdentifier("central_splash_logo", "drawable", getPackageName()));
+        startupLogo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        startupLogo.setAlpha(0f);
+        startupLogo.setScaleX(0.86f);
+        startupLogo.setScaleY(0.86f);
+
+        int logoSize = dpToPx(240);
+        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(logoSize, logoSize);
+        logoParams.gravity = android.view.Gravity.CENTER;
+        splash.addView(startupLogo, logoParams);
+
+        rootView.addView(splash, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ));
+        startupSplash = splash;
+
+        startupLogo.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(760L)
+            .setInterpolator(new DecelerateInterpolator())
+            .start();
+    }
+
+    private void finishStartupSplashWhenReady(boolean force) {
+        if (startupSplash == null || startupLogo == null || startupSplashClosing) {
+            return;
+        }
+        if (!force && !startupPageFinished) {
+            return;
+        }
+        long elapsed = System.currentTimeMillis() - startupSplashCreatedAt;
+        long delay = Math.max(0L, STARTUP_SPLASH_MIN_MS - elapsed);
+        startupSplashClosing = true;
+        mainHandler.postDelayed(() -> {
+            if (startupSplash == null || startupLogo == null) {
+                return;
+            }
+            float logoRise = -(getResources().getDisplayMetrics().heightPixels * 0.26f);
+            startupLogo.animate()
+                .translationY(logoRise)
+                .scaleX(0.54f)
+                .scaleY(0.54f)
+                .setDuration(560L)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+            startupSplash.animate()
+                .alpha(0f)
+                .setStartDelay(220L)
+                .setDuration(520L)
+                .withEndAction(() -> {
+                    if (startupSplash != null) {
+                        startupSplash.setVisibility(View.GONE);
+                    }
+                    startupSplash = null;
+                    startupLogo = null;
+                })
+                .start();
+        }, delay);
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     @Override

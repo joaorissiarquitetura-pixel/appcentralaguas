@@ -5,9 +5,19 @@
             <solid android:color="@color/central_primary" />
         </shape>
     </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:startColor="#20CBED"
+                android:centerColor="#0553E2"
+                android:endColor="#061E97"
+                android:type="linear" />
+        </shape>
+    </item>
     <item
         android:gravity="center"
-        android:width="192dp"
-        android:height="192dp"
-        android:drawable="@mipmap/ic_launcher_foreground" />
+        android:width="220dp"
+        android:height="220dp"
+        android:drawable="@drawable/central_splash_logo" />
 </layer-list>

@@ -3,16 +3,57 @@ plugins {
     id "com.google.gms.google-services"
 }
 
+def releaseKeystoreProperties = new Properties()
+def releaseKeystorePropertiesFile = rootProject.file("keystore.properties")
+if (releaseKeystorePropertiesFile.exists()) {
+    releaseKeystorePropertiesFile.withInputStream { releaseKeystoreProperties.load(it) }
+}
+
+def releaseStoreFile = releaseKeystoreProperties["storeFile"] ?: System.getenv("CENTRAL_AGUAS_UPLOAD_STORE_FILE")
+def releaseStorePassword = releaseKeystoreProperties["storePassword"] ?: System.getenv("CENTRAL_AGUAS_UPLOAD_STORE_PASSWORD")
+def releaseKeyAlias = releaseKeystoreProperties["keyAlias"] ?: System.getenv("CENTRAL_AGUAS_UPLOAD_KEY_ALIAS")
+def releaseKeyPassword = releaseKeystoreProperties["keyPassword"] ?: System.getenv("CENTRAL_AGUAS_UPLOAD_KEY_PASSWORD")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
-    namespace "com.centralaguas.app"
-    compileSdk 36
+    namespace = "com.centralaguas.app"
+    compileSdk = 36
+
+    signingConfigs {
+        debug {
+            storeFile = file("../debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+        if (hasReleaseSigning) {
+            release {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
-        applicationId "com.centralaguas.app"
-        minSdk 23
-        targetSdk 36
-        versionCode 1
-        versionName "1.0.0"
+        applicationId = "com.centralaguas.app"
+        minSdk = 23
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            signingConfig = signingConfigs.debug
+        }
+        release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.release
+            }
+            minifyEnabled = false
+        }
     }
 }
 

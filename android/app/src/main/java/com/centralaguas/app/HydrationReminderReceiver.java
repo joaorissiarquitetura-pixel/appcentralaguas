@@ -57,7 +57,7 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
             channel.setDescription("Avisos da Gotinha com botão para registrar água.");
             Uri sound = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI;
             AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION_REMINDER)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build();
             channel.setSound(sound, audioAttributes);
