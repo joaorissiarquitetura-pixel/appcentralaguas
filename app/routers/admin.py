@@ -13,14 +13,14 @@ from fastapi import APIRouter, Request, Form, Depends, File, UploadFile
 from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, extract, desc, text
+from sqlalchemy import select, func, extract, desc, text, delete
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import time as _time
 import json
 
 from ..database import get_db
-from ..models import AppBanner, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
@@ -36,6 +36,67 @@ logger = logging.getLogger(__name__)
 UPLOAD_DIR = Path("app/static/uploads/products")
 BANNER_UPLOAD_DIR = Path("app/static/uploads/banners")
 APP_TZ = ZoneInfo("America/Sao_Paulo")
+
+
+def _banner_file_url(filename: str) -> str:
+    return f"/static/uploads/banners/{filename}"
+
+
+def _store_banner_upload(upload: UploadFile) -> str:
+    suffix = Path(upload.filename or "").suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+        raise ValueError("Imagem do banner deve ser JPG, PNG ou WEBP")
+    BANNER_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:8]}{suffix}"
+    target_path = BANNER_UPLOAD_DIR / filename
+    target_path.write_bytes(upload.file.read())
+    return _banner_file_url(filename)
+
+
+def _store_remote_banner_image(source_url: str) -> str:
+    parsed = urllib.parse.urlparse(source_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("URL da imagem deve começar com http:// ou https://")
+
+    request = urllib.request.Request(
+        source_url,
+        headers={"User-Agent": "CentralAguasApp/1.0"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=12) as response:
+            content_type = (response.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+            suffix_by_type = {
+                "image/jpeg": ".jpg",
+                "image/png": ".png",
+                "image/webp": ".webp",
+            }
+            suffix = suffix_by_type.get(content_type) or Path(parsed.path).suffix.lower()
+            if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+                raise ValueError("URL informada não retornou uma imagem JPG, PNG ou WEBP")
+            data = response.read(5 * 1024 * 1024 + 1)
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise ValueError("Não foi possível baixar a imagem informada. Envie o arquivo pelo botão de upload.") from exc
+
+    if len(data) > 5 * 1024 * 1024:
+        raise ValueError("Imagem do banner deve ter no máximo 5 MB")
+
+    BANNER_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:8]}{suffix}"
+    (BANNER_UPLOAD_DIR / filename).write_bytes(data)
+    return _banner_file_url(filename)
+
+
+def _normalize_banner_image(image_url: str, upload: UploadFile | None) -> str:
+    if upload and upload.filename:
+        return _store_banner_upload(upload)
+    image = image_url.strip()
+    if not image:
+        raise ValueError("Informe a imagem do banner")
+    if image.startswith("/static/uploads/banners/"):
+        return image
+    if image.startswith("/static/"):
+        return image
+    return _store_remote_banner_image(image)
 
 # --- FUNÇÃO DE SEGURANÇA ---
 def require_admin(request: Request, db: Session) -> Attendant | None:
@@ -1026,18 +1087,10 @@ def create_app_banner(
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
 
-    image = image_url.strip()
-    if banner_image and banner_image.filename:
-        suffix = Path(banner_image.filename).suffix.lower()
-        if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
-            return RedirectResponse("/admin/notifications?err=Imagem%20do%20banner%20deve%20ser%20JPG,%20PNG%20ou%20WEBP", status_code=303)
-        BANNER_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-        filename = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:8]}{suffix}"
-        target_path = BANNER_UPLOAD_DIR / filename
-        target_path.write_bytes(banner_image.file.read())
-        image = f"/static/uploads/banners/{filename}"
-    if not image:
-        return RedirectResponse("/admin/notifications?err=Informe%20a%20URL%20da%20imagem%20do%20banner", status_code=303)
+    try:
+        image = _normalize_banner_image(image_url, banner_image)
+    except ValueError as exc:
+        return RedirectResponse(f"/admin/notifications?err={quote(str(exc))}", status_code=303)
 
     banner = AppBanner(
         title=title.strip()[:120] or "Promoção",
@@ -1071,7 +1124,10 @@ def toggle_app_banner(banner_id: int, request: Request, db: Session = Depends(ge
     banner = db.get(AppBanner, banner_id)
     if not banner:
         return RedirectResponse("/admin/notifications?err=Banner%20não%20encontrado", status_code=303)
+    was_inactive = not bool(banner.active)
     banner.active = not bool(banner.active)
+    if was_inactive and banner.active:
+        db.execute(delete(AppBannerEvent).where(AppBannerEvent.banner_id == banner.id))
     log_admin_action(
         db,
         action="app_banner_toggled",

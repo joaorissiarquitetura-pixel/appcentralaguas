@@ -58,7 +58,7 @@ public class CentralAguasMessagingService extends FirebaseMessagingService {
             : new android.app.Notification.Builder(this);
 
         builder
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_drop)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new android.app.Notification.BigTextStyle().bigText(body))

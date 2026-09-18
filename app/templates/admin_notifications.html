@@ -125,11 +125,12 @@
       <div class="banner-list">
         {% for banner in banners %}
           <div class="banner-item">
-            <img class="banner-thumb" src="{{ banner.image_url }}" alt="">
+            <img class="banner-thumb" src="{{ banner.image_url }}" alt="" title="{{ banner.image_url }}" onerror="this.style.opacity='.25';this.alt='Imagem indisponível';">
             <span>
               <strong>{{ banner.title }}</strong>
               <span class="small-muted d-block">{{ 'ativo' if banner.active else 'inativo' }} · {{ banner.seen_count or 0 }} visualizações · {{ banner.closed_count or 0 }} fechamentos · {{ format_dt(banner.created_at) }}</span>
               {% if banner.link_url %}<span class="small-muted d-block">Destino: {{ banner.link_url }}</span>{% endif %}
+              <span class="small-muted d-block">Imagem: {{ banner.image_url }}</span>
               {% if banner.body %}<span class="small-muted d-block">{{ banner.body }}</span>{% endif %}
             </span>
             <form method="post" action="/admin/notifications/banners/{{ banner.id }}/toggle">

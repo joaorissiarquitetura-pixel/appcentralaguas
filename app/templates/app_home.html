@@ -2624,7 +2624,7 @@
       setupComplete: false,
       done: 0,
       records: [],
-      date: new Date().toISOString().slice(0, 10)
+      date: localDateIso()
     };
     const hydrationKey = "centralAguas.hydrationProfile";
     const notificationKey = "centralAguas.hydrationNotifications";
@@ -3526,22 +3526,34 @@
     function loadHydrationProfile() {
       try {
         const saved = JSON.parse(localStorage.getItem(hydrationKey) || "{}");
-        const today = hydrationDefaults.date;
-        const rawRecords = Array.isArray(saved.records) ? saved.records : [];
+        const today = localDateIso();
+        const savedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(saved.date || "")) ? String(saved.date).slice(0, 10) : today;
+        const rawRecords = Array.isArray(saved.records) ? [...saved.records] : [];
+        const savedDone = Number(saved.done || 0);
+        if (!rawRecords.length && savedDate !== today && savedDone > 0) {
+          const legacyCup = Number(saved.selectedDrinkMl || saved.cupMl || hydrationDefaults.cupMl);
+          rawRecords.push({
+            date: savedDate,
+            at: `${savedDate}T12:00:00`,
+            amountMl: savedDone > 40 ? savedDone : savedDone * legacyCup
+          });
+        }
         const allRecords = rawRecords
           .filter((record) => record)
           .map((record) => ({
-            date: String(record.date || record.at || today).slice(0, 10),
+            date: hydrationRecordDate(record, today),
             at: record.at || new Date().toISOString(),
             amountMl: Math.max(0, Math.min(1500, Number(record.amountMl || record.amount || saved.cupMl || hydrationDefaults.cupMl)))
           }))
           .filter((record) => record.amountMl > 0);
         const todayRecords = allRecords.filter((record) => record.date === today);
         const doneMl = todayRecords.reduce((sum, record) => sum + record.amountMl, 0);
-        const savedDone = saved.date === today ? Number(saved.done || 0) : 0;
-        const legacyDoneMl = rawRecords.length || savedDone > 40
-          ? savedDone
-          : savedDone * Number(saved.selectedDrinkMl || saved.cupMl || hydrationDefaults.cupMl);
+        const savedTodayDone = savedDate === today ? savedDone : 0;
+        const legacyDoneMl = savedDate !== today
+          ? 0
+          : (rawRecords.length || savedTodayDone > 40
+            ? savedTodayDone
+            : savedTodayDone * Number(saved.selectedDrinkMl || saved.cupMl || hydrationDefaults.cupMl));
         return {
           ...hydrationDefaults,
           ...saved,
@@ -3553,6 +3565,14 @@
       } catch {
         return { ...hydrationDefaults };
       }
+    }
+
+    function hydrationRecordDate(record, fallbackDate) {
+      const explicitDate = String(record?.date || "").slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(explicitDate)) return explicitDate;
+      const at = record?.at ? new Date(record.at) : null;
+      if (at && !Number.isNaN(at.getTime())) return localDateIso(at);
+      return fallbackDate || localDateIso();
     }
 
     function saveHydrationProfile(profile) {
@@ -3568,15 +3588,16 @@
 
     function addHydrationRecord(amountMl) {
       const profile = loadHydrationProfile();
+      const today = localDateIso();
       const amount = Math.max(50, Math.min(1500, Number(amountMl || profile.selectedDrinkMl || profile.cupMl || 300)));
       profile.records = Array.isArray(profile.records) ? profile.records : [];
       profile.records.push({
-        date: hydrationDefaults.date,
+        date: today,
         at: new Date().toISOString(),
         amountMl: amount
       });
       profile.done = profile.records
-        .filter((record) => record.date === hydrationDefaults.date)
+        .filter((record) => record.date === today)
         .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
       profile.selectedDrinkMl = amount;
       saveHydrationProfile(profile);
@@ -3585,14 +3606,15 @@
 
     function removeHydrationRecord(index) {
       const profile = loadHydrationProfile();
+      const today = localDateIso();
       profile.records = Array.isArray(profile.records) ? profile.records : [];
       const todayIndexes = profile.records
         .map((record, recordIndex) => ({ record, recordIndex }))
-        .filter((item) => item.record.date === hydrationDefaults.date);
+        .filter((item) => item.record.date === today);
       const target = todayIndexes[index];
       if (target) profile.records.splice(target.recordIndex, 1);
       profile.done = profile.records
-        .filter((record) => record.date === hydrationDefaults.date)
+        .filter((record) => record.date === today)
         .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
       saveHydrationProfile(profile);
       renderHydration();
@@ -3600,7 +3622,8 @@
 
     function clearHydrationDay() {
       const profile = loadHydrationProfile();
-      profile.records = (Array.isArray(profile.records) ? profile.records : []).filter((record) => record.date !== hydrationDefaults.date);
+      const today = localDateIso();
+      profile.records = (Array.isArray(profile.records) ? profile.records : []).filter((record) => record.date !== today);
       profile.done = 0;
       saveHydrationProfile(profile);
       renderHydration();
@@ -3882,16 +3905,19 @@
       if (!increment) return;
       const profile = loadHydrationProfile();
       const plan = hydrationPlan(profile);
+      const today = localDateIso();
       const records = Array.isArray(profile.records) ? profile.records : [];
       for (let index = 0; index < increment; index += 1) {
         records.push({
-          date: hydrationDefaults.date,
+          date: today,
           at: new Date().toISOString(),
           amountMl: plan.cupMl
         });
       }
       profile.records = records;
-      profile.done = records.reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
+      profile.done = records
+        .filter((record) => record.date === today)
+        .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
       saveHydrationProfile(profile);
       renderHydration();
     };
@@ -4234,7 +4260,7 @@
       return Array.from({ length: 7 }, (_, offset) => {
         const date = new Date(today);
         date.setDate(today.getDate() - (6 - offset));
-        const iso = date.toISOString().slice(0, 10);
+        const iso = localDateIso(date);
         const amount = records
           .filter((record) => record.date === iso)
           .reduce((sum, record) => sum + Number(record.amountMl || 0), 0);
@@ -4332,7 +4358,7 @@
         const key = button.dataset.hydrationToggle;
         button.classList.toggle("is-on", Boolean(profile[key]));
       });
-      const records = (Array.isArray(profile.records) ? profile.records : []).filter((record) => record.date === hydrationDefaults.date);
+      const records = (Array.isArray(profile.records) ? profile.records : []).filter((record) => record.date === localDateIso());
       const recordList = document.querySelector("[data-hydration-records]");
       if (recordList) {
         recordList.innerHTML = records.length ? records.slice().reverse().map((record, reverseIndex) => {

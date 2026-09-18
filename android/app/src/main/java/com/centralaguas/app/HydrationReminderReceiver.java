@@ -104,7 +104,7 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
             : new Notification.Builder(context);
 
         builder
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification_drop)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(new Notification.BigTextStyle().bigText(body + " Aviso " + index + " de " + total + "."))
@@ -113,7 +113,7 @@ public class HydrationReminderReceiver extends BroadcastReceiver {
             .setCategory(Notification.CATEGORY_REMINDER)
             .setPriority(Notification.PRIORITY_HIGH)
             .setDefaults(Notification.DEFAULT_ALL)
-            .addAction(R.mipmap.ic_launcher, "BEBER", drankPendingIntent);
+            .addAction(R.drawable.ic_notification_drop, "BEBER", drankPendingIntent);
 
         manager.notify(NOTIFICATION_ID, builder.build());
     }
