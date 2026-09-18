@@ -132,13 +132,13 @@ public class MainActivity extends Activity {
         splash.setBackground(background);
 
         startupLogo = new ImageView(this);
-        startupLogo.setImageResource(getResources().getIdentifier("central_brand_logo", "drawable", getPackageName()));
+        startupLogo.setImageResource(getResources().getIdentifier("central_wordmark_splash", "drawable", getPackageName()));
         startupLogo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         startupLogo.setAlpha(0f);
         startupLogo.setScaleX(0.94f);
         startupLogo.setScaleY(0.94f);
 
-        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(dpToPx(286), dpToPx(156));
+        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(dpToPx(320), dpToPx(112));
         logoParams.gravity = android.view.Gravity.CENTER;
         splash.addView(startupLogo, logoParams);
 
