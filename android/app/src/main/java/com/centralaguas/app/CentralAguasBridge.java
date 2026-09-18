@@ -28,6 +28,11 @@ public class CentralAguasBridge {
     }
 
     @JavascriptInterface
+    public void syncFcmToken() {
+        activity.syncFcmToken();
+    }
+
+    @JavascriptInterface
     public boolean scheduleHydrationReminders(String scheduleJson) {
         SharedPreferences prefs = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         prefs.edit()

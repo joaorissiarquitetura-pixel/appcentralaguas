@@ -2922,6 +2922,10 @@
         notification_permission: "Notification" in window ? Notification.permission : "unsupported",
         location_permission: "unknown"
       });
+      const bridge = window.CentralAguasAndroid;
+      if (bridge?.syncFcmToken) {
+        try { bridge.syncFcmToken(); } catch {}
+      }
     }
 
     function urlBase64ToUint8Array(base64String) {

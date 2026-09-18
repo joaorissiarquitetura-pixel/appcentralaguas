@@ -115,7 +115,27 @@ def _order_reference(order: dict) -> tuple[str, str]:
     return client_order_id, grj_order_id
 
 
-def _notify_out_for_delivery(db: Session, customer_id: int | None, orders: list[dict]) -> None:
+def _order_push_content(status: str, order: dict) -> tuple[str, str, str] | None:
+    driver = _delivery_driver_name(order)
+    if status == "accepted":
+        return "Central Águas", "Seu pedido foi aceito.", "/app?screen=orders&skip_splash=1"
+    if status == "out_for_delivery":
+        body = (
+            f"Seu pedido saiu com o {driver}."
+            if driver
+            else "Seu pedido saiu para entrega."
+        )
+        return "Central Águas", body, "/app?screen=orders&skip_splash=1"
+    if status == "done":
+        return (
+            "Central Águas",
+            "Seu pedido chegou na parte final! Finalizamos ele e seus pontos no programa de fidelidade ja estao no cartao. Clique aqui para conferir.",
+            "/app?screen=loyalty&skip_splash=1",
+        )
+    return None
+
+
+def _notify_order_status_changes(db: Session, customer_id: int | None, orders: list[dict]) -> None:
     if not customer_id:
         return
     devices = db.execute(
@@ -129,27 +149,26 @@ def _notify_out_for_delivery(db: Session, customer_id: int | None, orders: list[
         return
 
     for order in orders:
-        if not isinstance(order, dict) or _order_status_value(order) != "out_for_delivery":
+        if not isinstance(order, dict):
+            continue
+        status = _order_status_value(order)
+        content = _order_push_content(status, order)
+        if not content:
             continue
         client_order_id, grj_order_id = _order_reference(order)
         reference = client_order_id or grj_order_id
         if not reference:
             continue
-        event_key = f"out_for_delivery:{customer_id}:{reference}"
+        event_key = f"{status}:{customer_id}:{reference}"
         if db.scalar(select(AppOrderPushEvent.id).where(AppOrderPushEvent.event_key == event_key)):
             continue
 
-        driver = _delivery_driver_name(order)
-        body = (
-            f"Seu pedido ja esta com {driver}. Ja ja esta chegando ai."
-            if driver
-            else "Seu pedido saiu para entrega. Ja ja esta chegando ai."
-        )
+        title, body, url = content
         notification = AppNotification(
-            title="Pedido saiu para entrega",
+            title=title,
             body=body,
             target="customer",
-            url="/app?screen=orders&skip_splash=1",
+            url=url,
             status="queued",
         )
         db.add(notification)
@@ -174,7 +193,7 @@ def _notify_out_for_delivery(db: Session, customer_id: int | None, orders: list[
                 customer_id=customer_id,
                 client_order_id=client_order_id or None,
                 grj_order_id=grj_order_id or None,
-                status="out_for_delivery",
+                status=status,
                 sent_count=sent,
                 failed_count=failed,
             )
@@ -392,7 +411,7 @@ def app_order_status(
         return {"ok": False, "error": str(exc), "orders": []}
     orders = payload.get("data") or []
     try:
-        _notify_out_for_delivery(db, int(customer_id) if str(customer_id).isdigit() else None, orders)
+        _notify_order_status_changes(db, int(customer_id) if str(customer_id).isdigit() else None, orders)
     except Exception as exc:
         db.rollback()
         logger.warning("Automatic out-for-delivery push failed: %s", exc)
@@ -451,7 +470,9 @@ def register_device(payload: DeviceRegisterPayload, request: Request, db: Sessio
         db.commit()
         return blocked
 
-    device.customer_id = _current_customer_id(request)
+    current_customer_id = _current_customer_id(request)
+    if current_customer_id is not None:
+        device.customer_id = current_customer_id
     device.platform = payload.platform[:40]
     device.app_version = payload.app_version[:40] or None
     device.notification_permission = payload.notification_permission[:20] or None
@@ -507,7 +528,9 @@ def save_fcm_token(payload: FcmTokenPayload, request: Request, db: Session = Dep
     if blocked:
         return blocked
 
-    device.customer_id = _current_customer_id(request)
+    current_customer_id = _current_customer_id(request)
+    if current_customer_id is not None:
+        device.customer_id = current_customer_id
     device.platform = payload.platform[:40]
     device.notification_permission = payload.notification_permission[:20]
     device.fcm_token = token

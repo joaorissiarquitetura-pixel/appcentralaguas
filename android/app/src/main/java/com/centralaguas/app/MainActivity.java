@@ -91,6 +91,7 @@ public class MainActivity extends Activity {
                 startupPageFinished = true;
                 finishStartupSplashWhenReady(false);
                 flushHydrationActionsToWeb();
+                syncFcmToken();
             }
         });
 
@@ -286,7 +287,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void syncFcmToken() {
+    public void syncFcmToken() {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) {
                 Exception exception = task.getException();

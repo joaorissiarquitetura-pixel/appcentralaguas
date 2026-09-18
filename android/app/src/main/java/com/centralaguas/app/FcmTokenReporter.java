@@ -3,6 +3,7 @@ package com.centralaguas.app;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.provider.Settings;
+import android.webkit.CookieManager;
 
 import org.json.JSONObject;
 
@@ -55,6 +56,10 @@ public class FcmTokenReporter {
                 HttpURLConnection connection = (HttpURLConnection) new URL(context.getString(R.string.fcm_token_url)).openConnection();
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Content-Type", "application/json");
+                String cookie = CookieManager.getInstance().getCookie("https://app.centralaguas.com.br");
+                if (cookie != null && !cookie.trim().isEmpty()) {
+                    connection.setRequestProperty("Cookie", cookie);
+                }
                 connection.setDoOutput(true);
                 byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
                 try (OutputStream output = connection.getOutputStream()) {
