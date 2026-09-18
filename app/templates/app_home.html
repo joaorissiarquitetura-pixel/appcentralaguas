@@ -375,7 +375,7 @@
     }
     .category-row {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 8px;
       margin-top: 14px;
     }
@@ -1141,19 +1141,30 @@
       font-size: 0.95rem;
       line-height: 1.45;
     }
-    .app-tour-list {
+    .app-tour-step {
       display: grid;
-      gap: 8px;
+      gap: 12px;
     }
-    .app-tour-item {
+    .app-tour-actions {
       display: grid;
-      grid-template-columns: 36px minmax(0, 1fr);
+      grid-template-columns: auto minmax(0, 1fr);
       gap: 10px;
       align-items: center;
-      padding: 10px;
-      border: 1px solid var(--ca-line);
-      border-radius: 14px;
-      background: var(--ca-soft);
+    }
+    .app-tour-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .app-tour-dots span {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(11, 76, 203, 0.18);
+    }
+    .app-tour-dots span.is-active {
+      width: 18px;
+      background: var(--ca-primary);
     }
     .stock-warning {
       display: none;
@@ -1943,6 +1954,7 @@
         <div class="category-row" aria-label="Categorias">
           <button class="category-tile" type="button" data-go="store" data-store-category-go="galao20"><i class="bi bi-droplet-fill"></i><span>Galão 20L</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="galao10"><i class="bi bi-droplet"></i><span>Galão 10L</span></button>
+          <button class="category-tile" type="button" data-go="store" data-store-category-go="agua_vasilhame"><i class="bi bi-plus-circle"></i><span>Água + vasilhame</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="descartaveis"><i class="bi bi-basket-fill"></i><span>Descartáveis</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="gas"><i class="bi bi-fire"></i><span>Gás</span></button>
         </div>
@@ -2022,6 +2034,7 @@
         <div class="chip-row" aria-label="Categorias da loja">
           <button class="chip active" type="button" data-store-category="galao20">Galão 20L</button>
           <button class="chip" type="button" data-store-category="galao10">Galão 10L</button>
+          <button class="chip" type="button" data-store-category="agua_vasilhame">Água + vasilhame</button>
           <button class="chip" type="button" data-store-category="descartaveis">Descartáveis</button>
           <button class="chip" type="button" data-store-category="gas">Gás</button>
         </div>
@@ -2624,17 +2637,16 @@
 
   <div class="app-tour-overlay" data-app-tour aria-hidden="true">
     <section class="app-tour-card" role="dialog" aria-modal="true" aria-labelledby="appTourTitle">
-      <span class="blue-icon"><i class="bi bi-stars"></i></span>
-      <div>
-        <h2 id="appTourTitle">Conheça rapidinho o app</h2>
-        <p>Um guia curto para você saber onde pedir, acompanhar pontos e registrar os galões da casa.</p>
+      <span class="blue-icon"><i class="bi bi-stars" data-app-tour-icon></i></span>
+      <div class="app-tour-step">
+        <h2 id="appTourTitle" data-app-tour-title>Conheça rapidinho o app</h2>
+        <p data-app-tour-body>Um guia curto para você saber onde pedir, acompanhar pontos e registrar os galões da casa.</p>
       </div>
-      <div class="app-tour-list">
-        <div class="app-tour-item"><span class="blue-icon"><i class="bi bi-cart3"></i></span><span class="row-copy"><strong>Loja</strong><span>Escolha água, descartáveis ou gás.</span></span></div>
-        <div class="app-tour-item"><span class="blue-icon"><i class="bi bi-house-door"></i></span><span class="row-copy"><strong>Casa</strong><span>Registre os galões e vencimentos.</span></span></div>
-        <div class="app-tour-item"><span class="blue-icon"><i class="bi bi-star"></i></span><span class="row-copy"><strong>Fidelidade</strong><span>Acompanhe pontos e cupons.</span></span></div>
+      <div class="app-tour-dots" data-app-tour-dots aria-hidden="true"></div>
+      <div class="app-tour-actions">
+        <button class="secondary-button" type="button" data-app-tour-skip>Pular</button>
+        <button class="primary-button" type="button" data-app-tour-next>Próximo</button>
       </div>
-      <button class="primary-button" type="button" data-app-tour-close>Entendi</button>
     </section>
   </div>
 
@@ -2724,6 +2736,33 @@
     let ordersFilter = "all";
     let ordersSyncInFlight = false;
     let couponReturnScreen = "menu";
+    let appTourIndex = 0;
+    const appTourSteps = [
+      {
+        screen: "home",
+        icon: "bi-stars",
+        title: "Bem-vindo à Central Águas",
+        body: "Aqui você pede água, acompanha seus pedidos e acessa tudo pelo menu inferior."
+      },
+      {
+        screen: "store",
+        icon: "bi-cart3",
+        title: "Loja",
+        body: "Escolha galão, água com vasilhame, descartáveis ou gás e adicione ao carrinho."
+      },
+      {
+        screen: "house",
+        icon: "bi-house-door",
+        title: "Água da sua casa",
+        body: "Registre quantos galões existem na casa e o vencimento de cada um. Se não estiver em casa, pode registrar depois."
+      },
+      {
+        screen: "loyalty",
+        icon: "bi-star",
+        title: "Fidelidade",
+        body: "Acompanhe seus pontos, cartões completos e cupons disponíveis para usar no app."
+      }
+    ];
     let appBootstrap = { push: { configured: false, public_key: "" } };
     const checkoutCoupons = [
       {% for coupon in coupons.available %}
@@ -3156,6 +3195,71 @@
       return !["done", "cancelled", "out_for_delivery"].includes(status);
     }
 
+    function isGallonItem(item) {
+      const text = normalizeText(`${item?.category || ""} ${item?.product || ""} ${item?.description || ""}`);
+      if (!text) return false;
+      if (text.includes("gas") || text.includes("botijao") || text.includes("glp")) return false;
+      if (text.includes("fardo") || text.includes("descart") || text.includes("copo") || text.includes("pet")) return false;
+      return text.includes("galao") || text.includes("garrafao") || text.includes("20l") || text.includes("20 l") || text.includes("10l") || text.includes("10 l") || text.includes("acquatuba") || text.includes("aragua") || text.includes("vanagua") || text.includes("hidrolevel") || text.includes("vasilhame") || text.includes("casco");
+    }
+
+    function isCompleteGallonItem(item) {
+      const text = normalizeText(`${item?.category || ""} ${item?.product || ""} ${item?.description || ""}`);
+      return text.includes("agua_vasilhame") || text.includes("vasilhame") || text.includes("casco") || text.includes("galao completo");
+    }
+
+    function deliveredGallonsFromOrder(order) {
+      const result = { refill: 0, complete: 0 };
+      (Array.isArray(order.items) ? order.items : []).forEach((item) => {
+        if (!isGallonItem(item)) return;
+        const qty = Math.max(0, Math.round(Number(item.qty || item.quantity || 0)));
+        if (!qty) return;
+        if (isCompleteGallonItem(item)) {
+          result.complete += qty;
+        } else {
+          result.refill += qty;
+        }
+      });
+      return result;
+    }
+
+    function applyCompletedOrderToHouseStock(order) {
+      if (!orderIsDone(order) || order.houseStockAppliedAt) return order;
+      const delivered = deliveredGallonsFromOrder(order);
+      const deliveredTotal = delivered.refill + delivered.complete;
+      if (!deliveredTotal) return { ...order, houseStockAppliedAt: new Date().toISOString() };
+
+      const stock = loadHouseStock();
+      const nextStock = {
+        ...stock,
+        total: Math.max(stock.total + delivered.complete, stock.total),
+        full: stock.full,
+        inUse: stock.inUse,
+        gallonValidities: [...(stock.gallonValidities || [])]
+      };
+      for (let index = 0; index < delivered.complete; index += 1) {
+        nextStock.gallonValidities.push({ month: "", year: "" });
+      }
+      const maxFull = Math.max(0, nextStock.total - nextStock.inUse);
+      nextStock.full = Math.min(maxFull, nextStock.full + deliveredTotal);
+      nextStock.calibrated = true;
+      nextStock.skipped = false;
+      nextStock.updatedAt = new Date().toISOString();
+      saveHouseStock(nextStock);
+      renderHouseStock();
+      return { ...order, houseStockAppliedAt: nextStock.updatedAt };
+    }
+
+    function applyCompletedOrdersToHouseStock(orders) {
+      let changed = false;
+      const nextOrders = (Array.isArray(orders) ? orders : []).map((order) => {
+        const nextOrder = applyCompletedOrderToHouseStock(order);
+        if (nextOrder !== order) changed = true;
+        return nextOrder;
+      });
+      return { orders: nextOrders, changed };
+    }
+
     function orderHistory(order) {
       if (Array.isArray(order.history) && order.history.length) return order.history;
       return [
@@ -3197,6 +3301,7 @@
         total: Number(remote.total_amount || 0),
         items: remoteItems.map((item) => ({
           product: item.description,
+          category: item.category || "",
           qty: item.quantity,
           price: item.unit_price,
           total: item.total_amount
@@ -3252,6 +3357,7 @@
             history: remote.history || order.history,
             items: remote.items?.length ? remote.items.map((item) => ({
               product: item.description,
+              category: item.category || "",
               qty: item.quantity,
               price: item.unit_price,
               total: item.total_amount
@@ -3272,9 +3378,11 @@
           if (!created.id) return;
           updated.push(created);
         });
-        updated.sort((left, right) => parseAppDate(right.updatedAt || right.createdAt) - parseAppDate(left.updatedAt || left.createdAt));
-        localStorage.setItem(ordersKey, JSON.stringify(updated.slice(0, 20)));
-        return updated;
+        const stockApplied = applyCompletedOrdersToHouseStock(updated);
+        const finalOrders = stockApplied.orders;
+        finalOrders.sort((left, right) => parseAppDate(right.updatedAt || right.createdAt) - parseAppDate(left.updatedAt || left.createdAt));
+        localStorage.setItem(ordersKey, JSON.stringify(finalOrders.slice(0, 20)));
+        return finalOrders;
       } catch {
         return currentOrders;
       }
@@ -3368,10 +3476,18 @@
       return {
         product: button.dataset.product,
         product_id: button.dataset.productId || "",
+        category: card?.dataset.productCategory || "galao20",
         description: button.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description,
         price: Number(button.dataset.price || state.price),
         image: button.dataset.image || state.image
       };
+    }
+
+    function productFromCategory(category) {
+      const row = [...document.querySelectorAll("[data-product-category]")].find((item) => item.dataset.productCategory === category);
+      const button = row?.querySelector("[data-product]");
+      if (!button) return null;
+      return productFromCatalog(button.dataset.product);
     }
 
     function applyProductSelection(product) {
@@ -3388,6 +3504,7 @@
       const normalizedProduct = {
         product: product.product || state.product,
         product_id: product.product_id || "",
+        category: product.category || "",
         description: product.description || state.description,
         price: Number(product.price || state.price || 0),
         image: product.image || state.image,
@@ -3432,21 +3549,14 @@
     function reorderFromHouseStock() {
       const stock = loadHouseStock();
       const qty = Math.max(emptyGallons(stock), 1);
-      const lastOrder = loadOrders()[0];
-      if (!lastOrder) {
-        state.cart = [];
-        addProductToCart(productFromCatalog(state.product), qty);
-        updateCheckout();
+      const product = productFromCategory("galao20") || productFromCategory("galao10") || productFromCatalog(state.product);
+      if (!product) {
+        state.storeCategory = "galao20";
         showScreen("store");
         return;
       }
       state.cart = [];
-      addProductToCart(productFromCatalog(lastOrder.product) || {
-        product: lastOrder.product,
-        description: lastOrder.description,
-        price: lastOrder.unitPrice || state.price,
-        image: lastOrder.image || state.image
-      }, qty);
+      addProductToCart(product, qty);
       updateCheckout();
       showScreen("checkout");
     }
@@ -4587,8 +4697,37 @@
       if (localStorage.getItem(appTourKey) === "seen") return;
       const overlay = document.querySelector("[data-app-tour]");
       if (!overlay) return;
+      appTourIndex = 0;
+      renderAppTourStep();
       overlay.classList.add("is-visible");
       overlay.setAttribute("aria-hidden", "false");
+    }
+
+    function renderAppTourStep() {
+      const step = appTourSteps[appTourIndex] || appTourSteps[0];
+      if (!step) return;
+      showScreen(step.screen);
+      const icon = document.querySelector("[data-app-tour-icon]");
+      const title = document.querySelector("[data-app-tour-title]");
+      const body = document.querySelector("[data-app-tour-body]");
+      const dots = document.querySelector("[data-app-tour-dots]");
+      const next = document.querySelector("[data-app-tour-next]");
+      if (icon) icon.className = `bi ${step.icon}`;
+      if (title) title.textContent = step.title;
+      if (body) body.textContent = step.body;
+      if (dots) {
+        dots.innerHTML = appTourSteps.map((_, index) => `<span class="${index === appTourIndex ? "is-active" : ""}"></span>`).join("");
+      }
+      if (next) next.textContent = appTourIndex >= appTourSteps.length - 1 ? "Concluir" : "Próximo";
+    }
+
+    function nextAppTourStep() {
+      if (appTourIndex >= appTourSteps.length - 1) {
+        closeAppTour();
+        return;
+      }
+      appTourIndex += 1;
+      renderAppTourStep();
     }
 
     function closeAppTour() {
@@ -4735,10 +4874,17 @@
     }
 
     document.addEventListener("click", async (event) => {
-      const closeTour = event.target.closest("[data-app-tour-close]");
+      const closeTour = event.target.closest("[data-app-tour-skip]");
       if (closeTour) {
         event.preventDefault();
         closeAppTour();
+        return;
+      }
+
+      const nextTour = event.target.closest("[data-app-tour-next]");
+      if (nextTour) {
+        event.preventDefault();
+        nextAppTourStep();
         return;
       }
 
@@ -4836,6 +4982,7 @@
         const product = {
           product: add.dataset.product,
           product_id: add.dataset.productId || "",
+          category: card?.dataset.productCategory || "",
           description: add.dataset.description,
           price: add.dataset.price,
           image: add.dataset.image

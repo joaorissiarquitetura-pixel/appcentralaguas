@@ -136,6 +136,8 @@ def _catalog_image_for_name(name: str) -> str | None:
 
 def _product_category(name: str, description: str = "") -> str:
     text = f"{name} {description}".lower()
+    if "vasilhame" in text or "casco" in text or "água + vasilhame" in text or "agua + vasilhame" in text or "galão completo" in text or "galao completo" in text:
+        return "agua_vasilhame"
     if "fardo" in text or "descart" in text or "garrafa" in text or "copo" in text or "pet" in text:
         return "descartaveis"
     if "glp" in text or "botijão" in text or "botijao" in text or "gás de cozinha" in text or "gas de cozinha" in text or "supergasbras" in text:
