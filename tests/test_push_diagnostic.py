@@ -44,6 +44,31 @@ class PushDiagnosticTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["probable_reason"], "Celular nao registrou token FCM.")
 
+    def test_diagnostic_points_to_related_fcm_device_for_same_customer(self):
+        customer = self.create_customer()
+        web_device = AppDevice(
+            device_id="ca-webview",
+            customer_id=customer.id,
+            platform="android-webview",
+            notification_permission="unsupported",
+        )
+        native_device = AppDevice(
+            device_id="android-native",
+            customer_id=customer.id,
+            platform="android",
+            notification_permission="granted",
+            fcm_token="fcm-token",
+        )
+        self.db.add_all([web_device, native_device])
+        self.db.commit()
+
+        with patch("app.routers.admin.fcm_configured", return_value=True):
+            result = _diagnose_fcm_device(self.db, web_device)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(len(result["related_fcm_devices"]), 1)
+        self.assertIn("existe outro dispositivo do mesmo cliente com token", result["probable_reason"])
+
     def test_diagnostic_identifies_unlinked_customer(self):
         device = AppDevice(
             device_id="android-sem-cliente",

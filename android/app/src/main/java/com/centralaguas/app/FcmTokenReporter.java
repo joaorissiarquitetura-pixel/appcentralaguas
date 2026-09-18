@@ -16,12 +16,16 @@ public class FcmTokenReporter {
     private static final String PREFS = "central_aguas_app";
     private static final String TOKEN_KEY = "last_fcm_token";
 
+    public static String deviceId(Context context) {
+        String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        return "android-" + androidId;
+    }
+
     public static void reportDiagnostic(Context context, String status, String detail) {
         new Thread(() -> {
             try {
-                String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
                 JSONObject payload = new JSONObject();
-                payload.put("device_id", "android-" + androidId);
+                payload.put("device_id", deviceId(context));
                 payload.put("status", status);
                 payload.put("detail", detail == null ? "" : detail);
                 payload.put("platform", "android");
@@ -46,9 +50,8 @@ public class FcmTokenReporter {
 
         new Thread(() -> {
             try {
-                String androidId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
                 JSONObject payload = new JSONObject();
-                payload.put("device_id", "android-" + androidId);
+                payload.put("device_id", deviceId(context));
                 payload.put("token", token);
                 payload.put("notification_permission", "granted");
                 payload.put("platform", "android");

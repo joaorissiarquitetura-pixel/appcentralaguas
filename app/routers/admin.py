@@ -598,6 +598,7 @@ def _diagnose_fcm_device(db: Session, device: AppDevice | None, admin: Attendant
         "send_ok": False,
         "notification_id": None,
         "device": None,
+        "related_fcm_devices": [],
         "checks": [],
         "probable_reason": "",
     }
@@ -617,6 +618,25 @@ def _diagnose_fcm_device(db: Session, device: AppDevice | None, admin: Attendant
         "is_blocked": bool(device.is_blocked),
         "last_seen_at": device.last_seen_at.isoformat() if device.last_seen_at else None,
     }
+    if device.customer_id:
+        related_devices = db.execute(
+            select(AppDevice).where(
+                AppDevice.customer_id == device.customer_id,
+                AppDevice.id != device.id,
+                AppDevice.fcm_token.is_not(None),
+                AppDevice.is_blocked.is_not(True),
+            )
+        ).scalars().all()
+        diagnostic["related_fcm_devices"] = [
+            {
+                "id": item.id,
+                "device_id": item.device_id,
+                "platform": item.platform or "",
+                "notification_permission": item.notification_permission or "",
+                "last_seen_at": item.last_seen_at.isoformat() if item.last_seen_at else None,
+            }
+            for item in related_devices
+        ]
     checks = [
         ("firebase_configured", diagnostic["fcm_configured"], "Firebase FCM nao esta configurado no backend."),
         ("device_not_blocked", not bool(device.is_blocked), "Dispositivo bloqueado no painel."),
@@ -634,6 +654,11 @@ def _diagnose_fcm_device(db: Session, device: AppDevice | None, admin: Attendant
             diagnostic["probable_reason"] = reason
 
     if diagnostic["probable_reason"]:
+        if not device.fcm_token and diagnostic["related_fcm_devices"]:
+            diagnostic["probable_reason"] = (
+                "Este registro nao tem token FCM, mas existe outro dispositivo do mesmo cliente com token. "
+                "Teste o dispositivo relacionado ou instale a nova versao para unificar o device_id."
+            )
         return diagnostic
 
     notification = AppNotification(

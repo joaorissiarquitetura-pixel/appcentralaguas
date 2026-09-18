@@ -2790,6 +2790,16 @@
     }
 
     function getDeviceId() {
+      const bridge = window.CentralAguasAndroid;
+      if (bridge?.getDeviceId) {
+        try {
+          const nativeDeviceId = String(bridge.getDeviceId() || "").trim();
+          if (nativeDeviceId) {
+            localStorage.setItem(deviceIdKey, nativeDeviceId);
+            return nativeDeviceId;
+          }
+        } catch {}
+      }
       let deviceId = localStorage.getItem(deviceIdKey);
       if (!deviceId) {
         const random = crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
