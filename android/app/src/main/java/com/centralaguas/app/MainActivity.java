@@ -32,8 +32,8 @@ public class MainActivity extends Activity {
     public static final String EXTRA_TARGET_URL = "com.centralaguas.app.TARGET_URL";
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 1002;
-    private static final long STARTUP_SPLASH_MIN_MS = 1800L;
-    private static final long STARTUP_SPLASH_MAX_MS = 5200L;
+    private static final long STARTUP_SPLASH_MIN_MS = 1200L;
+    private static final long STARTUP_SPLASH_MAX_MS = 1800L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private WebView webView;
     private View startupSplash;
@@ -131,14 +131,13 @@ public class MainActivity extends Activity {
         splash.setBackground(background);
 
         startupLogo = new ImageView(this);
-        startupLogo.setImageResource(getResources().getIdentifier("central_splash_logo", "drawable", getPackageName()));
+        startupLogo.setImageResource(getResources().getIdentifier("central_brand_logo", "drawable", getPackageName()));
         startupLogo.setScaleType(ImageView.ScaleType.FIT_CENTER);
         startupLogo.setAlpha(0f);
-        startupLogo.setScaleX(0.86f);
-        startupLogo.setScaleY(0.86f);
+        startupLogo.setScaleX(0.94f);
+        startupLogo.setScaleY(0.94f);
 
-        int logoSize = dpToPx(240);
-        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(logoSize, logoSize);
+        FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(dpToPx(286), dpToPx(156));
         logoParams.gravity = android.view.Gravity.CENTER;
         splash.addView(startupLogo, logoParams);
 
@@ -152,7 +151,7 @@ public class MainActivity extends Activity {
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(760L)
+            .setDuration(360L)
             .setInterpolator(new DecelerateInterpolator())
             .start();
     }
@@ -171,18 +170,17 @@ public class MainActivity extends Activity {
             if (startupSplash == null || startupLogo == null) {
                 return;
             }
-            float logoRise = -(getResources().getDisplayMetrics().heightPixels * 0.26f);
             startupLogo.animate()
-                .translationY(logoRise)
-                .scaleX(0.54f)
-                .scaleY(0.54f)
-                .setDuration(560L)
+                .alpha(0f)
+                .scaleX(0.98f)
+                .scaleY(0.98f)
+                .setDuration(260L)
                 .setInterpolator(new DecelerateInterpolator())
                 .start();
             startupSplash.animate()
                 .alpha(0f)
-                .setStartDelay(220L)
-                .setDuration(520L)
+                .setStartDelay(80L)
+                .setDuration(300L)
                 .withEndAction(() -> {
                     if (startupSplash != null) {
                         startupSplash.setVisibility(View.GONE);

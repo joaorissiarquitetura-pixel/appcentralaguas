@@ -17,7 +17,7 @@
     </item>
     <item
         android:gravity="center"
-        android:width="220dp"
-        android:height="220dp"
-        android:drawable="@drawable/central_splash_logo" />
+        android:width="286dp"
+        android:height="156dp"
+        android:drawable="@drawable/central_brand_logo" />
 </layer-list>

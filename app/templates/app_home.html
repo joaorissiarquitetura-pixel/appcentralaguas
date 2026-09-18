@@ -59,29 +59,23 @@
       background-image: linear-gradient(180deg, #0f5edc 0%, #0B4CCB 58%, #083A9A 100%);
       color: var(--ca-white);
       animation:
-        splashOut 800ms ease 7200ms forwards;
+        splashOut 260ms ease 1400ms forwards;
     }
     .app-splash.is-skipped {
       display: none;
     }
-    .splash-inner { display: grid; justify-items: center; gap: 22px; }
+    .splash-inner { display: grid; justify-items: center; gap: 18px; }
     .splash-logo {
-      width: min(82vw, 430px);
+      width: min(76vw, 340px);
       height: auto;
       object-fit: contain;
       filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.18));
       opacity: 0;
-      transform: translateY(8px) scale(0.96);
-      animation: splashLogoSequence 7200ms ease forwards;
+      transform: translateY(4px) scale(0.98);
+      animation: splashLogoSequence 1400ms ease forwards;
     }
     .splash-loader {
-      width: 112px;
-      height: 4px;
-      overflow: hidden;
-      border-radius: var(--ca-pill);
-      background: rgba(255, 255, 255, 0.22);
-      opacity: 0;
-      animation: splashLoaderIn 500ms ease 500ms forwards;
+      display: none;
     }
     .splash-loader span {
       display: block;
@@ -1748,10 +1742,10 @@
     body.login-mode .floating-cart,
     body.checkout-mode .floating-cart { display: none !important; }
     @keyframes splashLogoSequence {
-      0% { opacity: 0; transform: translateY(8px) scale(0.96); }
-      15% { opacity: 1; transform: translateY(0) scale(1); }
-      74% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-6px) scale(0.985); }
+      0% { opacity: 0; transform: translateY(4px) scale(0.98); }
+      28% { opacity: 1; transform: translateY(0) scale(1); }
+      78% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-3px) scale(0.99); }
     }
     @keyframes splashLoaderIn {
       to { opacity: 1; }
@@ -1814,7 +1808,7 @@
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
   <div class="app-splash{% if request.query_params.get('skip_splash') == '1' %} is-skipped{% endif %}" aria-hidden="true">
     <div class="splash-inner">
-      <img class="splash-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
+      <img class="splash-logo" src="/static/img/logo_central_oficial.png" alt="Central Águas">
       <div class="splash-loader"><span></span></div>
     </div>
   </div>
