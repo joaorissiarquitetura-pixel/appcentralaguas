@@ -1892,7 +1892,7 @@
   </style>
 </head>
 <body class="{% if not customer_logged_in %}login-mode{% endif %}">
-  <div class="app-splash{% if request.query_params.get('skip_splash') == '1' and request.query_params.get('screen') %} is-skipped{% endif %}" aria-hidden="true">
+  <div class="app-splash{% if request.query_params.get('skip_splash') == '1' %} is-skipped{% endif %}" aria-hidden="true">
     <div class="splash-inner">
       <img class="splash-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
       <div class="splash-loader"><span></span></div>
