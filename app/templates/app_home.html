@@ -375,7 +375,7 @@
     }
     .category-row {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
       margin-top: 14px;
     }
@@ -458,6 +458,50 @@
       margin: auto;
       object-fit: contain;
       filter: drop-shadow(0 8px 12px rgba(11, 76, 203, 0.12));
+    }
+    .bottle-addon-card {
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid rgba(11, 76, 203, 0.14);
+      border-radius: var(--ca-card);
+      background: linear-gradient(180deg, #F8FCFF 0%, #FFFFFF 100%);
+      box-shadow: var(--ca-shadow);
+    }
+    .bottle-addon-card .blue-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 15px;
+    }
+    .bottle-addon-content {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+    .bottle-addon-content strong {
+      color: #101828;
+      font-family: "Montserrat", Arial, sans-serif;
+      font-size: 0.92rem;
+    }
+    .bottle-addon-content span {
+      color: var(--ca-muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+    .bottle-addon-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .bottle-addon-row b {
+      color: var(--ca-primary);
+      font-size: 0.94rem;
+    }
+    .bottle-addon-row .mini-add {
+      min-width: 96px;
     }
     .product-actions {
       display: flex;
@@ -1165,6 +1209,51 @@
     .app-tour-dots span.is-active {
       width: 18px;
       background: var(--ca-primary);
+    }
+    .checkout-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(15, 23, 42, 0.44);
+      backdrop-filter: blur(8px);
+    }
+    .checkout-modal-overlay.is-visible { display: grid; }
+    .checkout-modal-card {
+      width: min(380px, 100%);
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 22px;
+      background: var(--ca-white);
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+    }
+    .checkout-modal-card h2 {
+      margin: 0;
+      color: #101828;
+      font: 800 1.18rem/1.2 "Montserrat", Arial, sans-serif;
+    }
+    .checkout-modal-card p {
+      margin: 0;
+      color: var(--ca-muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .checkout-modal-actions {
+      display: grid;
+      gap: 10px;
+    }
+    .bottle-chooser {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--ca-line);
+      border-radius: 16px;
+      background: var(--ca-soft);
     }
     .stock-warning {
       display: none;
@@ -1954,7 +2043,6 @@
         <div class="category-row" aria-label="Categorias">
           <button class="category-tile" type="button" data-go="store" data-store-category-go="galao20"><i class="bi bi-droplet-fill"></i><span>Galão 20L</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="galao10"><i class="bi bi-droplet"></i><span>Galão 10L</span></button>
-          <button class="category-tile" type="button" data-go="store" data-store-category-go="agua_vasilhame"><i class="bi bi-plus-circle"></i><span>Água + vasilhame</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="descartaveis"><i class="bi bi-basket-fill"></i><span>Descartáveis</span></button>
           <button class="category-tile" type="button" data-go="store" data-store-category-go="gas"><i class="bi bi-fire"></i><span>Gás</span></button>
         </div>
@@ -2034,7 +2122,6 @@
         <div class="chip-row" aria-label="Categorias da loja">
           <button class="chip active" type="button" data-store-category="galao20">Galão 20L</button>
           <button class="chip" type="button" data-store-category="galao10">Galão 10L</button>
-          <button class="chip" type="button" data-store-category="agua_vasilhame">Água + vasilhame</button>
           <button class="chip" type="button" data-store-category="descartaveis">Descartáveis</button>
           <button class="chip" type="button" data-store-category="gas">Gás</button>
         </div>
@@ -2061,6 +2148,17 @@
             </div>
           </article>
         {% endfor %}
+        <article class="bottle-addon-card is-hidden" data-bottle-addon-box>
+          <span class="blue-icon"><i class="bi bi-plus-circle"></i></span>
+          <div class="bottle-addon-content">
+            <strong>Precisa de garrafão/vasilhame?</strong>
+            <span>Inclua o vasilhame retornável quando seus galões estiverem vencidos ou quando precisar comprar um novo.</span>
+            <div class="bottle-addon-row">
+              <b>+ R$ 35,00 cada</b>
+              <button class="mini-add" type="button" data-bottle-addon-open>Incluir</button>
+            </div>
+          </div>
+        </article>
         <div class="empty-state is-hidden" data-store-empty>
           <span class="blue-icon"><i class="bi bi-basket"></i></span>
           <strong>Nenhum produto nesta categoria.</strong>
@@ -2650,6 +2748,38 @@
     </section>
   </div>
 
+  <div class="checkout-modal-overlay" data-returnable-confirm aria-hidden="true">
+    <section class="checkout-modal-card" role="dialog" aria-modal="true" aria-labelledby="returnableConfirmTitle">
+      <span class="blue-icon"><i class="bi bi-recycle"></i></span>
+      <h2 id="returnableConfirmTitle">Confirme seus galões</h2>
+      <p data-returnable-confirm-copy>Você está comprando galões retornáveis. Certifique-se de que seus galões estão dentro do prazo de validade e compatíveis para troca.</p>
+      <div class="checkout-modal-actions">
+        <button class="primary-button" type="button" data-returnable-ok>Sim, está ok</button>
+        <button class="secondary-button" type="button" data-returnable-needs-bottle>Não, meus garrafões estão vencidos</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="checkout-modal-overlay" data-bottle-chooser aria-hidden="true">
+    <section class="checkout-modal-card" role="dialog" aria-modal="true" aria-labelledby="bottleChooserTitle">
+      <span class="blue-icon"><i class="bi bi-plus-circle"></i></span>
+      <h2 id="bottleChooserTitle">Adicionar vasilhames</h2>
+      <p>Escolha quantos garrafões/vasilhames deseja incluir. Cada unidade custa R$ 35,00.</p>
+      <div class="bottle-chooser">
+        <span class="row-copy"><strong>Vasilhame retornável</strong><span>R$ 35,00 por unidade</span></span>
+        <div class="quantity-control" data-bottle-quantity>
+          <button type="button" data-bottle-step="-1" aria-label="Diminuir quantidade">−</button>
+          <output>1</output>
+          <button type="button" data-bottle-step="1" aria-label="Aumentar quantidade">+</button>
+        </div>
+      </div>
+      <div class="checkout-modal-actions">
+        <button class="primary-button" type="button" data-bottle-add-confirm>Adicionar ao carrinho</button>
+        <button class="secondary-button" type="button" data-bottle-cancel>Voltar</button>
+      </div>
+    </section>
+  </div>
+
   <nav class="bottom-nav" aria-label="Navegação do app">
     <div class="bottom-nav-inner">
       <button class="nav-item is-active" type="button" data-go="home"><i class="bi bi-house-door-fill"></i><span>Início</span></button>
@@ -2737,6 +2867,9 @@
     let ordersSyncInFlight = false;
     let couponReturnScreen = "menu";
     let appTourIndex = 0;
+    let returnableExchangeConfirmed = false;
+    let bottleChooserQty = 1;
+    const bottleAddOnPrice = 35;
     const appTourSteps = [
       {
         screen: "home",
@@ -3205,16 +3338,37 @@
 
     function isCompleteGallonItem(item) {
       const text = normalizeText(`${item?.category || ""} ${item?.product || ""} ${item?.description || ""}`);
-      return text.includes("agua_vasilhame") || text.includes("vasilhame") || text.includes("casco") || text.includes("galao completo");
+      if (item?.isBottleDeposit || text.includes("vasilhame avulso") || text.includes("vasilhame retornavel") || text.includes("garrafao retornavel") || text.includes("casco")) return false;
+      return text.includes("agua_vasilhame") || text.includes("agua + vasilhame") || text.includes("agua e vasilhame") || text.includes("galao completo");
+    }
+
+    function isBottleOnlyItem(item) {
+      if (item?.isBottleDeposit) return true;
+      const text = normalizeText(`${item?.category || ""} ${item?.product || ""} ${item?.description || ""}`);
+      if (text.includes("vasilhame avulso") || text.includes("vasilhame retornavel") || text.includes("garrafao retornavel") || text.includes("casco")) return true;
+      return text.includes("vasilhame") && !isCompleteGallonItem(item) && !text.includes("agua +");
+    }
+
+    function returnableGallonQty(items = activeCartItems()) {
+      return items.reduce((total, item) => {
+        if (!isGallonItem(item) || isCompleteGallonItem(item) || isBottleOnlyItem(item)) return total;
+        return total + Math.max(0, Math.round(Number(item.qty || 0)));
+      }, 0);
+    }
+
+    function cartHasBottleAddOn(items = activeCartItems()) {
+      return items.some((item) => isCompleteGallonItem(item) || isBottleOnlyItem(item));
     }
 
     function deliveredGallonsFromOrder(order) {
-      const result = { refill: 0, complete: 0 };
+      const result = { refill: 0, complete: 0, bottlesOnly: 0 };
       (Array.isArray(order.items) ? order.items : []).forEach((item) => {
         if (!isGallonItem(item)) return;
         const qty = Math.max(0, Math.round(Number(item.qty || item.quantity || 0)));
         if (!qty) return;
-        if (isCompleteGallonItem(item)) {
+        if (isBottleOnlyItem(item)) {
+          result.bottlesOnly += qty;
+        } else if (isCompleteGallonItem(item)) {
           result.complete += qty;
         } else {
           result.refill += qty;
@@ -3227,17 +3381,18 @@
       if (!orderIsDone(order) || order.houseStockAppliedAt) return order;
       const delivered = deliveredGallonsFromOrder(order);
       const deliveredTotal = delivered.refill + delivered.complete;
-      if (!deliveredTotal) return { ...order, houseStockAppliedAt: new Date().toISOString() };
+      const newBottles = delivered.complete + delivered.bottlesOnly;
+      if (!deliveredTotal && !newBottles) return { ...order, houseStockAppliedAt: new Date().toISOString() };
 
       const stock = loadHouseStock();
       const nextStock = {
         ...stock,
-        total: Math.max(stock.total + delivered.complete, stock.total),
+        total: Math.max(stock.total + newBottles, stock.total),
         full: stock.full,
         inUse: stock.inUse,
         gallonValidities: [...(stock.gallonValidities || [])]
       };
-      for (let index = 0; index < delivered.complete; index += 1) {
+      for (let index = 0; index < newBottles; index += 1) {
         nextStock.gallonValidities.push({ month: "", year: "" });
       }
       const maxFull = Math.max(0, nextStock.total - nextStock.inUse);
@@ -3450,7 +3605,11 @@
     }
 
     function renderStoreCategory() {
-      const category = state.storeCategory || "galao20";
+      let category = state.storeCategory || "galao20";
+      if (category === "agua_vasilhame") {
+        category = "galao20";
+        state.storeCategory = category;
+      }
       const rows = [...document.querySelectorAll("[data-product-category]")];
       let visible = 0;
       rows.forEach((row) => {
@@ -3462,6 +3621,8 @@
         button.classList.toggle("active", button.dataset.storeCategory === category);
       });
       document.querySelector("[data-store-empty]")?.classList.toggle("is-hidden", visible > 0);
+      const showBottleBox = ["galao20", "galao10"].includes(category);
+      document.querySelector("[data-bottle-addon-box]")?.classList.toggle("is-hidden", !showBottleBox);
     }
 
     function emptyGallons(stock = loadHouseStock()) {
@@ -3490,6 +3651,65 @@
       return productFromCatalog(button.dataset.product);
     }
 
+    function bottleAddOnProduct() {
+      return {
+        product: "Vasilhame retornável",
+        product_id: "",
+        category: "vasilhame_avulso",
+        description: "Garrafão/vasilhame retornável para galão",
+        price: bottleAddOnPrice,
+        image: "/static/img/20.png",
+        isBottleDeposit: true
+      };
+    }
+
+    function closeReturnableConfirm() {
+      const overlay = document.querySelector("[data-returnable-confirm]");
+      overlay?.classList.remove("is-visible");
+      overlay?.setAttribute("aria-hidden", "true");
+    }
+
+    function showReturnableConfirm() {
+      const qty = returnableGallonQty();
+      const overlay = document.querySelector("[data-returnable-confirm]");
+      const copy = document.querySelector("[data-returnable-confirm-copy]");
+      if (copy) {
+        copy.textContent = `Você está comprando ${qty} ${qty === 1 ? "galão retornável" : "galões retornáveis"}. Certifique-se de que seus galões estão dentro do prazo de validade e compatíveis para troca.`;
+      }
+      overlay?.classList.add("is-visible");
+      overlay?.setAttribute("aria-hidden", "false");
+    }
+
+    function closeBottleChooser() {
+      const overlay = document.querySelector("[data-bottle-chooser]");
+      overlay?.classList.remove("is-visible");
+      overlay?.setAttribute("aria-hidden", "true");
+    }
+
+    function renderBottleChooserQty() {
+      const output = document.querySelector("[data-bottle-quantity] output");
+      if (output) output.textContent = String(bottleChooserQty);
+    }
+
+    function showBottleChooser(qty = 1) {
+      bottleChooserQty = Math.max(1, Math.round(Number(qty || 1)));
+      renderBottleChooserQty();
+      const overlay = document.querySelector("[data-bottle-chooser]");
+      overlay?.classList.add("is-visible");
+      overlay?.setAttribute("aria-hidden", "false");
+    }
+
+    function addBottleAddOnToCart(qty = 1) {
+      addProductToCart(bottleAddOnProduct(), Math.max(1, Math.round(Number(qty || 1))));
+      returnableExchangeConfirmed = true;
+      showScreen("checkout");
+    }
+
+    function needsReturnableConfirmation() {
+      const items = activeCartItems();
+      return returnableGallonQty(items) > 0 && !cartHasBottleAddOn(items) && !returnableExchangeConfirmed;
+    }
+
     function applyProductSelection(product) {
       if (!product) return;
       state.product = product.product || state.product;
@@ -3508,12 +3728,15 @@
         description: product.description || state.description,
         price: Number(product.price || state.price || 0),
         image: product.image || state.image,
+        isBottleDeposit: Boolean(product.isBottleDeposit),
         qty: normalizedQty
       };
+      if (!normalizedProduct.isBottleDeposit) returnableExchangeConfirmed = false;
       if (!Array.isArray(state.cart)) state.cart = [];
       const existing = state.cart.find((item) => item.product === normalizedProduct.product);
       if (existing) {
         existing.qty = Number(existing.qty || 0) + normalizedQty;
+        existing.isBottleDeposit = existing.isBottleDeposit || normalizedProduct.isBottleDeposit;
       } else {
         state.cart.push(normalizedProduct);
       }
@@ -4958,6 +5181,7 @@
         const item = activeCartItems()[index];
         if (item) {
           item.qty = Math.max(1, Number(item.qty || 1) + Number(cartStepButton.dataset.cartStep || 0));
+          returnableExchangeConfirmed = false;
           syncPrimaryFromCart();
           updateCheckout();
           updateCartIndicators();
@@ -4968,9 +5192,51 @@
       if (cartRemoveButton) {
         const index = Number(cartRemoveButton.dataset.cartRemove);
         state.cart.splice(index, 1);
+        returnableExchangeConfirmed = false;
         syncPrimaryFromCart();
         updateCheckout();
         updateCartIndicators();
+      }
+
+      const bottleOpen = event.target.closest("[data-bottle-addon-open]");
+      if (bottleOpen) {
+        if (!customerLoggedIn) {
+          showScreen("login");
+          return;
+        }
+        showBottleChooser(Math.max(returnableGallonQty(), 1));
+      }
+
+      const bottleStep = event.target.closest("[data-bottle-step]");
+      if (bottleStep) {
+        bottleChooserQty = Math.max(1, bottleChooserQty + Number(bottleStep.dataset.bottleStep || 0));
+        renderBottleChooserQty();
+      }
+
+      const bottleConfirm = event.target.closest("[data-bottle-add-confirm]");
+      if (bottleConfirm) {
+        closeBottleChooser();
+        closeReturnableConfirm();
+        addBottleAddOnToCart(bottleChooserQty);
+      }
+
+      const bottleCancel = event.target.closest("[data-bottle-cancel]");
+      if (bottleCancel) {
+        closeBottleChooser();
+        showScreen("checkout");
+      }
+
+      const returnableOk = event.target.closest("[data-returnable-ok]");
+      if (returnableOk) {
+        returnableExchangeConfirmed = true;
+        closeReturnableConfirm();
+        document.getElementById("orderForm")?.requestSubmit();
+      }
+
+      const returnableNeedsBottle = event.target.closest("[data-returnable-needs-bottle]");
+      if (returnableNeedsBottle) {
+        closeReturnableConfirm();
+        showBottleChooser(Math.max(returnableGallonQty(), 1));
       }
 
       const add = event.target.closest("[data-product]");
@@ -4979,6 +5245,7 @@
           showScreen("login");
           return;
         }
+        const card = add.closest(".product-row");
         const product = {
           product: add.dataset.product,
           product_id: add.dataset.productId || "",
@@ -4987,7 +5254,6 @@
           price: add.dataset.price,
           image: add.dataset.image
         };
-        const card = add.closest(".product-row");
         product.description = add.dataset.description || card?.querySelector(".product-info span")?.textContent || state.description;
         const qty = card?.querySelector("output")?.textContent;
         addProductToCart(product, Number(qty || 1));
@@ -4997,6 +5263,7 @@
 
       const clearCartButton = event.target.closest("[data-clear-cart]");
       if (clearCartButton) {
+        returnableExchangeConfirmed = false;
         clearCart();
       }
 
@@ -5403,11 +5670,19 @@
         event.preventDefault();
         return;
       }
+      if (needsReturnableConfirmation()) {
+        event.preventDefault();
+        showReturnableConfirm();
+        return;
+      }
       const itemsJson = document.getElementById("itemsJson");
       const subtotal = cartSubtotal();
       const discount = couponDiscount(subtotal);
       const couponCodeInput = document.getElementById("couponCodeInput");
       const discountAmountInput = document.getElementById("discountAmountInput");
+      const clientOrderIdInput = document.getElementById("clientOrderIdInput");
+      const submittedClientOrderId = clientOrderIdInput?.value || newClientOrderId();
+      if (clientOrderIdInput) clientOrderIdInput.value = submittedClientOrderId;
       if (couponCodeInput) couponCodeInput.value = state.couponCode || "";
       if (discountAmountInput) discountAmountInput.value = String(Number(discount || 0).toFixed(2));
       if (itemsJson) itemsJson.value = JSON.stringify(activeCartItems().map((item) => ({
@@ -5417,9 +5692,10 @@
         preco_unitario: Number(item.price || 0),
         valor_total: Number(item.price || 0) * Number(item.qty || 1),
       })));
-      saveOrderSnapshot(clientOrderId);
+      saveOrderSnapshot(submittedClientOrderId);
       state.cart = [];
       state.couponCode = "";
+      returnableExchangeConfirmed = false;
     });
 
     loadPaymentPreference();
