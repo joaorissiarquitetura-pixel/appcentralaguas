@@ -1075,10 +1075,85 @@
       grid-template-columns: 84px 92px;
       gap: 8px;
     }
+    .stock-validity-list {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.74);
+    }
+    .stock-validity-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 74px 82px;
+      gap: 8px;
+      align-items: center;
+    }
+    .stock-validity-row strong {
+      color: #101828;
+      font-size: 0.82rem;
+      line-height: 1.15;
+    }
+    .stock-validity-row span {
+      display: block;
+      color: var(--ca-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .stock-validity-row .stock-select {
+      min-height: 36px;
+      padding: 0 8px;
+      font-size: 0.82rem;
+    }
     .stock-action-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 10px;
+    }
+    .app-tour-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(15, 23, 42, 0.42);
+      backdrop-filter: blur(8px);
+    }
+    .app-tour-overlay.is-visible { display: grid; }
+    .app-tour-card {
+      width: min(360px, 100%);
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 22px;
+      background: var(--ca-white);
+      box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+    }
+    .app-tour-card h2 {
+      margin: 0;
+      color: var(--ca-primary);
+      font: 800 1.35rem/1.18 "Montserrat", Arial, sans-serif;
+    }
+    .app-tour-card p {
+      margin: 0;
+      color: var(--ca-muted);
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+    .app-tour-list {
+      display: grid;
+      gap: 8px;
+    }
+    .app-tour-item {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--ca-line);
+      border-radius: 14px;
+      background: var(--ca-soft);
     }
     .stock-warning {
       display: none;
@@ -2260,27 +2335,8 @@
               <button type="button" data-stock-step="1" aria-label="Marcar um galão em uso">+</button>
             </span>
           </div>
-          <div class="stock-question">
-            <span class="row-copy">
-              <strong>Validade do galão mais antigo</strong>
-              <span>Se souber, informe o mês e ano do vasilhame que já está na sua casa.</span>
-            </span>
-            <span class="stock-validity-fields">
-              <select class="stock-select" data-stock-validity-month aria-label="Mês de validade do galão">
-                <option value="">Mês</option>
-                {% for month in range(1, 13) %}
-                  <option value="{{ '%02d' % month }}">{{ '%02d' % month }}</option>
-                {% endfor %}
-              </select>
-              <select class="stock-select" data-stock-validity-year aria-label="Ano de validade do galão">
-                <option value="">Ano</option>
-                {% for year in range(2026, 2036) %}
-                  <option value="{{ year }}">{{ year }}</option>
-                {% endfor %}
-              </select>
-            </span>
-          </div>
-          <p class="stock-help">Essa informação ajuda a Central Águas controlar o ano real dos galões que já estavam com você, mesmo quando a loja entrega um vasilhame mais novo.</p>
+          <div class="stock-validity-list" data-stock-validity-list aria-label="Validade de cada galão"></div>
+          <p class="stock-help">Informe o vencimento de cada galão da casa. Isso ajuda a Central Águas controlar o ano real dos vasilhames, mesmo quando a loja entrega um mais novo.</p>
           <div class="stock-warning" data-stock-warning></div>
           <div class="stock-action-row">
             <button class="secondary-button" type="button" data-stock-skip>Registrar depois</button>
@@ -2566,6 +2622,22 @@
     </div>
   </div>
 
+  <div class="app-tour-overlay" data-app-tour aria-hidden="true">
+    <section class="app-tour-card" role="dialog" aria-modal="true" aria-labelledby="appTourTitle">
+      <span class="blue-icon"><i class="bi bi-stars"></i></span>
+      <div>
+        <h2 id="appTourTitle">Conheça rapidinho o app</h2>
+        <p>Um guia curto para você saber onde pedir, acompanhar pontos e registrar os galões da casa.</p>
+      </div>
+      <div class="app-tour-list">
+        <div class="app-tour-item"><span class="blue-icon"><i class="bi bi-cart3"></i></span><span class="row-copy"><strong>Loja</strong><span>Escolha água, descartáveis ou gás.</span></span></div>
+        <div class="app-tour-item"><span class="blue-icon"><i class="bi bi-house-door"></i></span><span class="row-copy"><strong>Casa</strong><span>Registre os galões e vencimentos.</span></span></div>
+        <div class="app-tour-item"><span class="blue-icon"><i class="bi bi-star"></i></span><span class="row-copy"><strong>Fidelidade</strong><span>Acompanhe pontos e cupons.</span></span></div>
+      </div>
+      <button class="primary-button" type="button" data-app-tour-close>Entendi</button>
+    </section>
+  </div>
+
   <nav class="bottom-nav" aria-label="Navegação do app">
     <div class="bottom-nav-inner">
       <button class="nav-item is-active" type="button" data-go="home"><i class="bi bi-house-door-fill"></i><span>Início</span></button>
@@ -2630,6 +2702,7 @@
     const notificationKey = "centralAguas.hydrationNotifications";
     const deliveryNotificationKey = "centralAguas.deliveryNotifications";
     const houseStockKey = "centralAguas.houseStock";
+    const appTourKey = "centralAguas.appTourSeen.v1";
     const paymentPreferenceKey = "centralAguas.paymentPreference";
     const ordersKey = "centralAguas.orders";
     const deviceIdKey = "centralAguas.deviceId";
@@ -2641,6 +2714,7 @@
       inUse: 1,
       validityMonth: "",
       validityYear: "",
+      gallonValidities: [],
       calibrated: false,
       skipped: false,
       updatedAt: ""
@@ -3637,6 +3711,7 @@
         const full = Math.max(0, Math.min(total - inUse, Number(saved.full ?? houseStockDefaults.full)));
         const validityMonth = /^(0[1-9]|1[0-2])$/.test(String(saved.validityMonth || "")) ? String(saved.validityMonth) : "";
         const validityYear = /^20\d{2}$/.test(String(saved.validityYear || "")) ? String(saved.validityYear) : "";
+        const gallonValidities = normalizeGallonValidities(saved.gallonValidities, total, validityMonth, validityYear);
         return {
           ...houseStockDefaults,
           ...saved,
@@ -3645,6 +3720,7 @@
           inUse,
           validityMonth,
           validityYear,
+          gallonValidities,
           calibrated: Boolean(saved.calibrated),
           skipped: Boolean(saved.skipped)
         };
@@ -3657,22 +3733,49 @@
       const total = Math.max(1, Math.min(12, Number(stock.total || 1)));
       const inUse = Math.max(0, Math.min(1, total, Number(stock.inUse || 0)));
       const full = Math.max(0, Math.min(total - inUse, Number(stock.full || 0)));
-      const validityMonth = /^(0[1-9]|1[0-2])$/.test(String(stock.validityMonth || "")) ? String(stock.validityMonth) : "";
-      const validityYear = /^20\d{2}$/.test(String(stock.validityYear || "")) ? String(stock.validityYear) : "";
+      const gallonValidities = normalizeGallonValidities(stock.gallonValidities, total, stock.validityMonth, stock.validityYear);
+      const oldestValidity = oldestGallonValidity(gallonValidities);
+      const validityMonth = oldestValidity.month;
+      const validityYear = oldestValidity.year;
       localStorage.setItem(houseStockKey, JSON.stringify({
         total,
         full,
         inUse,
         validityMonth,
         validityYear,
+        gallonValidities,
         calibrated: Boolean(stock.calibrated),
         skipped: Boolean(stock.skipped),
         updatedAt: stock.updatedAt || new Date().toISOString()
       }));
     }
 
+    function normalizeGallonValidities(value, total, fallbackMonth = "", fallbackYear = "") {
+      const source = Array.isArray(value) ? value : [];
+      return Array.from({ length: total }, (_, index) => {
+        const item = source[index] || {};
+        const month = /^(0[1-9]|1[0-2])$/.test(String(item.month || "")) ? String(item.month) : fallbackMonth;
+        const year = /^20\d{2}$/.test(String(item.year || "")) ? String(item.year) : fallbackYear;
+        return { month, year };
+      });
+    }
+
+    function oldestGallonValidity(validities) {
+      const filled = (Array.isArray(validities) ? validities : [])
+        .filter((item) => item?.month && item?.year)
+        .sort((a, b) => Number(`${a.year}${a.month}`) - Number(`${b.year}${b.month}`));
+      return filled[0] || { month: "", year: "" };
+    }
+
     function houseStockValidityLabel(stock = loadHouseStock()) {
-      return stock.validityMonth && stock.validityYear ? `${stock.validityMonth}/${stock.validityYear}` : "";
+      const oldest = oldestGallonValidity(stock.gallonValidities);
+      return oldest.month && oldest.year ? `${oldest.month}/${oldest.year}` : "";
+    }
+
+    function houseStockValidityDetails(stock = loadHouseStock()) {
+      return (stock.gallonValidities || [])
+        .map((item, index) => item.month && item.year ? `G${index + 1}: ${item.month}/${item.year}` : `G${index + 1}: sem vencimento`)
+        .join("; ");
     }
 
     function houseStockSummaryForOrder(stock = loadHouseStock()) {
@@ -3682,7 +3785,8 @@
           `${stock.full} cheio(s)`,
           `${stock.inUse} em uso`,
           `${emptyGallons(stock)} vazio(s)`,
-          houseStockValidityLabel(stock) ? `validade mais antiga: ${houseStockValidityLabel(stock)}` : "validade mais antiga não informada"
+          houseStockValidityLabel(stock) ? `vencimento mais antigo: ${houseStockValidityLabel(stock)}` : "vencimentos não informados",
+          `vencimentos: ${houseStockValidityDetails(stock)}`
         ].join(", ");
       }
       return stock.skipped
@@ -3732,8 +3836,6 @@
       const totalOutput = document.querySelector("[data-stock-total]");
       const fullOutput = document.querySelector("[data-stock-full]");
       const inUseOutput = document.querySelector("[data-stock-in-use]");
-      const validityMonth = document.querySelector("[data-stock-validity-month]");
-      const validityYear = document.querySelector("[data-stock-validity-year]");
       if (!reserve || !fullCount || !inUseCount || !emptyCount || !replacement || !calibrated || !totalOutput || !fullOutput || !inUseOutput) return;
 
       calibration?.classList.toggle("is-hidden", stock.calibrated);
@@ -3741,14 +3843,13 @@
       totalOutput.textContent = stock.total;
       fullOutput.textContent = stock.full;
       inUseOutput.textContent = stock.inUse;
-      if (validityMonth) validityMonth.value = stock.validityMonth || "";
-      if (validityYear) validityYear.value = stock.validityYear || "";
+      renderStockValidityList(stock);
       fullCount.textContent = stock.full;
       inUseCount.textContent = stock.inUse;
       emptyCount.textContent = Math.max(stock.total - stock.full - stock.inUse, 0);
       replacement.textContent = replacementText(stock);
       calibrated.textContent = stock.calibrated
-        ? `Calibrado com ${stock.total} galões${houseStockValidityLabel(stock) ? ` · validade mais antiga ${houseStockValidityLabel(stock)}` : ""}.`
+        ? `Calibrado com ${stock.total} galões${houseStockValidityLabel(stock) ? ` · vencimento mais antigo ${houseStockValidityLabel(stock)}` : ""}.`
         : stock.skipped ? "Registro dos galões deixado para depois." : "Estoque ainda não calibrado.";
       reserve.innerHTML = Array.from({ length: stock.total }).map((_, index) => {
         const inUse = index === stock.full && stock.inUse === 1;
@@ -3757,6 +3858,51 @@
         const alt = inUse ? "Galão em uso" : empty ? "Galão vazio" : "Galão cheio";
         return `<img ${className} src="/static/img/20.png" alt="${alt}">`;
       }).join("");
+    }
+
+    function monthOptions(selected) {
+      return [`<option value="">Mês</option>`]
+        .concat(Array.from({ length: 12 }, (_, index) => {
+          const value = String(index + 1).padStart(2, "0");
+          return `<option value="${value}"${value === selected ? " selected" : ""}>${value}</option>`;
+        }))
+        .join("");
+    }
+
+    function yearOptions(selected) {
+      const currentYear = new Date().getFullYear();
+      return [`<option value="">Ano</option>`]
+        .concat(Array.from({ length: 12 }, (_, index) => {
+          const value = String(Math.max(2026, currentYear) + index);
+          return `<option value="${value}"${value === selected ? " selected" : ""}>${value}</option>`;
+        }))
+        .join("");
+    }
+
+    function renderStockValidityList(stock = loadHouseStock()) {
+      const wrapper = document.querySelector("[data-stock-validity-list]");
+      if (!wrapper) return;
+      wrapper.innerHTML = (stock.gallonValidities || []).map((validity, index) => {
+        const status = index < stock.full ? "cheio" : index < stock.full + stock.inUse ? "em uso" : "vazio";
+        return `
+          <div class="stock-validity-row">
+            <strong>Galão ${index + 1}<span>${status}</span></strong>
+            <select class="stock-select" data-stock-validity-month="${index}" aria-label="Mês de vencimento do galão ${index + 1}">${monthOptions(validity.month || "")}</select>
+            <select class="stock-select" data-stock-validity-year="${index}" aria-label="Ano de vencimento do galão ${index + 1}">${yearOptions(validity.year || "")}</select>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function collectStockValidities(total) {
+      return Array.from({ length: total }, (_, index) => ({
+        month: document.querySelector(`[data-stock-validity-month="${index}"]`)?.value || "",
+        year: document.querySelector(`[data-stock-validity-year="${index}"]`)?.value || ""
+      }));
+    }
+
+    function hasCompleteStockValidities(validities) {
+      return (validities || []).every((item) => item.month && item.year);
     }
 
     function notificationsEnabled() {
@@ -4436,6 +4582,23 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function showAppTourIfNeeded() {
+      if (!customerLoggedIn) return;
+      if (localStorage.getItem(appTourKey) === "seen") return;
+      const overlay = document.querySelector("[data-app-tour]");
+      if (!overlay) return;
+      overlay.classList.add("is-visible");
+      overlay.setAttribute("aria-hidden", "false");
+    }
+
+    function closeAppTour() {
+      localStorage.setItem(appTourKey, "seen");
+      const overlay = document.querySelector("[data-app-tour]");
+      if (!overlay) return;
+      overlay.classList.remove("is-visible");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
     function deliveryPeriodsForSelectedDay() {
       const now = new Date();
       const isToday = state.deliveryDate === localDateIso(now);
@@ -4572,6 +4735,13 @@
     }
 
     document.addEventListener("click", async (event) => {
+      const closeTour = event.target.closest("[data-app-tour-close]");
+      if (closeTour) {
+        event.preventDefault();
+        closeAppTour();
+        return;
+      }
+
       const addressStrip = event.target.closest(".address-strip");
       if (addressStrip && addressStrip.closest("[data-screen='home']")) {
         event.preventDefault();
@@ -4838,6 +5008,7 @@
       const stockStep = event.target.closest("[data-stock-step]");
       if (stockStep) {
         const stock = loadHouseStock();
+        stock.gallonValidities = collectStockValidities(stock.total);
         const field = stockStep.closest("[data-stock-stepper]")?.dataset.stockStepper;
         const delta = Number(stockStep.dataset.stockStep || 0);
         if (field === "total") {
@@ -4861,8 +5032,11 @@
       const stockSave = event.target.closest("[data-stock-save]");
       if (stockSave) {
         const stock = loadHouseStock();
-        stock.validityMonth = document.querySelector("[data-stock-validity-month]")?.value || "";
-        stock.validityYear = document.querySelector("[data-stock-validity-year]")?.value || "";
+        stock.gallonValidities = collectStockValidities(stock.total);
+        if (!hasCompleteStockValidities(stock.gallonValidities)) {
+          showStockWarning("Informe mês e ano de vencimento de cada galão ou toque em Registrar depois.");
+          return;
+        }
         stock.calibrated = true;
         stock.skipped = false;
         stock.updatedAt = new Date().toISOString();
@@ -5040,6 +5214,16 @@
       renderHydration();
     });
 
+    document.addEventListener("change", (event) => {
+      if (!event.target.matches("[data-stock-validity-month], [data-stock-validity-year]")) return;
+      const stock = loadHouseStock();
+      stock.gallonValidities = collectStockValidities(stock.total);
+      stock.skipped = false;
+      saveHouseStock(stock);
+      showStockWarning("");
+      renderHouseStock();
+    });
+
     document.querySelector("[data-hydration-save]")?.addEventListener("click", () => {
       if (!customerLoggedIn) {
         showScreen("login");
@@ -5049,18 +5233,6 @@
       profile.setupComplete = true;
       saveHydrationProfile(profile);
       renderHydration();
-    });
-
-    document.querySelectorAll("[data-stock-validity-month], [data-stock-validity-year]").forEach((input) => {
-      input.addEventListener("change", () => {
-        const stock = loadHouseStock();
-        stock.validityMonth = document.querySelector("[data-stock-validity-month]")?.value || "";
-        stock.validityYear = document.querySelector("[data-stock-validity-year]")?.value || "";
-        stock.skipped = false;
-        saveHouseStock(stock);
-        showStockWarning("");
-        renderHouseStock();
-      });
     });
 
     document.getElementById("orderForm")?.addEventListener("submit", (event) => {
@@ -5146,6 +5318,8 @@
     {% if not customer_logged_in %}
       showScreen("login");
     {% endif %}
+    const splashSkipped = document.querySelector(".app-splash")?.classList.contains("is-skipped");
+    window.setTimeout(showAppTourIfNeeded, splashSkipped ? 600 : 8400);
   </script>
 </body>
 </html>
