@@ -112,14 +112,14 @@ def send_fcm(device: AppDevice, title: str, body: str, url: str = "/app", notifi
         tracking_url = _url_with_notification_id(url, notification_id)
         message = messaging.Message(
             token=device.fcm_token,
-            notification=messaging.Notification(title=title, body=body),
-            data={"url": tracking_url, "notification_id": str(notification_id or "")},
+            data={
+                "title": title,
+                "body": body,
+                "url": tracking_url,
+                "notification_id": str(notification_id or ""),
+            },
             android=messaging.AndroidConfig(
                 priority="high",
-                notification=messaging.AndroidNotification(
-                    channel_id="central_aguas_alerts",
-                    icon="ic_launcher",
-                ),
             ),
         )
         messaging.send(message)
