@@ -1,17 +1,24 @@
 {% extends "base.html" %}
 {% block nav_right %}
-  <a class="ca-pill ca-outline text-decoration-none" href="/admin">Voltar ao painel</a>
-  <a class="ca-pill ca-outline text-decoration-none" href="/admin/notifications">Notificações</a>
-  <a class="ca-pill ca-outline text-decoration-none" href="/admin/site">Loja</a>
-  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+  <a class="ca-pill ca-primary text-decoration-none backend-exit" href="/atendente/logout">Sair</a>
 {% endblock %}
 
 {% block content %}
 <style>
-  .backend-grid { display: grid; gap: 22px; }
+  .backend-grid {
+    display: grid;
+    gap: 22px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .backend-exit {
+    min-width: 76px;
+    white-space: nowrap;
+  }
   .backend-hero {
-    padding: 26px;
+    padding: 24px;
     border: 1px solid rgba(15, 23, 42, .09);
+    border-radius: 18px;
     background: linear-gradient(135deg, rgba(2, 132, 199, .11), rgba(15, 23, 42, .04));
     box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
   }
@@ -19,28 +26,68 @@
   .backend-card {
     padding: 18px;
     border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 16px;
     background: rgba(255, 255, 255, .94);
     box-shadow: 0 14px 35px rgba(15, 23, 42, .06);
   }
-  .backend-card h2 { font-size: 1rem; margin: 0 0 12px; }
+  .backend-card h2 { font-size: 1rem; margin: 0 0 14px; color: #0f172a; }
   .backend-kpi strong { display: block; font-size: 1.8rem; line-height: 1; color: #0f172a; }
   .backend-kpi span, .muted { color: #64748b; font-size: .86rem; }
   .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
   .status-ok { background: #16a34a; }
   .status-warn { background: #f59e0b; }
   .status-bad { background: #dc2626; }
-  .backend-split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr); gap: 16px; align-items: start; }
-  .backend-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-  .backend-table th, .backend-table td { padding: 10px 8px; border-bottom: 1px solid rgba(15, 23, 42, .08); vertical-align: top; }
+  .backend-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .78fr); gap: 16px; align-items: start; }
+  .backend-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: .9rem; }
+  .backend-table th, .backend-table td { padding: 12px 10px; border-bottom: 1px solid rgba(15, 23, 42, .08); vertical-align: top; }
   .backend-table th { color: #475569; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
   .code-cell { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; }
   .pill-state { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; font-size: .76rem; background: #eef2ff; color: #3730a3; }
   .pill-state.danger { background: #fee2e2; color: #991b1b; }
   .pill-state.ok { background: #dcfce7; color: #166534; }
   .form-grid { display: grid; gap: 12px; }
+  .push-form .ca-pill,
+  .device-actions .ca-pill,
+  .subscription-actions .ca-pill {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: .84rem;
+    width: 100%;
+  }
+  .device-actions {
+    display: grid;
+    grid-template-columns: minmax(190px, 1fr) minmax(120px, auto);
+    gap: 8px;
+    margin-top: 10px;
+    align-items: start;
+  }
+  .device-actions form { margin: 0; }
+  .device-actions .block-form {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) minmax(110px, auto);
+    gap: 8px;
+  }
+  .device-actions .test-form { min-width: 120px; }
+  .status-list {
+    display: grid;
+    gap: 12px;
+  }
+  .status-line {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .nav-link { white-space: nowrap; }
   @media (max-width: 1100px) {
     .backend-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .backend-split { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .backend-hero { padding: 18px; }
+    .backend-kpis { grid-template-columns: 1fr; }
+    .device-actions,
+    .device-actions .block-form { grid-template-columns: 1fr; }
   }
 </style>
 
@@ -70,12 +117,12 @@
   <section class="backend-split">
     <div class="backend-card">
       <h2>Status técnico</h2>
-      <div class="d-grid gap-2">
-        <div>
+      <div class="status-list">
+        <div class="status-line">
           <span class="status-dot {{ 'status-ok' if fcm_configured else 'status-bad' }}"></span>
           Firebase FCM: <strong>{{ 'configurado' if fcm_configured else 'pendente' }}</strong>
         </div>
-        <div>
+        <div class="status-line">
           <span class="status-dot {{ 'status-ok' if push_configured else 'status-warn' }}"></span>
           Web Push VAPID: <strong>{{ 'configurado' if push_configured else 'opcional/pendente' }}</strong>
         </div>
@@ -93,7 +140,7 @@
 
     <div class="backend-card">
       <h2>Enviar push real</h2>
-      <form class="form-grid" method="post" action="/admin/notifications/send">
+      <form class="form-grid push-form" method="post" action="/admin/notifications/send">
         <input class="form-control" type="text" name="title" placeholder="Título da notificação" required>
         <textarea class="form-control" name="body" rows="3" placeholder="Mensagem que aparece no celular" required></textarea>
         <select class="form-select" name="target">
@@ -147,15 +194,17 @@
                 {% else %}
                   <span class="pill-state ok">liberado</span>
                 {% endif %}
-                <form class="mt-2 d-grid gap-1" method="post" action="/admin/app/devices/{{ device.id }}/toggle-block">
-                  {% if not device.is_blocked %}
-                    <input class="form-control form-control-sm" type="text" name="block_reason" placeholder="Motivo do bloqueio">
-                  {% endif %}
-                  <button class="ca-pill ca-outline" type="submit">{{ 'Desbloquear' if device.is_blocked else 'Bloquear' }}</button>
-                </form>
-                <form class="mt-2" method="post" action="/admin/app/devices/{{ device.id }}/test-push" target="_blank">
-                  <button class="ca-pill ca-primary" type="submit">Testar push</button>
-                </form>
+                <div class="device-actions">
+                  <form class="block-form" method="post" action="/admin/app/devices/{{ device.id }}/toggle-block">
+                    {% if not device.is_blocked %}
+                      <input class="form-control form-control-sm" type="text" name="block_reason" placeholder="Motivo do bloqueio">
+                    {% endif %}
+                    <button class="ca-pill ca-outline" type="submit">{{ 'Desbloquear' if device.is_blocked else 'Bloquear' }}</button>
+                  </form>
+                  <form class="test-form" method="post" action="/admin/app/devices/{{ device.id }}/test-push" target="_blank">
+                    <button class="ca-pill ca-primary" type="submit">Testar push</button>
+                  </form>
+                </div>
               </td>
             </tr>
           {% else %}
@@ -221,7 +270,7 @@
               <td>{{ subscription.fail_count or 0 }}</td>
               <td>{{ format_dt(subscription.last_sent_at) }}</td>
               <td>
-                <form method="post" action="/admin/app/subscriptions/{{ subscription.id }}/toggle">
+                <form class="subscription-actions" method="post" action="/admin/app/subscriptions/{{ subscription.id }}/toggle">
                   <button class="ca-pill ca-outline" type="submit">{{ 'Desativar' if subscription.active else 'Ativar' }}</button>
                 </form>
               </td>
