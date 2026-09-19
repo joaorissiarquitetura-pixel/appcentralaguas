@@ -105,6 +105,65 @@ def _send_order_to_grj(payload: dict) -> dict:
         raise RuntimeError(f"Não foi possível enviar o pedido ao GRJ: {reason}") from exc
 
 
+def _safe_int(value, default: int = 0, minimum: int = 0, maximum: int = 99) -> int:
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        parsed = default
+    return max(minimum, min(maximum, parsed))
+
+
+def _parse_house_stock_payload(raw_value: str | None) -> dict:
+    try:
+        raw = json.loads(raw_value or "{}")
+    except json.JSONDecodeError:
+        raw = {}
+    if not isinstance(raw, dict):
+        raw = {}
+    total = _safe_int(raw.get("total"), maximum=30)
+    full = _safe_int(raw.get("full"), maximum=30)
+    in_use = _safe_int(raw.get("in_use") if "in_use" in raw else raw.get("inUse"), maximum=5)
+    if full + in_use > total:
+        in_use = min(in_use, total)
+        full = max(0, total - in_use)
+    empty = _safe_int(raw.get("empty"), default=max(total - full - in_use, 0), maximum=30)
+    empty = max(total - full - in_use, empty)
+    validities = []
+    for item in raw.get("validities") or raw.get("gallonValidities") or []:
+        if not isinstance(item, dict):
+            continue
+        validities.append({
+            "gallon": _safe_int(item.get("gallon"), default=len(validities) + 1, minimum=1, maximum=99),
+            "month": str(item.get("month") or "").strip()[:2],
+            "year": str(item.get("year") or "").strip()[:4],
+        })
+    return {
+        "calibrated": bool(raw.get("calibrated")),
+        "skipped": bool(raw.get("skipped")),
+        "total": total,
+        "full": full,
+        "in_use": in_use,
+        "empty": max(empty, 0),
+        "oldest_validity": str(raw.get("oldest_validity") or raw.get("oldestValidity") or "").strip()[:20],
+        "validities": validities[:30],
+        "updated_at": str(raw.get("updated_at") or raw.get("updatedAt") or "").strip()[:40],
+    }
+
+
+def _house_stock_note(stock: dict) -> str:
+    if stock.get("calibrated"):
+        return (
+            "Estoque do cliente no app: "
+            f"{stock.get('total', 0)} vasilhame(s), "
+            f"{stock.get('full', 0)} cheio(s), "
+            f"{stock.get('in_use', 0)} em uso, "
+            f"{stock.get('empty', 0)} vazio(s)"
+        )
+    if stock.get("skipped"):
+        return "Estoque do cliente no app: cliente optou por registrar depois."
+    return "Estoque do cliente no app: não informado."
+
+
 def _product_slug(product: Product) -> str:
     return _slug_from_text(product.name) or f"produto-{product.id}"
 
@@ -795,6 +854,7 @@ def finish_shop_order(
     city: str = Form(""),
     coupon_code: str = Form(""),
     discount_amount: str = Form("0"),
+    house_stock_json: str = Form("{}"),
     notes: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -832,6 +892,8 @@ def finish_shop_order(
     if not items:
         return HTMLResponse("Adicione pelo menos um produto ao carrinho.", status_code=400)
 
+    house_stock = _parse_house_stock_payload(house_stock_json)
+    house_stock_note = _house_stock_note(house_stock)
     subtotal = sum(item.subtotal for item in items)
     coupon_code = coupon_code.strip().upper()
     discount_value = 0.0
@@ -892,11 +954,14 @@ def finish_shop_order(
             }
             for item in items
         ],
+        "house_stock": house_stock,
+        "customer_house_stock": house_stock,
         "customer_note": notes.strip() or None,
         "sale_note": " | ".join(
             part
             for part in [
                 f"Pedido do app. Cliente: {client_order_id}",
+                house_stock_note,
                 f"Cupom: {coupon_code}" if coupon_code else "",
                 f"Desconto app: R$ {discount_value:.2f}" if discount_value > 0 else "",
             ]

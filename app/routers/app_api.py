@@ -75,6 +75,10 @@ def _grj_app_status_url() -> str:
     return urllib.parse.urljoin(orders_url.rstrip("/") + "/", "app-status")
 
 
+def _grj_app_cancel_url() -> str:
+    return _grj_app_status_url().replace("/app-status", "/app-cancel")
+
+
 def _current_customer_id(request: Request) -> int | None:
     cid = get_current_customer_id(request)
     return int(cid) if cid else None
@@ -88,6 +92,48 @@ def _blocked_response(device: AppDevice | None):
             "reason": device.block_reason or "Acesso bloqueado pelo administrador.",
         }
     return None
+
+
+def _normalized_cancel_reason(value: str | None) -> str:
+    return " ".join(str(value or "").strip().split())[:500]
+
+
+def _order_cancel_blocked(status: str | None) -> bool:
+    return str(status or "").strip().lower() in {"out_for_delivery", "done", "completed", "delivered", "cancelled"}
+
+
+def _fetch_grj_order_status(payload: dict, customer_id: int) -> dict | None:
+    token = settings.CENTRAL_AGUAS_APP_TOKEN.strip()
+    if not token:
+        return None
+    client_order_id = str(payload.get("client_order_id") or "").strip()
+    grj_order_id = str(payload.get("grj_order_id") or "").strip()
+    query = urllib.parse.urlencode({
+        "client_order_ids": client_order_id,
+        "grj_order_ids": grj_order_id,
+        "app_customer_id": str(customer_id),
+    })
+    request = urllib.request.Request(
+        f"{_grj_app_status_url()}?{query}",
+        headers={"Accept": "application/json", "Authorization": f"Bearer {token}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    orders = result.get("data") if isinstance(result, dict) else None
+    if not isinstance(orders, list) or not orders:
+        return None
+    for order in orders:
+        if not isinstance(order, dict):
+            continue
+        remote_client_id = str(order.get("client_order_id") or order.get("payment_reference") or "").strip()
+        remote_grj_id = str(order.get("grj_order_id") or order.get("pedido_id") or "").strip()
+        if (client_order_id and remote_client_id == client_order_id) or (grj_order_id and remote_grj_id == grj_order_id):
+            return order
+    return orders[0] if isinstance(orders[0], dict) else None
 
 
 def _get_or_create_device(db: Session, device_id: str) -> AppDevice | None:
@@ -450,8 +496,29 @@ async def app_order_cancel(request: Request):
         return {"ok": False, "error": "grj_token_missing"}
     payload = await request.json()
     payload = payload if isinstance(payload, dict) else {}
+    reason = _normalized_cancel_reason(
+        payload.get("cancel_reason") or payload.get("reason") or payload.get("motivo")
+    )
+    if not reason:
+        return {"ok": False, "error": "cancel_reason_required", "message": "Informe o motivo do cancelamento."}
+    current_order = _fetch_grj_order_status(payload, customer_id)
+    current_status = _order_status_value(current_order or {})
+    if _order_cancel_blocked(current_status):
+        return {
+            "ok": False,
+            "error": "order_cannot_be_cancelled",
+            "message": "Este pedido não pode mais ser cancelado pelo app.",
+            "current_status": current_status,
+        }
     payload["app_customer_id"] = str(customer_id)
-    url = _grj_app_status_url().replace("/app-status", "/app-cancel")
+    payload["cancel_reason"] = reason
+    payload["cancellation_reason"] = reason
+    payload["customer_cancel_reason"] = reason
+    payload["motivo_cancelamento"] = reason
+    payload["cancelled_by"] = "customer_app"
+    payload["status"] = "cancelled_by_customer"
+    payload["notify_online_orders"] = True
+    url = _grj_app_cancel_url()
     upstream = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),

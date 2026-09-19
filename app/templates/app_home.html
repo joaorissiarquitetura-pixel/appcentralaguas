@@ -2342,6 +2342,7 @@
           <input type="hidden" name="discount_amount" id="discountAmountInput" value="0">
           <input type="hidden" name="scheduled_delivery_date" id="scheduledDeliveryDateInput" value="">
           <input type="hidden" name="scheduled_delivery_period" id="scheduledDeliveryPeriodInput" value="">
+          <input type="hidden" name="house_stock_json" id="houseStockJsonInput" value="">
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
           <div class="checkout-actions">
             <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
@@ -3589,6 +3590,12 @@
 
     function orderHistory(order) {
       if (Array.isArray(order.history) && order.history.length) return order.history;
+      if (orderIsCancelled(order)) {
+        return [
+          { label: "Pedido enviado pelo app", done: true, at: order.createdAt },
+          { label: "Pedido cancelado pelo cliente", done: true, at: order.cancelledAt }
+        ];
+      }
       return [
         { label: "Pedido enviado pelo app", done: true, at: order.createdAt },
         { label: "Aguardando aceite da Central Águas", done: ["accepted", "out_for_delivery", "done"].includes(order.appStatus || order.status) },
@@ -3640,6 +3647,8 @@
         appStatusLabel: remote.app_status_label,
         deliveryStatus: remote.delivery_status,
         deliveryDriverName: remote.delivery_driver_name,
+        cancelReason: remote.cancel_reason || remote.cancellation_reason || remote.customer_cancel_reason || "",
+        cancelledAt: remote.cancelled_at || remote.updated_at,
         history: remote.history || [],
         createdAt: remote.created_at,
         updatedAt: remote.updated_at,
@@ -3681,6 +3690,8 @@
             appStatusLabel: remote.app_status_label,
             deliveryStatus: remote.delivery_status,
             deliveryDriverName: remote.delivery_driver_name,
+            cancelReason: remote.cancel_reason || remote.cancellation_reason || remote.customer_cancel_reason || order.cancelReason,
+            cancelledAt: remote.cancelled_at || order.cancelledAt,
             history: remote.history || order.history,
             items: remote.items?.length ? remote.items.map((item) => ({
               product: item.description,
@@ -3770,7 +3781,8 @@
               `).join("")}
             </div>
             ${order.deliveryDriverName ? `<span class="small muted">Entregador: ${escapeHtml(order.deliveryDriverName)}</span>` : ""}
-            ${orderCanBeCancelled(order) ? `<button class="secondary-button order-cancel-button" type="button" data-order-cancel="${escapeHtml(order.clientOrderId || order.id || "")}" data-grj-order-id="${escapeHtml(order.grjId || "")}"><i class="bi bi-x-circle"></i> Cancelar pedido</button>` : ""}
+            ${order.cancelReason ? `<span class="small muted">Motivo do cancelamento: ${escapeHtml(order.cancelReason)}</span>` : ""}
+            ${orderCanBeCancelled(order) ? `<button class="secondary-button order-cancel-button" type="button" data-order-cancel="${escapeHtml(order.clientOrderId || order.id || "")}" data-grj-order-id="${escapeHtml(order.grjId || "")}" data-order-status="${escapeHtml(order.appStatus || order.status || "pending")}"><i class="bi bi-x-circle"></i> Cancelar pedido</button>` : ""}
           </div>
         </article>
       `).join("");
@@ -4399,6 +4411,27 @@
       return stock.skipped
         ? "Estoque/validade dos galões: cliente optou por registrar depois"
         : "Estoque/validade dos galões: não informado";
+    }
+
+    function houseStockPayloadForOrder(stock = loadHouseStock()) {
+      const total = Math.max(0, Number(stock.total || 0));
+      const full = Math.max(0, Number(stock.full || 0));
+      const inUse = Math.max(0, Number(stock.inUse || 0));
+      return {
+        calibrated: Boolean(stock.calibrated),
+        skipped: Boolean(stock.skipped),
+        total,
+        full,
+        in_use: inUse,
+        empty: Math.max(total - full - inUse, 0),
+        oldest_validity: houseStockValidityLabel(stock),
+        validities: (stock.gallonValidities || []).map((item, index) => ({
+          gallon: index + 1,
+          month: item.month || "",
+          year: item.year || ""
+        })),
+        updated_at: stock.updatedAt || ""
+      };
     }
 
     function showStockWarning(message) {
@@ -5348,6 +5381,7 @@
       const discountAmountInput = document.getElementById("discountAmountInput");
       const scheduledDeliveryDateInput = document.getElementById("scheduledDeliveryDateInput");
       const scheduledDeliveryPeriodInput = document.getElementById("scheduledDeliveryPeriodInput");
+      const houseStockJsonInput = document.getElementById("houseStockJsonInput");
       const clientOrderIdInput = document.getElementById("clientOrderIdInput");
       const clientOrderId = newClientOrderId();
       if (clientOrderIdInput) clientOrderIdInput.value = clientOrderId;
@@ -5355,6 +5389,7 @@
       if (discountAmountInput) discountAmountInput.value = String(Number(discount || 0).toFixed(2));
       if (scheduledDeliveryDateInput) scheduledDeliveryDateInput.value = state.deliveryDate || "";
       if (scheduledDeliveryPeriodInput) scheduledDeliveryPeriodInput.value = state.deliveryPeriod || "";
+      if (houseStockJsonInput) houseStockJsonInput.value = JSON.stringify(houseStockPayloadForOrder());
       document.getElementById("checkoutDelivery").textContent = scheduleText;
       renderPayment();
       document.getElementById("itemsJson").value = JSON.stringify([
@@ -5687,7 +5722,19 @@
       if (cancelOrderButton) {
         event.stopPropagation();
         const orderId = cancelOrderButton.dataset.orderCancel || "";
-        if (!orderId || !window.confirm("Deseja cancelar este pedido?")) return;
+        const currentStatus = cancelOrderButton.dataset.orderStatus || "";
+        if (["out_for_delivery", "done", "cancelled"].includes(currentStatus)) {
+          window.alert("Este pedido não pode mais ser cancelado pelo app.");
+          return;
+        }
+        if (!orderId) return;
+        const reason = window.prompt("Qual o motivo do cancelamento?");
+        if (reason === null) return;
+        const cancelReason = reason.trim();
+        if (!cancelReason) {
+          window.alert("Informe o motivo para cancelar o pedido.");
+          return;
+        }
         cancelOrderButton.disabled = true;
         try {
           const response = await fetch("/api/app/orders/cancel", {
@@ -5695,11 +5742,25 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               client_order_id: orderId,
-              grj_order_id: cancelOrderButton.dataset.grjOrderId || ""
+              grj_order_id: cancelOrderButton.dataset.grjOrderId || "",
+              cancel_reason: cancelReason
             })
           });
           const result = await response.json();
           if (!result.ok) throw new Error(result.error || result.message || "Não foi possível cancelar o pedido.");
+          const updatedOrders = loadOrders().map((order) => {
+            const ref = order.clientOrderId || order.id || "";
+            if (String(ref) !== String(orderId)) return order;
+            return {
+              ...order,
+              status: "cancelled",
+              appStatus: "cancelled",
+              appStatusLabel: "Cancelado",
+              cancelReason,
+              cancelledAt: new Date().toISOString()
+            };
+          });
+          localStorage.setItem(ordersKey, JSON.stringify(updatedOrders));
           await syncOrdersFromGrj();
           renderOrders();
         } catch (error) {

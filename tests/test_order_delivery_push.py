@@ -4,7 +4,7 @@ from unittest.mock import patch
 from tests.test_support import get_session, reset_database
 
 from app.models import AppDevice, AppNotification, AppOrderPushEvent, Customer
-from app.routers.app_api import DeviceRegisterPayload, FcmTokenPayload, _notify_order_status_changes, register_device, save_fcm_token
+from app.routers.app_api import DeviceRegisterPayload, FcmTokenPayload, _notify_order_status_changes, _order_cancel_blocked, _normalized_cancel_reason, register_device, save_fcm_token
 
 
 class RequestStub:
@@ -115,6 +115,17 @@ class OrderDeliveryPushTests(unittest.TestCase):
         self.db.refresh(native)
         self.assertEqual(native.customer_id, customer.id)
         self.assertEqual(result["linked_native_device_ids"], [native.id])
+
+    def test_cancel_policy_allows_accepted_but_blocks_delivery_statuses(self):
+        self.assertFalse(_order_cancel_blocked("accepted"))
+        self.assertFalse(_order_cancel_blocked("pending_acceptance"))
+        self.assertTrue(_order_cancel_blocked("out_for_delivery"))
+        self.assertTrue(_order_cancel_blocked("done"))
+        self.assertTrue(_order_cancel_blocked("delivered"))
+
+    def test_cancel_reason_is_required_and_normalized(self):
+        self.assertEqual(_normalized_cancel_reason("  Pedi errado   hoje  "), "Pedi errado hoje")
+        self.assertEqual(_normalized_cancel_reason(""), "")
 
 
 if __name__ == "__main__":
