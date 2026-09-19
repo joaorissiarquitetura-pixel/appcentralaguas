@@ -597,6 +597,26 @@
     .choice-card span { margin-top: 3px; color: var(--ca-muted); font-size: 0.72rem; }
     .choice-card.is-selected { background: var(--ca-primary); color: var(--ca-white); border-color: var(--ca-primary); }
     .choice-card.is-selected span { color: rgba(255, 255, 255, 0.82); }
+    .business-hours-alert {
+      display: none;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 14px;
+      background: rgba(255, 247, 237, 0.96);
+      color: #7A4B00;
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+    .business-hours-alert.is-visible { display: grid; }
+    .business-hours-alert strong {
+      display: block;
+      color: #101828;
+      font: 800 0.9rem/1.2 "Montserrat", Arial, sans-serif;
+    }
+    .business-hours-alert span { color: #7A4B00; }
     .period-row,
     .menu-row,
     .summary-row,
@@ -2255,6 +2275,13 @@
           {% endfor %}
         </div>
         <h2 class="section-title">Período</h2>
+        <div class="business-hours-alert" data-business-hours-alert>
+          <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
+          <span class="row-copy">
+            <strong>Entrega indisponível agora</strong>
+            <span data-business-hours-message>Nosso atendimento está fechado. Deixe seu pedido agendado.</span>
+          </span>
+        </div>
         <div class="stack" data-delivery-periods></div>
         <div class="notification-panel">
           <span class="blue-icon"><i class="bi bi-bell-fill"></i></span>
@@ -2280,6 +2307,13 @@
           <div class="checkout-items" id="checkoutItems"></div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-geo-alt"></i></span><span class="row-copy"><strong>Endereço</strong><span data-location-label>{{ location.label }}{% if location.detail %} - {{ location.detail }}{% endif %}</span></span><button class="text-button" type="button" data-go="address">Alterar</button></div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-calendar-check"></i></span><span class="row-copy"><strong>Entrega</strong><span id="checkoutDelivery">{{ delivery_days[0].label }}, {{ delivery_days[0].date }} - Sem hora definida</span></span><button class="text-button" type="button" data-go="delivery">Alterar</button></div>
+          <div class="business-hours-alert" data-business-hours-checkout-alert>
+            <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
+            <span class="row-copy">
+              <strong>Entrega indisponível agora</strong>
+              <span data-business-hours-checkout-message>Seu pedido será agendado.</span>
+            </span>
+          </div>
           <div class="summary-row"><span class="blue-icon"><i class="bi bi-wallet2"></i></span><span class="row-copy"><strong>Pagamento</strong><span id="checkoutPayment">Pix</span></span><button class="text-button" type="button" data-go="payment">Alterar</button></div>
           <div class="summary-row" id="couponSummary">
             <span class="blue-icon"><i class="bi bi-ticket-perforated"></i></span>
@@ -2306,6 +2340,8 @@
           <input type="hidden" name="city" value="{{ customer.city if customer and customer.city else location.detail if location.detail else '' }}">
           <input type="hidden" name="coupon_code" id="couponCodeInput" value="">
           <input type="hidden" name="discount_amount" id="discountAmountInput" value="0">
+          <input type="hidden" name="scheduled_delivery_date" id="scheduledDeliveryDateInput" value="">
+          <input type="hidden" name="scheduled_delivery_period" id="scheduledDeliveryPeriodInput" value="">
           <input type="hidden" name="notes" id="orderNotes" value="Pedido iniciado pelo app Central Águas">
           <div class="checkout-actions">
             <button class="secondary-button" type="button" data-go="store">Continuar comprando</button>
@@ -3927,6 +3963,108 @@
       return `${year}-${month}-${day}`;
     }
 
+    function appDateIso(date = new Date()) {
+      const parts = appDateTimeParts(date);
+      return `${parts.year}-${parts.month}-${parts.day}`;
+    }
+
+    function businessHoursForDate(isoDate) {
+      const date = new Date(`${isoDate}T12:00:00-03:00`);
+      const day = date.getDay();
+      if (day === 0) return null;
+      if (day === 6) return { start: 8, end: 12 };
+      return { start: 8, end: 18 };
+    }
+
+    function isBusinessOpenNow(date = new Date()) {
+      const isoDate = appDateIso(date);
+      const hours = businessHoursForDate(isoDate);
+      if (!hours) return false;
+      const parts = appDateTimeParts(date);
+      const minutes = Number(parts.hour) * 60 + Number(parts.minute);
+      return minutes >= hours.start * 60 && minutes < hours.end * 60;
+    }
+
+    function nextBusinessDeliverySlot(date = new Date()) {
+      const parts = appDateTimeParts(date);
+      const todayIso = `${parts.year}-${parts.month}-${parts.day}`;
+      const currentHour = Number(parts.hour);
+      const currentMinute = Number(parts.minute);
+      const dayButtons = [...document.querySelectorAll("[data-delivery-date]")];
+      for (const button of dayButtons) {
+        const isoDate = button.dataset.deliveryDate;
+        const hours = businessHoursForDate(isoDate);
+        if (!hours) continue;
+        let startHour = hours.start;
+        if (isoDate === todayIso) {
+          if (currentHour >= hours.end) continue;
+          if (currentHour >= hours.start) startHour = currentMinute > 0 ? currentHour + 1 : currentHour;
+        }
+        if (startHour >= hours.end) continue;
+        return {
+          date: isoDate,
+          day: button.dataset.deliveryDay,
+          startHour: String(startHour),
+          period: deliveryPeriodLabel(startHour)
+        };
+      }
+      return null;
+    }
+
+    function businessHoursClosedMessage(slot = nextBusinessDeliverySlot()) {
+      const hoursText = "Atendemos segunda a sexta das 08h às 18h e sábado das 08h às 12h.";
+      if (hasValidScheduledDelivery()) {
+        return `${hoursText} Seu pedido ficará agendado para ${state.deliveryDay}, ${state.deliveryPeriod}.`;
+      }
+      if (!slot) return `${hoursText} Deixe seu pedido agendado para o próximo dia útil.`;
+      return `${hoursText} Seu pedido ficará agendado para ${slot.day}, ${slot.period}.`;
+    }
+
+    function hasValidScheduledDelivery() {
+      if (!state.deliveryDate || state.deliveryStartHour === "") return false;
+      const hours = businessHoursForDate(state.deliveryDate);
+      if (!hours) return false;
+      const hour = Number(state.deliveryStartHour);
+      if (!Number.isFinite(hour) || hour < hours.start || hour >= hours.end) return false;
+      const todayIso = appDateIso();
+      if (state.deliveryDate < todayIso) return false;
+      const nowParts = appDateTimeParts();
+      const nowHour = Number(nowParts.hour);
+      const nowMinute = Number(nowParts.minute);
+      if (state.deliveryDate === todayIso && (hour < nowHour || (hour === nowHour && nowMinute > 0))) return false;
+      return true;
+    }
+
+    function applyForcedBusinessSchedule() {
+      if (isBusinessOpenNow()) return false;
+      if (hasValidScheduledDelivery()) return true;
+      const slot = nextBusinessDeliverySlot();
+      if (!slot) return true;
+      state.deliveryDate = slot.date;
+      state.deliveryDay = slot.day;
+      state.deliveryStartHour = slot.startHour;
+      state.deliveryPeriod = slot.period;
+      document.querySelectorAll("[data-delivery-date]").forEach((button) => {
+        button.classList.toggle("is-selected", button.dataset.deliveryDate === slot.date);
+      });
+      return true;
+    }
+
+    function renderBusinessHoursStatus() {
+      const alert = document.querySelector("[data-business-hours-alert]");
+      const message = document.querySelector("[data-business-hours-message]");
+      const checkoutAlert = document.querySelector("[data-business-hours-checkout-alert]");
+      const checkoutMessage = document.querySelector("[data-business-hours-checkout-message]");
+      const closedNow = !isBusinessOpenNow();
+      const slot = closedNow ? nextBusinessDeliverySlot() : null;
+      const messageText = businessHoursClosedMessage(slot);
+      if (alert) alert.classList.toggle("is-visible", closedNow);
+      if (checkoutAlert) checkoutAlert.classList.toggle("is-visible", closedNow);
+      if (message) message.textContent = messageText;
+      if (checkoutMessage) checkoutMessage.textContent = messageText;
+      return { closedNow, slot };
+    }
+
     function deliveryNotificationsEnabled() {
       return localStorage.getItem(deliveryNotificationKey) === "on";
     }
@@ -4596,6 +4734,20 @@
       return false;
     }
 
+    function ensureBusinessSchedule() {
+      if (isBusinessOpenNow()) return true;
+      const slot = nextBusinessDeliverySlot();
+      if (!slot) {
+        showCheckoutWarning("Entrega indisponível agora. Escolha um dia útil para agendar o pedido.");
+        showScreen("delivery");
+        return false;
+      }
+      applyForcedBusinessSchedule();
+      renderDeliveryPeriods();
+      showCheckoutWarning("");
+      return true;
+    }
+
     function formattedLocationLabel() {
       const baseLabel = publicLocationLabel(state.locationBaseLabel || state.locationLabel);
       const number = String(state.number || "").trim();
@@ -5100,13 +5252,23 @@
 
     function deliveryPeriodsForSelectedDay() {
       const now = new Date();
-      const isToday = state.deliveryDate === localDateIso(now);
-      const periods = [{ label: "Sem hora definida", detail: "A equipe combina o melhor horário", startHour: "" }];
-      for (let hour = 9; hour <= 17; hour += 1) {
-        if (isToday && now.getHours() >= hour) continue;
+      const isToday = state.deliveryDate === appDateIso(now);
+      const businessHours = businessHoursForDate(state.deliveryDate);
+      const forceScheduled = !isBusinessOpenNow(now);
+      const periods = forceScheduled
+        ? []
+        : [{ label: "Sem hora definida", detail: "A equipe combina o melhor horário", startHour: "" }];
+      if (!businessHours) {
+        return periods.length ? periods : [{ label: "Próximo dia útil", detail: "Escolha um dia com atendimento", startHour: "" }];
+      }
+      const nowParts = appDateTimeParts(now);
+      const currentHour = Number(nowParts.hour);
+      const currentMinute = Number(nowParts.minute);
+      for (let hour = businessHours.start; hour < businessHours.end; hour += 1) {
+        if (isToday && (currentHour > hour || (currentHour === hour && currentMinute > 0))) continue;
         periods.push({
           label: deliveryPeriodLabel(hour),
-          detail: "A equipe confirma conforme a rota",
+          detail: forceScheduled ? "Pedido agendado para o próximo atendimento" : "A equipe confirma conforme a rota",
           startHour: String(hour),
         });
       }
@@ -5116,6 +5278,8 @@
     function renderDeliveryPeriods() {
       const wrapper = document.querySelector("[data-delivery-periods]");
       if (!wrapper) return;
+      applyForcedBusinessSchedule();
+      renderBusinessHoursStatus();
       const periods = deliveryPeriodsForSelectedDay();
       const hasSelected = periods.some((period) => String(period.startHour) === String(state.deliveryStartHour));
       if (!hasSelected) {
@@ -5137,6 +5301,8 @@
     function updateCheckout() {
       const notesField = document.querySelector(".notes");
       const orderNotes = document.getElementById("orderNotes");
+      const forcedSchedule = applyForcedBusinessSchedule();
+      renderBusinessHoursStatus();
       const scheduleText = `${state.deliveryDay} - ${state.deliveryPeriod}`;
       const customerNotes = String(notesField?.value || "").trim();
       const items = activeCartItems();
@@ -5180,11 +5346,15 @@
       document.getElementById("checkoutTotal").textContent = formatMoney(subtotal - discount);
       const couponCodeInput = document.getElementById("couponCodeInput");
       const discountAmountInput = document.getElementById("discountAmountInput");
+      const scheduledDeliveryDateInput = document.getElementById("scheduledDeliveryDateInput");
+      const scheduledDeliveryPeriodInput = document.getElementById("scheduledDeliveryPeriodInput");
       const clientOrderIdInput = document.getElementById("clientOrderIdInput");
       const clientOrderId = newClientOrderId();
       if (clientOrderIdInput) clientOrderIdInput.value = clientOrderId;
       if (couponCodeInput) couponCodeInput.value = state.couponCode || "";
       if (discountAmountInput) discountAmountInput.value = String(Number(discount || 0).toFixed(2));
+      if (scheduledDeliveryDateInput) scheduledDeliveryDateInput.value = state.deliveryDate || "";
+      if (scheduledDeliveryPeriodInput) scheduledDeliveryPeriodInput.value = state.deliveryPeriod || "";
       document.getElementById("checkoutDelivery").textContent = scheduleText;
       renderPayment();
       document.getElementById("itemsJson").value = JSON.stringify([
@@ -5193,6 +5363,7 @@
       if (orderNotes) {
         orderNotes.value = [
           "Pedido iniciado pelo app Central Águas",
+          forcedSchedule ? "Entrega indisponível no momento: pedido agendado automaticamente fora do horário de funcionamento" : "",
           `Agendamento: ${scheduleText}`,
           `Pagamento preferido: ${paymentLabel(state.paymentMethod)}`,
           houseStockSummaryForOrder(),
@@ -5804,6 +5975,10 @@
         return;
       }
       if (!ensureOrderAddress()) {
+        event.preventDefault();
+        return;
+      }
+      if (!ensureBusinessSchedule()) {
         event.preventDefault();
         return;
       }
