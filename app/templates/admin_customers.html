@@ -204,8 +204,8 @@
 
   <section class="summary-grid">
     <div class="summary-tile"><strong>{{ customers|length }}</strong><span>clientes cadastrados</span></div>
-    <div class="summary-tile"><strong>{{ linked_customers }}</strong><span>vinculados ao sistema</span></div>
-    <div class="summary-tile"><strong>{{ unlinked_customers }}</strong><span>sem vínculo Central</span></div>
+    <div class="summary-tile"><strong>{{ linked_customers }}</strong><span>com código Central informado</span></div>
+    <div class="summary-tile"><strong>{{ unlinked_customers }}</strong><span>sem código Central no app</span></div>
     <div class="summary-tile"><strong>{{ calibrated_customers }}</strong><span>com galões informados</span></div>
     <div class="summary-tile"><strong>{{ uncalibrated_customers }}</strong><span>sem calibração salva</span></div>
   </section>
@@ -267,7 +267,7 @@
                     {% if c.central_customer_code %}
                       <span class="info-pill ok">Central {{ c.central_customer_code }}</span>
                     {% else %}
-                      <span class="info-pill warn">Sem vínculo Central</span>
+                      <span class="info-pill warn">Código Central não informado</span>
                     {% endif %}
                   </td>
                   <td>
