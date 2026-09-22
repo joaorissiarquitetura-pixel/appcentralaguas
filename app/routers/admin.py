@@ -20,7 +20,7 @@ import time as _time
 import json
 
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, CustomerHouseStock, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
@@ -115,6 +115,61 @@ def _admin_datetime_label(value: datetime | None, fmt: str = "%d/%m %H:%M") -> s
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(APP_TZ).strftime(fmt)
+
+
+def _channel_label(channel: str | None) -> str:
+    text = (channel or "").strip().lower()
+    if text in {"app", "app_online", "online"}:
+        return "App"
+    if text in {"retirada", "pickup"}:
+        return "Retirada"
+    if text in {"entrega", "delivery"}:
+        return "Sistema"
+    return "Sistema" if text else "Sem compra"
+
+
+def _house_stock_summary(stock: CustomerHouseStock | None) -> dict:
+    if not stock:
+        return {
+            "label": "Sem calibração",
+            "detail": "Cliente ainda não informou os galões da casa.",
+            "status": "missing",
+            "updated": "",
+            "total": None,
+            "full": None,
+            "in_use": None,
+            "empty": None,
+            "oldest_validity": "",
+        }
+    if stock.skipped and not stock.calibrated:
+        return {
+            "label": "Registrar depois",
+            "detail": "Cliente deixou para informar quando estiver em casa.",
+            "status": "skipped",
+            "updated": _admin_datetime_label(stock.updated_at, "%d/%m/%Y %H:%M"),
+            "total": stock.total,
+            "full": stock.full,
+            "in_use": stock.in_use,
+            "empty": stock.empty,
+            "oldest_validity": stock.oldest_validity or "",
+        }
+    detail = (
+        f"{stock.full or 0} cheio(s), {stock.empty or 0} vazio(s), "
+        f"{stock.in_use or 0} em uso"
+    )
+    if stock.oldest_validity:
+        detail += f" · validade mais antiga {stock.oldest_validity}"
+    return {
+        "label": f"{stock.total or 0} galão(ões)",
+        "detail": detail,
+        "status": "ok",
+        "updated": _admin_datetime_label(stock.updated_at, "%d/%m/%Y %H:%M"),
+        "total": stock.total,
+        "full": stock.full,
+        "in_use": stock.in_use,
+        "empty": stock.empty,
+        "oldest_validity": stock.oldest_validity or "",
+    }
 
 
 def _grj_app_status_url() -> str:
@@ -364,6 +419,55 @@ def list_customers(request: Request, q: str = "", db: Session = Depends(get_db))
         query = query.where(Customer.name.ilike(f"%{q}%") | Customer.phone.ilike(f"%{q}%"))
     all_customers = db.execute(query).scalars().all()
     linked_customers = sum(1 for c in all_customers if c.central_customer_code)
+    customer_ids = [int(c.id) for c in all_customers]
+    stock_by_customer = {}
+    latest_tx_by_customer = {}
+    latest_device_by_customer = {}
+    if customer_ids:
+        stock_by_customer = {
+            stock.customer_id: stock
+            for stock in db.execute(
+                select(CustomerHouseStock).where(CustomerHouseStock.customer_id.in_(customer_ids))
+            ).scalars().all()
+        }
+        for tx in db.execute(
+            select(Transaction)
+            .where(Transaction.customer_id.in_(customer_ids))
+            .order_by(Transaction.customer_id.asc(), Transaction.created_at.desc())
+        ).scalars().all():
+            latest_tx_by_customer.setdefault(tx.customer_id, tx)
+        for device in db.execute(
+            select(AppDevice)
+            .where(AppDevice.customer_id.in_(customer_ids))
+            .order_by(AppDevice.customer_id.asc(), AppDevice.last_seen_at.desc())
+        ).scalars().all():
+            latest_device_by_customer.setdefault(device.customer_id, device)
+
+    customer_summaries = {}
+    calibrated_count = 0
+    for customer in all_customers:
+        stock = stock_by_customer.get(customer.id)
+        stock_summary = _house_stock_summary(stock)
+        if stock and stock.calibrated:
+            calibrated_count += 1
+        latest_tx = latest_tx_by_customer.get(customer.id)
+        latest_device = latest_device_by_customer.get(customer.id)
+        last_purchase_at = customer.last_purchase_at
+        source = _channel_label(latest_tx.channel if latest_tx else None)
+        if stock and stock.client_order_id and (not latest_tx or stock.updated_at >= latest_tx.created_at):
+            source = "App"
+            last_purchase_at = max(filter(None, [last_purchase_at, stock.updated_at]), default=stock.updated_at)
+        elif latest_tx:
+            last_purchase_at = latest_tx.created_at
+
+        customer_summaries[customer.id] = {
+            "stock": stock_summary,
+            "last_purchase": _admin_datetime_label(last_purchase_at, "%d/%m/%Y %H:%M") if last_purchase_at else "Sem compra",
+            "last_purchase_source": source,
+            "last_purchase_points": latest_tx.points if latest_tx else 0,
+            "last_app_access": _admin_datetime_label(latest_device.last_seen_at, "%d/%m/%Y %H:%M") if latest_device else "Sem acesso",
+            "device_label": latest_device.platform if latest_device and latest_device.platform else "",
+        }
 
     current_month = datetime.now().month
     birthdays = db.execute(
@@ -383,8 +487,11 @@ def list_customers(request: Request, q: str = "", db: Session = Depends(get_db))
         name="admin_customers.html",
         context={
             "customers": all_customers,
+            "customer_summaries": customer_summaries,
             "linked_customers": linked_customers,
             "unlinked_customers": len(all_customers) - linked_customers,
+            "calibrated_customers": calibrated_count,
+            "uncalibrated_customers": max(len(all_customers) - calibrated_count, 0),
             "birthdays": birthdays,
             "ranking": ranking,
             "q": q,
@@ -1367,4 +1474,4 @@ def get_customer_history(customer_id: int, request: Request, db: Session = Depen
     if not customer: return JSONResponse({"error": "Não encontrado"}, status_code=404)
     ledger = db.execute(select(LoyaltyLedger).where(LoyaltyLedger.customer_id == customer_id).order_by(LoyaltyLedger.created_at.desc()).limit(20)).scalars().all()
     history = [{"date": i.created_at.strftime("%d/%m/%Y %H:%M"), "points": f"+{i.delta_points}" if i.delta_points > 0 else str(i.delta_points), "reason": i.reason} for i in ledger]
-    return {"name": customer.name, "total_points": customer.points or 0, "history": history}
+    return {"name": customer.name, "phone": customer.phone or "", "total_points": customer.points or 0, "history": history}

@@ -175,6 +175,28 @@ class LocationAccessLog(Base):
 
     customer = relationship("Customer")
 
+
+class CustomerHouseStock(Base):
+    __tablename__ = "customer_house_stock"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), unique=True, index=True)
+    total: Mapped[int] = mapped_column(Integer, default=0)
+    full: Mapped[int] = mapped_column(Integer, default=0)
+    in_use: Mapped[int] = mapped_column(Integer, default=0)
+    empty: Mapped[int] = mapped_column(Integer, default=0)
+    calibrated: Mapped[bool] = mapped_column(Boolean, default=False)
+    skipped: Mapped[bool] = mapped_column(Boolean, default=False)
+    oldest_validity: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    validities_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    client_order_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    customer = relationship("Customer")
+
+
 class AppNotification(Base):
     __tablename__ = "app_notifications"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

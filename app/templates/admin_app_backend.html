@@ -93,9 +93,9 @@
 
 <div class="backend-grid">
   <section class="backend-hero">
-    <span class="tag">Backend técnico</span>
-    <h1 class="display-serif mt-2 mb-1">Controle do app Central Águas</h1>
-    <p class="text-secondary mb-0">Dispositivos, push, Firebase, localização, bloqueios e eventos técnicos do aplicativo.</p>
+    <span class="tag">Acessos e notificações</span>
+    <h1 class="display-serif mt-2 mb-1">Celulares e acessos do app</h1>
+    <p class="text-secondary mb-0">Veja quem acessou o app, quais clientes recebem notificações e quais aparelhos precisam de atenção.</p>
   </section>
 
   {% if err %}
@@ -106,63 +106,63 @@
   {% endif %}
 
   <section class="backend-kpis">
-    <div class="backend-card backend-kpi"><strong>{{ device_count }}</strong><span>dispositivos</span></div>
-    <div class="backend-card backend-kpi"><strong>{{ active_24h_count }}</strong><span>ativos 24h</span></div>
-    <div class="backend-card backend-kpi"><strong>{{ fcm_device_count }}</strong><span>tokens FCM</span></div>
-    <div class="backend-card backend-kpi"><strong>{{ push_active_count }}</strong><span>web push ativo</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ device_count }}</strong><span>acessos registrados</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ active_24h_count }}</strong><span>ativos nas últimas 24h</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ fcm_device_count }}</strong><span>celulares aptos a notificar</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ push_active_count }}</strong><span>notificações web ativas</span></div>
     <div class="backend-card backend-kpi"><strong>{{ blocked_device_count }}</strong><span>bloqueados</span></div>
-    <div class="backend-card backend-kpi"><strong>{{ location_denied_count }}</strong><span>localizações negadas</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ location_denied_count }}</strong><span>fora da área/localização negada</span></div>
   </section>
 
   <section class="backend-split">
     <div class="backend-card">
-      <h2>Status técnico</h2>
+      <h2>Saúde do app</h2>
       <div class="status-list">
         <div class="status-line">
           <span class="status-dot {{ 'status-ok' if fcm_configured else 'status-bad' }}"></span>
-          Firebase FCM: <strong>{{ 'configurado' if fcm_configured else 'pendente' }}</strong>
+          Notificações do APK: <strong>{{ 'prontas' if fcm_configured else 'pendentes' }}</strong>
         </div>
         <div class="status-line">
           <span class="status-dot {{ 'status-ok' if push_configured else 'status-warn' }}"></span>
-          Web Push VAPID: <strong>{{ 'configurado' if push_configured else 'opcional/pendente' }}</strong>
+          Notificações pelo navegador: <strong>{{ 'prontas' if push_configured else 'opcionais/pendentes' }}</strong>
         </div>
         <div class="muted">
-          Área permitida: {{ service_area.city }} / {{ service_area.state }}
+          Área de entrega liberada: {{ service_area.city }} / {{ service_area.state }}
           {% if service_area.min_lat and service_area.max_lat and service_area.min_lon and service_area.max_lon %}
             · limites por coordenadas configurados
           {% else %}
             · validação por cidade/estado
           {% endif %}
         </div>
-        <div class="muted">Endpoint JSON de saúde: <code>/admin/app/status</code></div>
+        <div class="muted">Diagnóstico rápido do sistema: <code>/admin/app/status</code></div>
       </div>
     </div>
 
     <div class="backend-card">
-      <h2>Enviar push real</h2>
+      <h2>Enviar aviso para clientes</h2>
       <form class="form-grid push-form" method="post" action="/admin/notifications/send">
-        <input class="form-control" type="text" name="title" placeholder="Título da notificação" required>
-        <textarea class="form-control" name="body" rows="3" placeholder="Mensagem que aparece no celular" required></textarea>
+        <input class="form-control" type="text" name="title" placeholder="Título que aparece no celular" required>
+        <textarea class="form-control" name="body" rows="3" placeholder="Mensagem para o cliente" required></textarea>
         <select class="form-select" name="target">
           <option value="all">Todos os dispositivos</option>
           <option value="customers">Clientes identificados</option>
         </select>
         <input class="form-control" type="text" name="url" value="/app">
-        <button class="ca-pill ca-primary" type="submit">Enviar notificação</button>
+        <button class="ca-pill ca-primary" type="submit">Enviar aviso</button>
       </form>
     </div>
   </section>
 
   <section class="backend-card">
-    <h2>Dispositivos do app</h2>
+    <h2>Acessos recentes</h2>
     <div class="table-responsive">
       <table class="backend-table">
         <thead>
           <tr>
-            <th>Device</th>
+            <th>Identificador</th>
             <th>Cliente</th>
             <th>Permissões</th>
-            <th>FCM</th>
+            <th>Notificação</th>
             <th>Último acesso</th>
             <th>Acesso</th>
           </tr>
@@ -176,14 +176,14 @@
               </td>
               <td>{{ device.customer.name if device.customer else 'Não identificado' }}</td>
               <td>
-                <div>Push: {{ device.notification_permission or '-' }}</div>
+                <div>Aviso no celular: {{ device.notification_permission or '-' }}</div>
                 <div>Localização: {{ device.location_permission or '-' }}</div>
               </td>
               <td>
                 {% if device.fcm_token %}
-                  <span class="pill-state ok">registrado</span>
+                  <span class="pill-state ok">pronto</span>
                 {% else %}
-                  <span class="pill-state">sem token</span>
+                  <span class="pill-state">não configurado</span>
                 {% endif %}
               </td>
               <td>{{ format_dt(device.last_seen_at, '%d/%m/%Y %H:%M') }}</td>
@@ -199,10 +199,10 @@
                     {% if not device.is_blocked %}
                       <input class="form-control form-control-sm" type="text" name="block_reason" placeholder="Motivo do bloqueio">
                     {% endif %}
-                    <button class="ca-pill ca-outline" type="submit">{{ 'Desbloquear' if device.is_blocked else 'Bloquear' }}</button>
+                  <button class="ca-pill ca-outline" type="submit">{{ 'Liberar acesso' if device.is_blocked else 'Bloquear' }}</button>
                   </form>
                   <form class="test-form" method="post" action="/admin/app/devices/{{ device.id }}/test-push" target="_blank">
-                    <button class="ca-pill ca-primary" type="submit">Testar push</button>
+                    <button class="ca-pill ca-primary" type="submit">Testar aviso</button>
                   </form>
                 </div>
               </td>
@@ -257,7 +257,7 @@
   </section>
 
   <section class="backend-card">
-    <h2>Inscrições Web Push</h2>
+    <h2>Notificações pelo navegador</h2>
     <div class="table-responsive">
       <table class="backend-table">
         <thead><tr><th>ID</th><th>Device</th><th>Status</th><th>Falhas</th><th>Último envio</th><th>Ação</th></tr></thead>

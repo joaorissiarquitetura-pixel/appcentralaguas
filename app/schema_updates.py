@@ -14,6 +14,7 @@ from .models import (
     AppPromotion,
     Coupon,
     CouponRedemption,
+    CustomerHouseStock,
     LocationAccessLog,
     PushSubscription,
 )
@@ -85,6 +86,7 @@ def ensure_runtime_schema_updates() -> None:
         AppBannerEvent,
         AppPromotion,
         CouponRedemption,
+        CustomerHouseStock,
         AdminAuditLog,
     ):
         table_model.__table__.create(bind=engine, checkfirst=True)

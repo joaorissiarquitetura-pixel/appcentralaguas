@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id, login_customer, logout_customer
 from ..config import settings
 from ..database import SessionLocal, get_db
-from ..models import Coupon, CouponRedemption, Customer, LoyaltyLedger, Product
+from ..models import Coupon, CouponRedemption, Customer, CustomerHouseStock, LoyaltyLedger, Product
 from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
@@ -162,6 +162,35 @@ def _house_stock_note(stock: dict) -> str:
     if stock.get("skipped"):
         return "Estoque do cliente no app: cliente optou por registrar depois."
     return "Estoque do cliente no app: não informado."
+
+
+def _save_customer_house_stock(
+    db: Session,
+    customer_id: int,
+    stock: dict,
+    client_order_id: str,
+    source: str = "app_order",
+) -> None:
+    if not stock or (not stock.get("calibrated") and not stock.get("skipped")):
+        return
+
+    now = datetime.utcnow()
+    current = db.scalar(select(CustomerHouseStock).where(CustomerHouseStock.customer_id == int(customer_id)))
+    if not current:
+        current = CustomerHouseStock(customer_id=int(customer_id), created_at=now)
+        db.add(current)
+
+    current.total = int(stock.get("total") or 0)
+    current.full = int(stock.get("full") or 0)
+    current.in_use = int(stock.get("in_use") or 0)
+    current.empty = int(stock.get("empty") or 0)
+    current.calibrated = bool(stock.get("calibrated"))
+    current.skipped = bool(stock.get("skipped"))
+    current.oldest_validity = str(stock.get("oldest_validity") or "")[:20] or None
+    current.validities_json = json.dumps(stock.get("validities") or [], ensure_ascii=False)
+    current.source = source[:40]
+    current.client_order_id = client_order_id[:80] or None
+    current.updated_at = now
 
 
 def _product_slug(product: Product) -> str:
@@ -972,6 +1001,18 @@ def finish_shop_order(
         grj_order = _send_order_to_grj(order_payload)
     except RuntimeError as exc:
         return HTMLResponse(str(exc), status_code=502)
+    try:
+        customer = db.get(Customer, int(cid))
+        if customer:
+            now = datetime.utcnow()
+            customer.last_purchase_at = now
+            if customer.first_purchase_at is None:
+                customer.first_purchase_at = now
+        _save_customer_house_stock(db, int(cid), house_stock, client_order_id)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception("House stock snapshot save failed for customer=%s order=%s", cid, client_order_id)
     if coupon and discount_value > 0:
         try:
             db.add(CouponRedemption(
