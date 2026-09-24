@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block content %}
+{% set delete_message = "Olá, quero solicitar a exclusão da minha conta e dos meus dados do app Central Águas." %}
+{% set phone_digits = (whatsapp_number or "")|replace("+", "")|replace(" ", "")|replace("-", "")|replace("(", "")|replace(")", "") %}
+<style>
+    .delete-shell {
+        width: min(100%, 430px);
+        margin: 0 auto;
+    }
+
+    .delete-card {
+        overflow: hidden;
+        border: 1px solid #d7e6ff;
+        border-radius: 28px;
+        background: #fff;
+        box-shadow: 0 18px 45px rgba(12, 74, 180, 0.12);
+    }
+
+    .delete-top {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 12px;
+        align-items: center;
+        padding: 18px;
+        color: #fff;
+        background: linear-gradient(135deg, #0b4fd3 0%, #176fff 100%);
+    }
+
+    .delete-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 1.25rem;
+    }
+
+    .delete-brand {
+        margin: 0;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        opacity: 0.82;
+    }
+
+    .delete-top h1 {
+        margin: 2px 0 0;
+        font-size: 1.22rem;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .delete-body {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        background: linear-gradient(180deg, #f7fbff 0%, #fff 42%);
+    }
+
+    .delete-intro {
+        display: grid;
+        gap: 7px;
+    }
+
+    .delete-pill {
+        width: fit-content;
+        max-width: 100%;
+        padding: 6px 10px;
+        border-radius: 999px;
+        color: #0050cc;
+        background: #dff4ff;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+
+    .delete-intro h2 {
+        margin: 0;
+        color: #061634;
+        font-size: 1.55rem;
+        font-weight: 900;
+        line-height: 1.05;
+    }
+
+    .delete-intro p,
+    .delete-note,
+    .delete-section p,
+    .delete-section li,
+    .delete-review {
+        color: #4c5d78;
+        font-size: 0.86rem;
+        line-height: 1.45;
+    }
+
+    .delete-note {
+        margin: 0;
+        padding: 12px;
+        border: 1px solid #bceeff;
+        border-radius: 16px;
+        background: #e8faff;
+    }
+
+    .delete-section {
+        padding: 14px;
+        border: 1px solid #dbe8ff;
+        border-radius: 18px;
+        background: #fff;
+    }
+
+    .delete-section h3 {
+        margin: 0 0 8px;
+        color: #004bc7;
+        font-size: 0.96rem;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    .delete-section p {
+        margin: 0 0 8px;
+    }
+
+    .delete-section ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .delete-section li + li {
+        margin-top: 6px;
+    }
+
+    .delete-section strong {
+        color: #17233a;
+    }
+
+    .delete-actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 2px;
+    }
+
+    .delete-review {
+        margin: 0;
+        text-align: center;
+    }
+
+    .delete-shell,
+    .delete-card,
+    .delete-section,
+    .delete-actions a {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+</style>
+
+<div class="delete-shell">
+    <article class="delete-card">
+        <header class="delete-top">
+            <span class="delete-icon"><i class="bi bi-person-x"></i></span>
+            <div>
+                <p class="delete-brand">Central Águas</p>
+                <h1>Exclusão de conta</h1>
+            </div>
+        </header>
+
+        <div class="delete-body">
+            <section class="delete-intro">
+                <span class="delete-pill">Solicitação de dados</span>
+                <h2>Excluir conta e dados do app</h2>
+                <p class="mb-0">Use esta página para solicitar a exclusão da sua conta Central Águas e dos dados pessoais associados ao app.</p>
+            </section>
+
+            <p class="delete-note">
+                A solicitação é conferida pelo atendimento para proteger sua conta e evitar exclusões indevidas.
+            </p>
+
+            <section class="delete-section">
+                <h3>Como solicitar</h3>
+                <p>Entre em contato com a Central Águas informando:</p>
+                <ul>
+                    <li>Nome completo cadastrado no app;</li>
+                    <li>Telefone/WhatsApp usado no cadastro;</li>
+                    <li>Pedido de exclusão da conta e dos dados do app.</li>
+                </ul>
+            </section>
+
+            <section class="delete-section">
+                <h3>O que pode ser excluído</h3>
+                <ul>
+                    <li>Conta de acesso ao app;</li>
+                    <li>Dados de perfil, endereço e preferências do app;</li>
+                    <li>Dados de notificações, dispositivo e configurações do app;</li>
+                    <li>Histórico de fidelidade e benefícios vinculados ao cadastro, quando aplicável.</li>
+                </ul>
+            </section>
+
+            <section class="delete-section">
+                <h3>O que pode ser mantido</h3>
+                <p class="mb-0">Alguns registros podem ser mantidos pelo prazo necessário para atendimento, segurança, cobrança, auditoria ou obrigações legais e fiscais, conforme permitido pela LGPD.</p>
+            </section>
+
+            <section class="delete-section">
+                <h3>Prazo de atendimento</h3>
+                <p class="mb-0">Após a confirmação da identidade do titular, a Central Águas dará andamento à solicitação e informará a conclusão pelo canal de atendimento.</p>
+            </section>
+
+            <div class="delete-actions">
+                {% if phone_digits and "X" not in phone_digits %}
+                    <a href="https://wa.me/{{ phone_digits }}?text={{ delete_message|urlencode }}" class="btn btn-primary fw-bold rounded-pill">Solicitar pelo WhatsApp</a>
+                {% endif %}
+                <a href="/privacidade" class="btn btn-outline-primary fw-bold rounded-pill">Ver política de privacidade</a>
+                <a href="/app" class="btn btn-outline-secondary fw-bold rounded-pill">Voltar ao app</a>
+            </div>
+
+            <p class="delete-review">Última revisão: Setembro de 2026</p>
+        </div>
+    </article>
+</div>
+{% endblock %}

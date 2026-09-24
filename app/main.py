@@ -93,6 +93,19 @@ def privacidade(request: Request):
     )
 
 
+@app.get("/excluir-conta")
+def excluir_conta(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="excluir_conta.html",
+        context={
+            "business_name": settings.BUSINESS_NAME,
+            "hide_chrome": True,
+            "whatsapp_number": settings.BUSINESS_WHATSAPP_NUMBER,
+        },
+    )
+
+
 @app.exception_handler(PermissionError)
 def permission_error_handler(request: Request, exc: PermissionError):
     logger.warning("Permission error on %s: %s", request.url.path, exc)
