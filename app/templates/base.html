@@ -308,7 +308,7 @@
   </style>
 </head>
 {% set current_path = request.url.path if request.url is defined else "" %}
-{% set chrome_hidden = hide_chrome|default(false) or current_path in ["/login", "/cadastrar", "/privacidade", "/excluir-conta", "/meu-cartao", "/cliente", "/loja/finalizar", "/alterar-senha-obrigatoria"] %}
+{% set chrome_hidden = hide_chrome|default(false) or current_path in ["/login", "/cadastrar", "/privacidade", "/excluir-conta", "/meu-cartao", "/cliente", "/loja/finalizar", "/alterar-senha-obrigatoria", "/esqueci-senha", "/redefinir-senha"] %}
 {% set admin_area = current_path.startswith("/admin") or current_path.startswith("/atendente") %}
 <body class="{% if chrome_hidden %}app-chrome-hidden{% endif %}">
 {% if not chrome_hidden %}

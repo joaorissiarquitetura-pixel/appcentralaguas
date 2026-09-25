@@ -24,6 +24,8 @@ from ..models import Coupon, CouponRedemption, Customer, CustomerHouseStock, Loy
 from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
+from ..services.account_recovery import issue_password_reset_token, reset_customer_password_with_token
+from ..services.whatsapp import send_password_reset_whatsapp, whatsapp_cloud_configured
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
@@ -1114,13 +1116,11 @@ def shop_rating_placeholder():
 # --- LOGIN ---
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    reset_message = urllib.parse.quote("Olá, preciso redefinir minha senha do app Central Águas.")
-    whatsapp_number = settings.BUSINESS_WHATSAPP_NUMBER.strip().replace("+", "")
     return templates.TemplateResponse(
         request=request,
         name="login.html",
         context=_chrome_hidden_context(
-            password_reset_link=f"https://wa.me/{whatsapp_number}?text={reset_message}",
+            password_reset_link="/esqueci-senha",
         ),
     )
 
@@ -1136,14 +1136,12 @@ def login_action(
     customer = db.scalar(select(Customer).where(Customer.phone == phone_n))
 
     if not customer or not verify_password(password, customer.pin_hash):
-        reset_message = urllib.parse.quote("Olá, preciso redefinir minha senha do app Central Águas.")
-        whatsapp_number = settings.BUSINESS_WHATSAPP_NUMBER.strip().replace("+", "")
         return templates.TemplateResponse(
             request=request,
             name="login.html",
             context=_chrome_hidden_context(
                 error="WhatsApp ou senha inválidos.",
-                password_reset_link=f"https://wa.me/{whatsapp_number}?text={reset_message}",
+                password_reset_link="/esqueci-senha",
             ),
             status_code=400,
         )
@@ -1152,6 +1150,118 @@ def login_action(
     if customer.must_change_password:
         return RedirectResponse("/alterar-senha-obrigatoria", status_code=303)
     return RedirectResponse("/app", status_code=303)
+
+
+@router.get("/esqueci-senha", response_class=HTMLResponse)
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="forgot_password.html",
+        context=_chrome_hidden_context(
+            whatsapp_configured=whatsapp_cloud_configured(),
+        ),
+    )
+
+
+@router.post("/esqueci-senha", response_class=HTMLResponse)
+def forgot_password_action(
+    request: Request,
+    phone: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    phone_n = normalize_phone(phone)
+    customer = db.scalar(select(Customer).where(Customer.phone == phone_n))
+    sent = False
+    send_reason = ""
+
+    if customer:
+        token = issue_password_reset_token(db, customer=customer)
+        reset_link = str(request.url_for("reset_password_page")).split("?")[0] + f"?token={urllib.parse.quote(token)}"
+        sent, send_reason = send_password_reset_whatsapp(to_phone=customer.phone, reset_link=reset_link)
+        db.commit()
+        logger.info(
+            "Password reset requested for customer_id=%s whatsapp_sent=%s reason=%s",
+            customer.id,
+            sent,
+            send_reason,
+        )
+    else:
+        logger.info("Password reset requested for unknown phone ending=%s", phone_n[-4:] if phone_n else "")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="forgot_password.html",
+        context=_chrome_hidden_context(
+            success=True,
+            sent=sent,
+            whatsapp_configured=whatsapp_cloud_configured(),
+        ),
+    )
+
+
+@router.get("/redefinir-senha", response_class=HTMLResponse)
+def reset_password_page(request: Request, token: str = "", db: Session = Depends(get_db)):
+    token_clean = token.strip()
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset.html",
+        context=_chrome_hidden_context(
+            token=token_clean,
+            token_present=bool(token_clean),
+        ),
+    )
+
+
+@router.post("/redefinir-senha", response_class=HTMLResponse)
+def reset_password_action(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    token_clean = token.strip()
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context=_chrome_hidden_context(
+                error="As senhas não coincidem.",
+                token=token_clean,
+                token_present=bool(token_clean),
+            ),
+            status_code=400,
+        )
+    if len(password) != 4 or not password.isdigit():
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context=_chrome_hidden_context(
+                error="A nova senha deve ter exatamente 4 dígitos numéricos.",
+                token=token_clean,
+                token_present=bool(token_clean),
+            ),
+            status_code=400,
+        )
+    try:
+        reset_customer_password_with_token(db, token=token_clean, new_password=password)
+        db.commit()
+    except ValueError:
+        db.rollback()
+        return templates.TemplateResponse(
+            request=request,
+            name="password_reset.html",
+            context=_chrome_hidden_context(
+                error="Este link expirou ou já foi usado. Solicite uma nova redefinição.",
+                token_present=False,
+            ),
+            status_code=400,
+        )
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset.html",
+        context=_chrome_hidden_context(success="Senha alterada com sucesso. Agora você já pode entrar no app."),
+    )
 
 
 @router.get("/alterar-senha-obrigatoria", response_class=HTMLResponse)
