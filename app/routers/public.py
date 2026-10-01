@@ -27,6 +27,7 @@ from ..services.loyalty import card_progress, cards_completed, points_balance
 from ..services.account_recovery import (
     request_password_reset_code,
     reset_customer_password_with_token,
+    verify_password_reset_code,
 )
 from ..services.whatsapp import send_password_reset_code_whatsapp, whatsapp_cloud_configured
 
@@ -1210,7 +1211,43 @@ def forgot_password_action(
         context=_chrome_hidden_context(
             success=True,
             sent=sent,
+            phone=phone.strip(),
             whatsapp_configured=whatsapp_cloud_configured(),
+        ),
+    )
+
+
+@router.post("/validar-codigo-redefinicao", response_class=HTMLResponse)
+def verify_reset_code_action(
+    request: Request,
+    phone: str = Form(...),
+    code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    phone_clean = phone.strip()
+    try:
+        reset_token = verify_password_reset_code(db, phone=phone_clean, code=code)
+        db.commit()
+    except ValueError:
+        db.commit()
+        return templates.TemplateResponse(
+            request=request,
+            name="forgot_password.html",
+            context=_chrome_hidden_context(
+                success=True,
+                phone=phone_clean,
+                code_error="Código inválido ou expirado. Confira o código recebido ou solicite um novo.",
+                whatsapp_configured=whatsapp_cloud_configured(),
+            ),
+            status_code=400,
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="password_reset.html",
+        context=_chrome_hidden_context(
+            token=reset_token,
+            token_present=True,
         ),
     )
 
