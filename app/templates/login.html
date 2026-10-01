@@ -7,8 +7,7 @@
 {% block content %}
 <style>
   .auth-shell {
-    min-height: 100vh;
-    min-height: 100dvh;
+    min-height: 100%;
     background: #fff;
   }
   .auth-top {
@@ -39,21 +38,14 @@
     justify-items: start;
   }
   .auth-brand-logo {
-    width: min(350px, 78vw);
+    width: min(302px, 78vw);
     height: 94px;
     object-fit: contain;
     object-position: left center;
     filter: drop-shadow(0 12px 18px rgba(3, 25, 78, 0.22));
   }
-  .auth-top span {
-    display: block;
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 0.86rem;
-    font-weight: 800;
-  }
   .auth-top strong {
     display: block;
-    margin-top: 2px;
     font: 800 1.28rem/1.1 "Montserrat", Arial, sans-serif;
   }
   .auth-body {
@@ -201,7 +193,7 @@
       padding-right: 30px;
     }
     .auth-brand-logo {
-      width: min(350px, 82vw);
+      width: min(302px, 82vw);
       height: 96px;
     }
     .auth-body {
@@ -210,62 +202,65 @@
   }
 </style>
 
-<section class="auth-shell">
-  <div class="auth-top">
-    <div class="auth-brand">
-      <img class="auth-brand-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
-      <span>Central Águas</span>
-      <strong>Área do cliente</strong>
-    </div>
+<section class="ca-auth-stage">
+  <div class="ca-auth-phone">
+    <section class="auth-shell">
+      <div class="auth-top">
+        <div class="auth-brand">
+          <img class="auth-brand-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
+          <strong>Área do cliente</strong>
+        </div>
+      </div>
+
+      <article class="auth-body">
+          <div class="auth-title">
+            <h1>Entre na sua conta.</h1>
+          </div>
+
+          {% if error %}
+            <div class="alert alert-danger mb-0">{{ error }}</div>
+          {% endif %}
+
+          <form method="post" action="/login" class="auth-form" data-login-form>
+            <div class="auth-field">
+              <label for="loginPhone">Telefone ou e-mail</label>
+              <div class="auth-input">
+                <i class="bi bi-person"></i>
+                <input id="loginPhone" name="phone" placeholder="(17) 99999-9999" autocomplete="username" required>
+              </div>
+            </div>
+
+            <div class="auth-field">
+              <label for="loginPassword">Senha</label>
+              <div class="auth-input">
+                <i class="bi bi-lock"></i>
+                <input id="loginPassword" name="password" type="password" placeholder="Sua senha" autocomplete="current-password" required>
+              </div>
+            </div>
+
+            <div class="auth-options">
+              <label class="remember-check">
+                <input type="checkbox" name="remember_me" value="1" data-remember-login checked>
+                <span>Lembrar de mim</span>
+              </label>
+              <a class="forgot-link" href="{{ password_reset_link or '/esqueci-senha' }}">Esqueci a senha</a>
+            </div>
+
+            <button class="biometric-button" type="button" data-biometric-login><i class="bi bi-fingerprint"></i> Entrar com digital</button>
+            <button type="submit" class="ca-pill ca-primary w-100">Entrar</button>
+            <p class="login-hint">Ao lembrar o acesso, este aparelho continua identificado para receber notificações do app.</p>
+          </form>
+
+          <div class="auth-link-row">
+            <span>
+              <strong>Ainda não tem acesso?</strong>
+              <span>Crie seu cadastro em poucos passos.</span>
+            </span>
+            <a class="ca-pill ca-outline" href="/cadastrar">Criar</a>
+          </div>
+      </article>
+    </section>
   </div>
-
-  <article class="auth-body">
-      <div class="auth-title">
-        <h1>Entre na sua conta.</h1>
-      </div>
-
-      {% if error %}
-        <div class="alert alert-danger mb-0">{{ error }}</div>
-      {% endif %}
-
-      <form method="post" action="/login" class="auth-form" data-login-form>
-        <div class="auth-field">
-          <label for="loginPhone">Telefone ou e-mail</label>
-          <div class="auth-input">
-            <i class="bi bi-person"></i>
-            <input id="loginPhone" name="phone" placeholder="(17) 99999-9999" autocomplete="username" required>
-          </div>
-        </div>
-
-        <div class="auth-field">
-          <label for="loginPassword">Senha</label>
-          <div class="auth-input">
-            <i class="bi bi-lock"></i>
-            <input id="loginPassword" name="password" type="password" placeholder="Sua senha" autocomplete="current-password" required>
-          </div>
-        </div>
-
-        <div class="auth-options">
-          <label class="remember-check">
-            <input type="checkbox" name="remember_me" value="1" data-remember-login checked>
-            <span>Lembrar de mim</span>
-          </label>
-          <a class="forgot-link" href="{{ password_reset_link or '/esqueci-senha' }}">Esqueci a senha</a>
-        </div>
-
-        <button class="biometric-button" type="button" data-biometric-login><i class="bi bi-fingerprint"></i> Entrar com digital</button>
-        <button type="submit" class="ca-pill ca-primary w-100">Entrar</button>
-        <p class="login-hint">Ao lembrar o acesso, este aparelho continua identificado para receber notificações do app.</p>
-      </form>
-
-      <div class="auth-link-row">
-        <span>
-          <strong>Ainda não tem acesso?</strong>
-          <span>Crie seu cadastro em poucos passos.</span>
-        </span>
-        <a class="ca-pill ca-outline" href="/cadastrar">Criar</a>
-      </div>
-  </article>
 </section>
 <script>
   (() => {

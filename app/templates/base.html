@@ -249,6 +249,36 @@
       min-height: 100vh;
       padding: 24px 16px;
     }
+    .ca-auth-stage {
+      min-height: 100vh;
+      margin: -24px -16px;
+      display: grid;
+      place-items: stretch;
+      background: #fff;
+    }
+    .ca-auth-phone {
+      min-height: 100vh;
+      overflow: hidden;
+      background: #fff;
+    }
+    @media (min-width: 760px) {
+      body.app-chrome-hidden {
+        background: #EEF6FF;
+      }
+      .ca-auth-stage {
+        width: 430px;
+        min-height: 840px;
+        margin: 4px auto;
+        background: transparent;
+      }
+      .ca-auth-phone {
+        width: 430px;
+        min-height: 840px;
+        border: 10px solid #101828;
+        border-radius: 42px;
+        box-shadow: 0 28px 80px rgba(16, 24, 40, 0.18);
+      }
+    }
     @media (max-width: 991.98px) {
       body {
         padding-bottom: 86px;
