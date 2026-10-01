@@ -65,6 +65,10 @@ class PasswordResetToken(Base):
     used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     delivery_channel: Mapped[str] = mapped_column(String(20), default="manual")
     destination_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reset_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
+    request_ip: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     customer = relationship("Customer")
 

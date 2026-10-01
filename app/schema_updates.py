@@ -17,6 +17,7 @@ from .models import (
     CustomerHouseStock,
     LocationAccessLog,
     PushSubscription,
+    PasswordResetToken,
 )
 
 
@@ -88,6 +89,7 @@ def ensure_runtime_schema_updates() -> None:
         CouponRedemption,
         CustomerHouseStock,
         AdminAuditLog,
+        PasswordResetToken,
     ):
         table_model.__table__.create(bind=engine, checkfirst=True)
         _ensure_model_columns(table_model)

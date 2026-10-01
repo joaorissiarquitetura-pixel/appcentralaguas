@@ -202,6 +202,11 @@
             <input id="numero" type="text" name="number" required value="{{ form_data.number if form_data else '' }}">
           </div>
 
+          <div class="signup-field">
+            <label for="complemento">Complemento</label>
+            <input id="complemento" type="text" name="complement" placeholder="Apto, casa, torre..." value="{{ form_data.complement if form_data else '' }}">
+          </div>
+
           <div class="signup-field full">
             <label for="rua">Endereço</label>
             <input id="rua" type="text" name="street" readonly required placeholder="Busque pelo CEP" value="{{ form_data.street if form_data else '' }}">

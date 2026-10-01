@@ -52,6 +52,7 @@ def create_customer_account(
     zip_code: str,
     street: str = "",
     number: str = "",
+    complement: str = "",
     neighborhood: str = "",
     ref_code: str | None = None,
 ) -> Customer:
@@ -71,6 +72,7 @@ def create_customer_account(
         cep=validate_votuporanga_cep(zip_code),
         street=street.strip(),
         number=number.strip(),
+        complement=complement.strip(),
         neighborhood=neighborhood.strip(),
         city="Votuporanga",
         state="SP",

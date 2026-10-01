@@ -23,6 +23,31 @@ def whatsapp_cloud_configured() -> bool:
     )
 
 
+def normalize_brazilian_phone(value: str | None) -> str | None:
+    digits = _digits_only(value)
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if digits.startswith("55"):
+        digits = digits[2:]
+    if len(digits) == 10 and digits[2] in {"6", "7", "8", "9"}:
+        digits = f"{digits[:2]}9{digits[2:]}"
+    if len(digits) != 11:
+        return None
+    ddd = int(digits[:2])
+    if ddd < 11 or ddd > 99:
+        return None
+    if digits[2] != "9":
+        return None
+    return digits
+
+
+def phone_to_whatsapp_e164(value: str | None) -> str | None:
+    normalized = normalize_brazilian_phone(value)
+    if not normalized:
+        return None
+    return f"55{normalized}"
+
+
 def build_password_reset_message(reset_link: str) -> str:
     main_number = _digits_only(settings.BUSINESS_WHATSAPP_NUMBER)
     help_line = f"https://wa.me/{main_number}" if main_number and "X" not in main_number else "WhatsApp principal da Central Águas"
@@ -48,14 +73,13 @@ def send_password_reset_whatsapp(*, to_phone: str, reset_link: str) -> tuple[boo
     if not whatsapp_cloud_configured():
         return False, "whatsapp_cloud_not_configured"
 
-    phone = _digits_only(to_phone)
-    if not phone.startswith("55"):
-        phone = f"55{phone}"
-    if len(phone) < 12:
+    phone = phone_to_whatsapp_e164(to_phone)
+    if not phone:
         return False, "invalid_phone"
 
     phone_number_id = settings.WHATSAPP_CLOUD_PHONE_NUMBER_ID.strip()
-    url = f"https://graph.facebook.com/v20.0/{phone_number_id}/messages"
+    graph_version = settings.WHATSAPP_GRAPH_API_VERSION.strip() or "v20.0"
+    url = f"https://graph.facebook.com/{graph_version}/{phone_number_id}/messages"
     payload = {
         "messaging_product": "whatsapp",
         "to": phone,
@@ -94,4 +118,59 @@ def send_password_reset_whatsapp(*, to_phone: str, reset_link: str) -> tuple[boo
         return False, f"http_{exc.code}"
     except Exception as exc:
         logger.warning("WhatsApp password reset send failed: %s", exc)
+        return False, "request_failed"
+
+
+def send_password_reset_code_whatsapp(*, to_phone: str, code: str) -> tuple[bool, str]:
+    if not whatsapp_cloud_configured():
+        return False, "whatsapp_cloud_not_configured"
+
+    phone = phone_to_whatsapp_e164(to_phone)
+    if not phone:
+        return False, "invalid_phone"
+
+    phone_number_id = settings.WHATSAPP_CLOUD_PHONE_NUMBER_ID.strip()
+    graph_version = settings.WHATSAPP_GRAPH_API_VERSION.strip() or "v20.0"
+    url = f"https://graph.facebook.com/{graph_version}/{phone_number_id}/messages"
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "template",
+        "template": {
+            "name": settings.WHATSAPP_RESET_TEMPLATE_NAME.strip(),
+            "language": {"code": settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR"},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": code}],
+                },
+                {
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": "0",
+                    "parameters": [{"type": "text", "text": code}],
+                },
+            ],
+        },
+    }
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {settings.WHATSAPP_CLOUD_ACCESS_TOKEN.strip()}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=12) as response:
+            if response.status >= 400:
+                return False, f"http_{response.status}"
+        return True, "sent"
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        logger.warning("WhatsApp reset code send failed HTTP %s: %s", exc.code, body)
+        return False, f"http_{exc.code}"
+    except Exception as exc:
+        logger.warning("WhatsApp reset code send failed: %s", exc)
         return False, "request_failed"

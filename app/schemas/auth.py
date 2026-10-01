@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CustomerLoginRequest(BaseModel):
@@ -15,5 +15,22 @@ class CustomerRegisterRequest(BaseModel):
     zip_code: str = Field(min_length=8, max_length=12)
     street: str = ""
     number: str = ""
+    complement: str = ""
     neighborhood: str = ""
     ref_code: str | None = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    phone: str = Field(min_length=8, max_length=30)
+
+
+class VerifyResetCodeRequest(BaseModel):
+    phone: str = Field(min_length=8, max_length=30)
+    code: str = Field(min_length=6, max_length=12)
+
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    reset_token: str = Field(min_length=16, max_length=200, alias="resetToken")
+    new_password: str = Field(min_length=4, max_length=64, alias="newPassword")

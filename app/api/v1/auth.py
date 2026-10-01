@@ -4,12 +4,34 @@ from sqlalchemy.orm import Session
 from ...auth import get_current_customer_id, login_customer, logout_customer
 from ...database import get_db
 from ...models import Customer
-from ...schemas.auth import CustomerLoginRequest, CustomerRegisterRequest
+from ...schemas.auth import (
+    CustomerLoginRequest,
+    CustomerRegisterRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    VerifyResetCodeRequest,
+)
 from ...schemas.common import api_error, api_success
+from ...services.account_recovery import (
+    GENERIC_RESET_MESSAGE,
+    request_password_reset_code,
+    reset_customer_password_with_token,
+    verify_password_reset_code,
+)
 from ...services.auth_service import authenticate_customer, create_customer_account
 from ...services.loyalty import card_progress, cards_completed, points_balance
+from ...services.whatsapp import send_password_reset_code_whatsapp
 
 router = APIRouter()
+
+
+def _request_ip(request: Request) -> str | None:
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    if forwarded_for:
+        return forwarded_for.split(",", 1)[0].strip()[:80] or None
+    if request.client:
+        return request.client.host[:80]
+    return None
 
 
 def _customer_payload(db: Session, customer: Customer) -> dict:
@@ -74,6 +96,7 @@ def register(payload: CustomerRegisterRequest, request: Request, db: Session = D
             zip_code=payload.zip_code,
             street=payload.street,
             number=payload.number,
+            complement=payload.complement,
             neighborhood=payload.neighborhood,
             ref_code=payload.ref_code,
         )
@@ -91,6 +114,57 @@ def register(payload: CustomerRegisterRequest, request: Request, db: Session = D
 
     login_customer(request, customer.id)
     return api_success({"customer": _customer_payload(db, customer)}, status_code=201)
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    customer, code, _reason = request_password_reset_code(
+        db,
+        phone=payload.phone,
+        request_ip=_request_ip(request),
+    )
+    if not customer or not code:
+        db.rollback()
+        return api_success({"message": GENERIC_RESET_MESSAGE})
+
+    sent, _send_reason = send_password_reset_code_whatsapp(to_phone=customer.phone, code=code)
+    if not sent:
+        db.rollback()
+        return api_success({"message": GENERIC_RESET_MESSAGE})
+
+    db.commit()
+    return api_success({"message": GENERIC_RESET_MESSAGE})
+
+
+@router.post("/verify-reset-code")
+def verify_reset_code(payload: VerifyResetCodeRequest, db: Session = Depends(get_db)):
+    try:
+        reset_token = verify_password_reset_code(db, phone=payload.phone, code=payload.code)
+        db.commit()
+    except ValueError as exc:
+        db.commit()
+        code = str(exc)
+        if code == "too_many_attempts":
+            return api_error("RESET_CODE_TOO_MANY_ATTEMPTS", "Codigo invalido ou expirado.", status_code=400)
+        return api_error("RESET_CODE_INVALID", "Codigo invalido ou expirado.", status_code=400)
+    return api_success({"resetToken": reset_token})
+
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    if len(payload.new_password) != 4 or not payload.new_password.isdigit():
+        return api_error("PASSWORD_MUST_BE_4_DIGITS", "A senha deve ter exatamente 4 digitos numericos.", status_code=422)
+    try:
+        reset_customer_password_with_token(
+            db,
+            token=payload.reset_token,
+            new_password=payload.new_password,
+        )
+        db.commit()
+    except ValueError:
+        db.rollback()
+        return api_error("RESET_TOKEN_INVALID", "Token invalido ou expirado.", status_code=400)
+    return api_success({"passwordChanged": True})
 
 
 @router.post("/logout")

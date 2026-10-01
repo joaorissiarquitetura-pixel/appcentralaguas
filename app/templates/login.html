@@ -9,10 +9,11 @@
   .auth-shell {
     max-width: 440px;
     margin: 0 auto;
-    min-height: calc(100vh - 48px);
+    min-height: 100vh;
+    min-height: 100dvh;
     display: grid;
-    align-items: start;
-    padding-top: clamp(18px, 8vh, 72px);
+    align-items: center;
+    padding: max(18px, env(safe-area-inset-top)) 0 max(18px, env(safe-area-inset-bottom));
   }
   .auth-card {
     overflow: hidden;
@@ -23,21 +24,18 @@
   }
   .auth-top {
     display: grid;
-    grid-template-columns: 48px minmax(0, 1fr);
-    gap: 12px;
-    align-items: center;
-    padding: 18px;
+    gap: 8px;
+    align-items: start;
+    padding: 20px 22px;
     background: #0b4ccb;
     color: #fff;
   }
-  .auth-top-icon {
-    width: 48px;
-    height: 48px;
-    display: grid;
-    place-items: center;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.16);
-    font-size: 1.35rem;
+  .auth-brand-logo {
+    width: min(230px, 72vw);
+    height: 54px;
+    object-fit: contain;
+    object-position: left center;
+    filter: drop-shadow(0 8px 14px rgba(3, 25, 78, 0.18));
   }
   .auth-top span {
     display: block;
@@ -189,12 +187,19 @@
   @media (max-width: 520px) {
     .auth-shell {
       max-width: none;
+      padding: 0;
     }
     .auth-card {
-      border-radius: 22px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      border: 0;
+      border-radius: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
     }
     .auth-body {
-      padding: 18px;
+      align-content: center;
+      padding: 22px 18px;
     }
   }
 </style>
@@ -202,8 +207,8 @@
 <section class="auth-shell">
   <article class="auth-card">
     <div class="auth-top">
-      <span class="auth-top-icon"><i class="bi bi-person-vcard"></i></span>
       <div>
+        <img class="auth-brand-logo" src="/static/img/logo_central_white.png" alt="Central Águas">
         <span>Central Águas</span>
         <strong>Área do cliente</strong>
       </div>
