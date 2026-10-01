@@ -1,4 +1,9 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
+
+try:
+    from pydantic import ConfigDict
+except ImportError:  # Pydantic v1 in production environments.
+    ConfigDict = None
 
 
 class CustomerLoginRequest(BaseModel):
@@ -30,7 +35,12 @@ class VerifyResetCodeRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    if ConfigDict is not None:
+        model_config = ConfigDict(populate_by_name=True)
 
     reset_token: str = Field(min_length=16, max_length=200, alias="resetToken")
     new_password: str = Field(min_length=4, max_length=64, alias="newPassword")
+
+    if ConfigDict is None:
+        class Config:
+            allow_population_by_field_name = True
