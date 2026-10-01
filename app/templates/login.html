@@ -7,51 +7,61 @@
 {% block content %}
 <style>
   .auth-shell {
-    max-width: 440px;
-    margin: 0 auto;
     min-height: 100vh;
     min-height: 100dvh;
-    display: grid;
-    align-items: center;
-    padding: max(18px, env(safe-area-inset-top)) 0 max(18px, env(safe-area-inset-bottom));
-  }
-  .auth-card {
-    overflow: hidden;
-    border: 1px solid rgba(11, 76, 203, 0.12);
-    border-radius: 24px;
     background: #fff;
-    box-shadow: 0 24px 70px rgba(15, 45, 92, 0.12);
   }
   .auth-top {
+    min-height: 232px;
+    padding: max(28px, env(safe-area-inset-top)) 30px 42px;
+    background: linear-gradient(145deg, #0b4ccb 0%, #075bd6 58%, #073da9 100%);
+    color: #fff;
+    display: grid;
+    align-content: start;
+  }
+  .auth-top::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 -1px 0;
+    height: 36px;
+    background: #fff;
+    border-radius: 30px 30px 0 0;
+  }
+  .auth-top {
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-brand {
+    position: relative;
+    z-index: 1;
     display: grid;
     gap: 8px;
-    align-items: start;
-    padding: 20px 22px;
-    background: #0b4ccb;
-    color: #fff;
+    justify-items: start;
   }
   .auth-brand-logo {
-    width: min(230px, 72vw);
-    height: 54px;
+    width: min(350px, 78vw);
+    height: 94px;
     object-fit: contain;
     object-position: left center;
-    filter: drop-shadow(0 8px 14px rgba(3, 25, 78, 0.18));
+    filter: drop-shadow(0 12px 18px rgba(3, 25, 78, 0.22));
   }
   .auth-top span {
     display: block;
     color: rgba(255, 255, 255, 0.82);
-    font-size: 0.78rem;
+    font-size: 0.86rem;
     font-weight: 800;
   }
   .auth-top strong {
     display: block;
     margin-top: 2px;
-    font: 800 1.05rem/1.1 "Montserrat", Arial, sans-serif;
+    font: 800 1.28rem/1.1 "Montserrat", Arial, sans-serif;
   }
   .auth-body {
+    max-width: 520px;
+    margin: -2px auto 0;
     display: grid;
-    gap: 14px;
-    padding: 20px;
+    gap: 18px;
+    padding: 42px 30px 30px;
     background: #fff;
   }
   .auth-title {
@@ -185,36 +195,31 @@
     line-height: 1.35;
   }
   @media (max-width: 520px) {
-    .auth-shell {
-      max-width: none;
-      padding: 0;
+    .auth-top {
+      min-height: 236px;
+      padding-left: 30px;
+      padding-right: 30px;
     }
-    .auth-card {
-      min-height: 100vh;
-      min-height: 100dvh;
-      border: 0;
-      border-radius: 0;
-      display: grid;
-      grid-template-rows: auto 1fr;
+    .auth-brand-logo {
+      width: min(350px, 82vw);
+      height: 96px;
     }
     .auth-body {
-      align-content: center;
-      padding: 22px 18px;
+      padding: 42px 30px 32px;
     }
   }
 </style>
 
 <section class="auth-shell">
-  <article class="auth-card">
-    <div class="auth-top">
-      <div>
-        <img class="auth-brand-logo" src="/static/img/logo_central_white.png" alt="Central Águas">
-        <span>Central Águas</span>
-        <strong>Área do cliente</strong>
-      </div>
+  <div class="auth-top">
+    <div class="auth-brand">
+      <img class="auth-brand-logo" src="/static/img/logo_central_splash.png" alt="Central Águas">
+      <span>Central Águas</span>
+      <strong>Área do cliente</strong>
     </div>
+  </div>
 
-    <div class="auth-body">
+  <article class="auth-body">
       <div class="auth-title">
         <h1>Entre na sua conta.</h1>
       </div>
@@ -260,7 +265,6 @@
         </span>
         <a class="ca-pill ca-outline" href="/cadastrar">Criar</a>
       </div>
-    </div>
   </article>
 </section>
 <script>
