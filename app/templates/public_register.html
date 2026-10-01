@@ -129,6 +129,19 @@
     font-size: 0.78rem;
     line-height: 1.35;
   }
+  .verification-panel {
+    display: grid;
+    gap: 14px;
+  }
+  .verification-phone {
+    padding: 12px 14px;
+    border: 1px solid rgba(11, 76, 203, 0.12);
+    border-radius: 16px;
+    background: #f6fbff;
+    color: #344054;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
   @media (max-width: 520px) {
     .signup-shell {
       max-width: none;
@@ -168,74 +181,95 @@
         </div>
       {% endif %}
 
-      <form method="post" action="/cadastrar" class="signup-form">
-        <input type="hidden" name="ref_code" value="{{ ref }}">
-
-        <div class="signup-grid">
-          <div class="signup-field full">
-            <label for="name">Nome completo</label>
-            <input id="name" type="text" name="name" required value="{{ form_data.name if form_data else '' }}">
-          </div>
-
-          <div class="signup-field full">
-            <label for="phone">WhatsApp</label>
-            <input id="phone" type="text" name="phone" placeholder="(17) 99999-9999" required value="{{ form_data.phone if form_data else '' }}">
-          </div>
-
-          <div class="signup-field full">
-            <label for="birthDate">Data de nascimento</label>
-            <input id="birthDate" type="date" name="birth_date" value="{{ form_data.birth_date if form_data else '' }}">
-          </div>
-
-          <div class="signup-field">
-            <label for="cep">CEP</label>
-            <div class="cep-row">
-              <input id="cep" type="text" name="zip_code" maxlength="9" placeholder="15500-000" required value="{{ form_data.zip_code if form_data else '' }}">
-              <button type="button" onclick="buscarCep()" aria-label="Buscar CEP"><i class="bi bi-search"></i></button>
+      {% if pending_verification %}
+        <div class="verification-panel">
+          {% if code_sent %}
+            <div class="alert alert-success mb-0">
+              Enviamos um código para o WhatsApp informado.
             </div>
-            <span id="cep-loading" class="signup-helper d-none">Buscando CEP...</span>
-            <span id="cep-error" class="signup-helper text-danger d-none">Atendemos apenas Votuporanga.</span>
+          {% endif %}
+          <div class="verification-phone">
+            Digite o código recebido para confirmar o WhatsApp {{ form_data.phone if form_data else '' }} e finalizar seu cadastro.
           </div>
-
-          <div class="signup-field">
-            <label for="numero">Número</label>
-            <input id="numero" type="text" name="number" required value="{{ form_data.number if form_data else '' }}">
-          </div>
-
-          <div class="signup-field">
-            <label for="complemento">Complemento</label>
-            <input id="complemento" type="text" name="complement" placeholder="Apto, casa, torre..." value="{{ form_data.complement if form_data else '' }}">
-          </div>
-
-          <div class="signup-field full">
-            <label for="rua">Endereço</label>
-            <input id="rua" type="text" name="street" readonly required placeholder="Busque pelo CEP" value="{{ form_data.street if form_data else '' }}">
-          </div>
-
-          <div class="signup-field full">
-            <label for="bairro">Bairro</label>
-            <input id="bairro" type="text" name="neighborhood" readonly required value="{{ form_data.neighborhood if form_data else '' }}">
-          </div>
-
-          <div class="signup-field">
-            <label for="password">Senha de 4 dígitos</label>
-            <input id="password" type="password" name="password" maxlength="4" inputmode="numeric" placeholder="****" required>
-          </div>
-
-          <div class="signup-field">
-            <label for="confirmPassword">Confirmar senha</label>
-            <input id="confirmPassword" type="password" name="confirm_password" maxlength="4" inputmode="numeric" placeholder="****" required>
-          </div>
+          <form method="post" action="/confirmar-cadastro" class="signup-form">
+            <div class="signup-field full">
+              <label for="registerCode">Código recebido</label>
+              <input id="registerCode" type="text" name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="123456" autocomplete="one-time-code" required>
+            </div>
+            <button type="submit" class="ca-pill ca-primary w-100">Confirmar cadastro</button>
+            <a class="ca-pill ca-outline w-100" href="/cadastrar?editar=1">Corrigir meus dados</a>
+          </form>
         </div>
+      {% else %}
+        <form method="post" action="/cadastrar" class="signup-form">
+          <input type="hidden" name="ref_code" value="{{ ref }}">
 
-        <label class="terms-row" for="terms">
-          <input id="terms" type="checkbox" required>
-          <span>Li e aceito os <a href="/privacidade" target="_blank">Termos de Uso e Política de Privacidade</a>, incluindo uso dos meus dados para cadastro, entrega, atendimento, notificações e programa de fidelidade.</span>
-        </label>
+          <div class="signup-grid">
+            <div class="signup-field full">
+              <label for="name">Nome completo</label>
+              <input id="name" type="text" name="name" required value="{{ form_data.name if form_data else '' }}">
+            </div>
 
-        <button type="submit" class="ca-pill ca-primary w-100">Criar minha conta</button>
-        <a class="ca-pill ca-outline w-100" href="/login">Já tenho conta</a>
-      </form>
+            <div class="signup-field full">
+              <label for="phone">WhatsApp</label>
+              <input id="phone" type="text" name="phone" placeholder="(17) 99999-9999" required value="{{ form_data.phone if form_data else '' }}">
+            </div>
+
+            <div class="signup-field full">
+              <label for="birthDate">Data de nascimento</label>
+              <input id="birthDate" type="date" name="birth_date" value="{{ form_data.birth_date if form_data else '' }}">
+            </div>
+
+            <div class="signup-field">
+              <label for="cep">CEP</label>
+              <div class="cep-row">
+                <input id="cep" type="text" name="zip_code" maxlength="9" placeholder="15500-000" required value="{{ form_data.zip_code if form_data else '' }}">
+                <button type="button" onclick="buscarCep()" aria-label="Buscar CEP"><i class="bi bi-search"></i></button>
+              </div>
+              <span id="cep-loading" class="signup-helper d-none">Buscando CEP...</span>
+              <span id="cep-error" class="signup-helper text-danger d-none">Atendemos apenas Votuporanga.</span>
+            </div>
+
+            <div class="signup-field">
+              <label for="numero">Número</label>
+              <input id="numero" type="text" name="number" required value="{{ form_data.number if form_data else '' }}">
+            </div>
+
+            <div class="signup-field">
+              <label for="complemento">Complemento</label>
+              <input id="complemento" type="text" name="complement" placeholder="Apto, casa, torre..." value="{{ form_data.complement if form_data else '' }}">
+            </div>
+
+            <div class="signup-field full">
+              <label for="rua">Endereço</label>
+              <input id="rua" type="text" name="street" readonly required placeholder="Busque pelo CEP" value="{{ form_data.street if form_data else '' }}">
+            </div>
+
+            <div class="signup-field full">
+              <label for="bairro">Bairro</label>
+              <input id="bairro" type="text" name="neighborhood" readonly required value="{{ form_data.neighborhood if form_data else '' }}">
+            </div>
+
+            <div class="signup-field">
+              <label for="password">Senha de 4 dígitos</label>
+              <input id="password" type="password" name="password" maxlength="4" inputmode="numeric" placeholder="****" required>
+            </div>
+
+            <div class="signup-field">
+              <label for="confirmPassword">Confirmar senha</label>
+              <input id="confirmPassword" type="password" name="confirm_password" maxlength="4" inputmode="numeric" placeholder="****" required>
+            </div>
+          </div>
+
+          <label class="terms-row" for="terms">
+            <input id="terms" type="checkbox" required>
+            <span>Li e aceito os <a href="/privacidade" target="_blank">Termos de Uso e Política de Privacidade</a>, incluindo uso dos meus dados para cadastro, entrega, atendimento, notificações e programa de fidelidade.</span>
+          </label>
+
+          <button type="submit" class="ca-pill ca-primary w-100">Criar minha conta</button>
+          <a class="ca-pill ca-outline w-100" href="/login">Já tenho conta</a>
+        </form>
+      {% endif %}
     </div>
   </article>
 </section>
@@ -247,21 +281,22 @@
   const numeroInput = document.getElementById("numero");
   const cepLoading = document.getElementById("cep-loading");
 
-  cepInput.addEventListener("input", (event) => {
+  cepInput?.addEventListener("input", (event) => {
     let value = event.target.value.replace(/\D/g, "");
     if (value.length > 5) value = value.replace(/^(\d{5})(\d)/, "$1-$2");
     event.target.value = value;
   });
 
   function liberarCamposManuais() {
-    ruaInput.removeAttribute("readonly");
-    bairroInput.removeAttribute("readonly");
-    ruaInput.placeholder = "Digite o nome da rua";
-    bairroInput.placeholder = "Digite o bairro";
-    ruaInput.focus();
+    ruaInput?.removeAttribute("readonly");
+    bairroInput?.removeAttribute("readonly");
+    if (ruaInput) ruaInput.placeholder = "Digite o nome da rua";
+    if (bairroInput) bairroInput.placeholder = "Digite o bairro";
+    ruaInput?.focus();
   }
 
   async function buscarCep() {
+    if (!cepInput) return;
     const cep = cepInput.value.replace(/\D/g, "");
     if (cep.length !== 8) {
       alert("CEP incompleto.");
@@ -273,7 +308,7 @@
       return;
     }
 
-    cepLoading.classList.remove("d-none");
+    cepLoading?.classList.remove("d-none");
     try {
       const response = await fetch(`/api/cep/${cep}`);
       const data = await response.json();
@@ -283,22 +318,22 @@
         cepInput.value = "";
         return;
       }
-      ruaInput.value = data.logradouro || "";
-      bairroInput.value = data.bairro || "";
+      if (ruaInput) ruaInput.value = data.logradouro || "";
+      if (bairroInput) bairroInput.value = data.bairro || "";
       if (!data.logradouro) {
         liberarCamposManuais();
       } else {
-        numeroInput.focus();
+        numeroInput?.focus();
       }
     } catch (error) {
       alert("Não foi possível buscar automaticamente. Preencha seu endereço.");
       liberarCamposManuais();
     } finally {
-      cepLoading.classList.add("d-none");
+      cepLoading?.classList.add("d-none");
     }
   }
 
-  cepInput.addEventListener("blur", function () {
+  cepInput?.addEventListener("blur", function () {
     if (this.value.replace(/\D/g, "").length === 8) buscarCep();
   });
 </script>

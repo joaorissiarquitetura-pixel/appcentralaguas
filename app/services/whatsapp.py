@@ -122,6 +122,34 @@ def send_password_reset_whatsapp(*, to_phone: str, reset_link: str) -> tuple[boo
 
 
 def send_password_reset_code_whatsapp(*, to_phone: str, code: str) -> tuple[bool, str]:
+    return _send_code_template_whatsapp(
+        to_phone=to_phone,
+        code=code,
+        template_name=settings.WHATSAPP_RESET_TEMPLATE_NAME.strip(),
+        log_label="reset code",
+    )
+
+
+def send_registration_code_whatsapp(*, to_phone: str, code: str) -> tuple[bool, str]:
+    template_name = (
+        settings.WHATSAPP_REGISTRATION_TEMPLATE_NAME.strip()
+        or settings.WHATSAPP_RESET_TEMPLATE_NAME.strip()
+    )
+    return _send_code_template_whatsapp(
+        to_phone=to_phone,
+        code=code,
+        template_name=template_name,
+        log_label="registration code",
+    )
+
+
+def _send_code_template_whatsapp(
+    *,
+    to_phone: str,
+    code: str,
+    template_name: str,
+    log_label: str,
+) -> tuple[bool, str]:
     if not whatsapp_cloud_configured():
         return False, "whatsapp_cloud_not_configured"
 
@@ -137,7 +165,7 @@ def send_password_reset_code_whatsapp(*, to_phone: str, code: str) -> tuple[bool
         "to": phone,
         "type": "template",
         "template": {
-            "name": settings.WHATSAPP_RESET_TEMPLATE_NAME.strip(),
+            "name": template_name,
             "language": {"code": settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR"},
             "components": [
                 {
@@ -169,8 +197,8 @@ def send_password_reset_code_whatsapp(*, to_phone: str, code: str) -> tuple[bool
         return True, "sent"
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        logger.warning("WhatsApp reset code send failed HTTP %s: %s", exc.code, body)
+        logger.warning("WhatsApp %s send failed HTTP %s: %s", log_label, exc.code, body)
         return False, f"http_{exc.code}"
     except Exception as exc:
-        logger.warning("WhatsApp reset code send failed: %s", exc)
+        logger.warning("WhatsApp %s send failed: %s", log_label, exc)
         return False, "request_failed"

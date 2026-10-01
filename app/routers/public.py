@@ -1,12 +1,13 @@
 import json
 import logging
+import secrets
 import socket
 import ssl
 import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -21,7 +22,7 @@ from ..auth import get_current_customer_id, login_customer, logout_customer
 from ..config import settings
 from ..database import SessionLocal, get_db
 from ..models import Coupon, CouponRedemption, Customer, CustomerHouseStock, LoyaltyLedger, Product
-from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
+from ..security import gen_card_token, gen_referral_code, hash_password, hash_token, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
 from ..services.account_recovery import (
@@ -29,7 +30,13 @@ from ..services.account_recovery import (
     reset_customer_password_with_token,
     verify_password_reset_code,
 )
-from ..services.whatsapp import send_password_reset_code_whatsapp, whatsapp_cloud_configured
+from ..services.auth_service import parse_birth_date, validate_votuporanga_cep
+from ..services.whatsapp import (
+    normalize_brazilian_phone,
+    send_password_reset_code_whatsapp,
+    send_registration_code_whatsapp,
+    whatsapp_cloud_configured,
+)
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
@@ -38,6 +45,7 @@ logger = logging.getLogger(__name__)
 LOYALTY_COUPON_CODE = "FIDELIDADE10"
 LOYALTY_COUPON_VALUE = 10.0
 APP_TZ = ZoneInfo(settings.LOCAL_TZ)
+PENDING_REGISTRATION_SESSION_KEY = "pending_customer_registration"
 
 
 def _app_delivery_price(base_price: float | None) -> float:
@@ -65,6 +73,33 @@ def _chrome_hidden_context(**context):
 def normalize_phone(phone: str) -> str:
     """Remove tudo que nao for numero do telefone."""
     return "".join(ch for ch in phone if ch.isdigit())
+
+
+def _registration_code() -> str:
+    return "".join(secrets.choice("0123456789") for _ in range(6))
+
+
+def _registration_form_data(
+    *,
+    name: str = "",
+    phone: str = "",
+    birth_date: str = "",
+    zip_code: str = "",
+    street: str = "",
+    number: str = "",
+    complement: str = "",
+    neighborhood: str = "",
+) -> dict[str, str]:
+    return {
+        "name": name.strip(),
+        "phone": phone.strip(),
+        "birth_date": birth_date.strip(),
+        "zip_code": zip_code.strip(),
+        "street": street.strip(),
+        "number": number.strip(),
+        "complement": complement.strip(),
+        "neighborhood": neighborhood.strip(),
+    }
 
 
 def _money_reward() -> str:
@@ -1380,10 +1415,17 @@ def logout(request: Request):
 # --- CADASTRO ---
 @router.get("/cadastrar", response_class=HTMLResponse)
 def register_page(request: Request, ref: str | None = None):
+    if request.query_params.get("editar") == "1":
+        request.session.pop(PENDING_REGISTRATION_SESSION_KEY, None)
+    pending = request.session.get(PENDING_REGISTRATION_SESSION_KEY)
     return templates.TemplateResponse(
         request=request,
         name="public_register.html",
-        context=_chrome_hidden_context(ref=(ref or "").strip().upper()),
+        context=_chrome_hidden_context(
+            ref=(ref or "").strip().upper(),
+            pending_verification=bool(pending),
+            form_data=(pending or {}).get("form_data") if pending else None,
+        ),
     )
 
 
@@ -1403,72 +1445,41 @@ def register_action(
     ref_code: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
-    phone_clean = normalize_phone(phone)
-    cep_clean = normalize_phone(zip_code)
-    parsed_birth_date = None
-    if birth_date:
-        try:
-            parsed_birth_date = date.fromisoformat(birth_date)
-        except ValueError:
-            return templates.TemplateResponse(
-                request=request,
-                name="public_register.html",
-                context=_chrome_hidden_context(
-                    error="Data de nascimento invalida.",
-                    form_data={
-                        "name": name,
-                        "phone": phone,
-                        "birth_date": birth_date,
-                        "zip_code": zip_code,
-                        "street": street,
-                        "number": number,
-                        "complement": complement,
-                        "neighborhood": neighborhood,
-                    },
-                ),
-                status_code=400,
-            )
-
-    # --- TRAVA DE CEP (VOTUPORANGA) ---
+    form_data = _registration_form_data(
+        name=name,
+        phone=phone,
+        birth_date=birth_date,
+        zip_code=zip_code,
+        street=street,
+        number=number,
+        complement=complement,
+        neighborhood=neighborhood,
+    )
+    phone_clean = normalize_brazilian_phone(phone)
     try:
-        if not cep_clean:
-            raise ValueError("CEP vazio")
-        cep_int = int(cep_clean)
-        if not (15500000 <= cep_int <= 15599999):
-            return templates.TemplateResponse(
-                request=request,
-                name="public_register.html",
-                context=_chrome_hidden_context(
-                    error="Desculpe, cadastro exclusivo para Votuporanga-SP.",
-                    form_data={
-                        "name": name,
-                        "phone": phone,
-                        "birth_date": birth_date,
-                        "zip_code": zip_code,
-                        "street": street,
-                        "number": number,
-                        "complement": complement,
-                        "neighborhood": neighborhood,
-                    },
-                ),
-                status_code=400,
-            )
+        parsed_birth_date = parse_birth_date(birth_date)
+        cep_clean = validate_votuporanga_cep(zip_code)
     except ValueError:
+        message = "Data de nascimento invalida." if birth_date else "CEP invalido."
+        if normalize_phone(zip_code) and len(normalize_phone(zip_code)) == 8:
+            message = "Desculpe, cadastro exclusivo para Votuporanga-SP."
         return templates.TemplateResponse(
             request=request,
             name="public_register.html",
             context=_chrome_hidden_context(
-                error="CEP invalido.",
-                form_data={
-                    "name": name,
-                    "phone": phone,
-                    "birth_date": birth_date,
-                    "zip_code": zip_code,
-                    "street": street,
-                    "number": number,
-                    "complement": complement,
-                    "neighborhood": neighborhood,
-                },
+                error=message,
+                form_data=form_data,
+            ),
+            status_code=400,
+        )
+
+    if not phone_clean:
+        return templates.TemplateResponse(
+            request=request,
+            name="public_register.html",
+            context=_chrome_hidden_context(
+                error="Informe um WhatsApp valido com DDD.",
+                form_data=form_data,
             ),
             status_code=400,
         )
@@ -1479,16 +1490,18 @@ def register_action(
             name="public_register.html",
             context=_chrome_hidden_context(
                 error="As senhas nao coincidem.",
-                form_data={
-                    "name": name,
-                    "phone": phone,
-                    "birth_date": birth_date,
-                    "zip_code": zip_code,
-                    "street": street,
-                    "number": number,
-                    "complement": complement,
-                    "neighborhood": neighborhood,
-                },
+                form_data=form_data,
+            ),
+            status_code=400,
+        )
+
+    if len(password) != 4 or not password.isdigit():
+        return templates.TemplateResponse(
+            request=request,
+            name="public_register.html",
+            context=_chrome_hidden_context(
+                error="A senha deve ter exatamente 4 digitos numericos.",
+                form_data=form_data,
             ),
             status_code=400,
         )
@@ -1499,35 +1512,127 @@ def register_action(
             name="public_register.html",
             context=_chrome_hidden_context(
                 error="Este telefone ja esta cadastrado.",
-                form_data={
-                    "name": name,
-                    "birth_date": birth_date,
-                    "zip_code": zip_code,
-                    "street": street,
-                    "number": number,
-                    "complement": complement,
-                    "neighborhood": neighborhood,
-                },
+                form_data=form_data,
+            ),
+            status_code=400,
+        )
+
+    code = _registration_code()
+    sent, send_reason = send_registration_code_whatsapp(to_phone=phone_clean, code=code)
+    if not sent:
+        logger.warning("Customer registration verification send failed reason=%s", send_reason)
+        return templates.TemplateResponse(
+            request=request,
+            name="public_register.html",
+            context=_chrome_hidden_context(
+                error="Nao foi possivel enviar o codigo agora. Tente novamente em instantes.",
+                form_data=form_data,
+            ),
+            status_code=400,
+        )
+
+    request.session[PENDING_REGISTRATION_SESSION_KEY] = {
+        "form_data": {
+            **form_data,
+            "phone": phone_clean,
+            "zip_code": cep_clean,
+            "birth_date": parsed_birth_date.isoformat() if parsed_birth_date else "",
+        },
+        "pin_hash": hash_password(password),
+        "ref_code": (ref_code or "").strip().upper(),
+        "code_hash": hash_token(code),
+        "expires_at": (datetime.utcnow() + timedelta(minutes=settings.RESET_CODE_TTL_MINUTES)).isoformat(),
+        "attempt_count": 0,
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="public_register.html",
+        context=_chrome_hidden_context(
+            pending_verification=True,
+            code_sent=True,
+            form_data=request.session[PENDING_REGISTRATION_SESSION_KEY]["form_data"],
+        ),
+    )
+
+
+@router.post("/confirmar-cadastro", response_class=HTMLResponse)
+def confirm_register_action(
+    request: Request,
+    code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    pending = request.session.get(PENDING_REGISTRATION_SESSION_KEY)
+    if not pending:
+        return RedirectResponse("/cadastrar", status_code=303)
+
+    form_data = pending.get("form_data") or {}
+    clean_code = "".join(ch for ch in (code or "") if ch.isdigit())
+    try:
+        expires_at = datetime.fromisoformat(pending.get("expires_at") or "")
+    except ValueError:
+        expires_at = datetime.utcnow() - timedelta(seconds=1)
+
+    if expires_at < datetime.utcnow():
+        request.session.pop(PENDING_REGISTRATION_SESSION_KEY, None)
+        return templates.TemplateResponse(
+            request=request,
+            name="public_register.html",
+            context=_chrome_hidden_context(
+                error="Codigo expirado. Preencha o cadastro novamente para receber outro codigo.",
+                form_data=form_data,
+            ),
+            status_code=400,
+        )
+
+    attempt_count = int(pending.get("attempt_count") or 0)
+    if len(clean_code) != 6 or hash_token(clean_code) != pending.get("code_hash"):
+        attempt_count += 1
+        pending["attempt_count"] = attempt_count
+        request.session[PENDING_REGISTRATION_SESSION_KEY] = pending
+        if attempt_count >= settings.RESET_CODE_MAX_ATTEMPTS:
+            request.session.pop(PENDING_REGISTRATION_SESSION_KEY, None)
+        return templates.TemplateResponse(
+            request=request,
+            name="public_register.html",
+            context=_chrome_hidden_context(
+                pending_verification=attempt_count < settings.RESET_CODE_MAX_ATTEMPTS,
+                error="Codigo invalido ou expirado.",
+                form_data=form_data,
+            ),
+            status_code=400,
+        )
+
+    phone_clean = str(form_data.get("phone") or "")
+    if db.scalar(select(Customer).where(Customer.phone == phone_clean)):
+        request.session.pop(PENDING_REGISTRATION_SESSION_KEY, None)
+        return templates.TemplateResponse(
+            request=request,
+            name="public_register.html",
+            context=_chrome_hidden_context(
+                error="Este telefone ja esta cadastrado.",
+                form_data=form_data,
             ),
             status_code=400,
         )
 
     new_customer = Customer(
-        name=name.strip(),
+        name=str(form_data.get("name") or "").strip(),
         phone=phone_clean,
-        pin_hash=hash_password(password),
-        birth_date=parsed_birth_date,
-        cep=cep_clean,
-        street=street.strip(),
-        number=number.strip(),
-        complement=complement.strip(),
-        neighborhood=neighborhood.strip(),
+        pin_hash=str(pending.get("pin_hash") or ""),
+        birth_date=parse_birth_date(str(form_data.get("birth_date") or "")),
+        cep=str(form_data.get("zip_code") or "").strip(),
+        street=str(form_data.get("street") or "").strip(),
+        number=str(form_data.get("number") or "").strip(),
+        complement=str(form_data.get("complement") or "").strip(),
+        neighborhood=str(form_data.get("neighborhood") or "").strip(),
         city="Votuporanga",
         state="SP",
         card_token=gen_card_token(),
         referral_code=gen_referral_code(),
     )
 
+    ref_code = str(pending.get("ref_code") or "").strip().upper()
     if ref_code:
         referrer = db.scalar(select(Customer).where(Customer.referral_code == ref_code))
         if referrer:
@@ -1536,6 +1641,7 @@ def register_action(
     db.add(new_customer)
     db.commit()
 
+    request.session.pop(PENDING_REGISTRATION_SESSION_KEY, None)
     login_customer(request, new_customer.id)
     return RedirectResponse("/app", status_code=303)
 
