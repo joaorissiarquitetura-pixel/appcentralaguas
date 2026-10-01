@@ -59,6 +59,7 @@ class PasswordResetToken(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), index=True)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    purpose: Mapped[str] = mapped_column(String(40), default="password_reset", nullable=False)
     created_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime)

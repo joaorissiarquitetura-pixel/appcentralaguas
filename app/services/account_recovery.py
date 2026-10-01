@@ -40,6 +40,7 @@ def issue_password_reset_token(
         PasswordResetToken(
             customer_id=customer.id,
             token_hash=hash_token(plain_token),
+            purpose="password_reset_link",
             created_by_attendant_id=created_by_attendant_id,
             expires_at=now + timedelta(minutes=settings.RESET_TOKEN_TTL_MINUTES),
             delivery_channel="manual_link",
@@ -72,6 +73,7 @@ def issue_password_reset_code(
         PasswordResetToken(
             customer_id=customer.id,
             token_hash=hash_token(code),
+            purpose="password_reset_code",
             created_by_attendant_id=created_by_attendant_id,
             expires_at=now + timedelta(minutes=settings.RESET_CODE_TTL_MINUTES),
             delivery_channel="phone_code",

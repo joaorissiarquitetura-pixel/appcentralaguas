@@ -24,8 +24,11 @@ from ..models import Coupon, CouponRedemption, Customer, CustomerHouseStock, Loy
 from ..security import gen_card_token, gen_referral_code, hash_password, verify_password
 from ..services.grj_catalog import GRJCatalogProduct, GRJCatalogUnavailable, fetch_grj_products, product_to_public_dict
 from ..services.loyalty import card_progress, cards_completed, points_balance
-from ..services.account_recovery import issue_password_reset_token, reset_customer_password_with_token
-from ..services.whatsapp import send_password_reset_whatsapp, whatsapp_cloud_configured
+from ..services.account_recovery import (
+    request_password_reset_code,
+    reset_customer_password_with_token,
+)
+from ..services.whatsapp import send_password_reset_code_whatsapp, whatsapp_cloud_configured
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter()
@@ -1169,16 +1172,23 @@ def forgot_password_action(
     phone: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    phone_n = normalize_phone(phone)
-    customer = db.scalar(select(Customer).where(Customer.phone == phone_n))
+    request_ip = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    if not request_ip and request.client:
+        request_ip = request.client.host
+    customer, code, reason = request_password_reset_code(
+        db,
+        phone=phone,
+        request_ip=(request_ip or "")[:80] or None,
+    )
     sent = False
     send_reason = ""
 
-    if customer:
-        token = issue_password_reset_token(db, customer=customer)
-        reset_link = str(request.url_for("reset_password_page")).split("?")[0] + f"?token={urllib.parse.quote(token)}"
-        sent, send_reason = send_password_reset_whatsapp(to_phone=customer.phone, reset_link=reset_link)
-        db.commit()
+    if customer and code:
+        sent, send_reason = send_password_reset_code_whatsapp(to_phone=customer.phone, code=code)
+        if sent:
+            db.commit()
+        else:
+            db.rollback()
         logger.info(
             "Password reset requested for customer_id=%s whatsapp_sent=%s reason=%s",
             customer.id,
@@ -1186,7 +1196,13 @@ def forgot_password_action(
             send_reason,
         )
     else:
-        logger.info("Password reset requested for unknown phone ending=%s", phone_n[-4:] if phone_n else "")
+        db.rollback()
+        phone_n = normalize_phone(phone)
+        logger.info(
+            "Password reset requested without send reason=%s phone_ending=%s",
+            reason,
+            phone_n[-4:] if phone_n else "",
+        )
 
     return templates.TemplateResponse(
         request=request,

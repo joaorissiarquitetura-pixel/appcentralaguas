@@ -104,6 +104,7 @@ class ApiV1FoundationTests(unittest.TestCase):
         self.assertNotIn("123456", response.body.decode("utf-8"))
         send_mock.assert_called_once_with(to_phone="17999998888", code="123456")
         self.assertEqual(token_row.destination_phone, "17999998888")
+        self.assertEqual(token_row.purpose, "password_reset_code")
 
     def test_password_recovery_unknown_phone_returns_generic_without_sending(self):
         request = RequestStub()
