@@ -25,6 +25,24 @@
   .status-ok { background: #16a34a; }
   .status-warn { background: #f59e0b; }
   .status-bad { background: #dc2626; }
+  .tab-nav { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tab-link {
+    min-height: 42px;
+    padding: 0 16px;
+    border: 1px solid var(--ca-line);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--ca-text);
+    display: inline-flex;
+    align-items: center;
+    font-weight: 800;
+  }
+  .tab-link.is-active {
+    background: var(--ca-primary);
+    border-color: var(--ca-primary);
+    color: #fff;
+  }
+  .pagination-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
   @media (max-width: 1100px) {
     .content-grid,
     .form-grid-2,
@@ -50,9 +68,17 @@
     <div class="admin-card metric"><strong>{{ device_count }}</strong><span class="small-muted">dispositivos</span></div>
     <div class="admin-card metric"><strong>{{ fcm_device_count }}</strong><span class="small-muted">tokens FCM</span></div>
     <div class="admin-card metric"><strong>{{ push_active_count }}</strong><span class="small-muted">web push ativo</span></div>
-    <div class="admin-card metric"><strong>{{ latest_notifications|length }}</strong><span class="small-muted">últimos registros</span></div>
+    <div class="admin-card metric"><strong>{{ notification_total }}</strong><span class="small-muted">notificações no histórico</span></div>
   </div>
 
+  <nav class="tab-nav" aria-label="Áreas de notificações">
+    <a class="tab-link text-decoration-none {% if active_tab == 'push' %}is-active{% endif %}" href="/admin/notifications?tab=push">Enviar push</a>
+    <a class="tab-link text-decoration-none {% if active_tab == 'banners' %}is-active{% endif %}" href="/admin/notifications?tab=banners">Banner promocional</a>
+    <a class="tab-link text-decoration-none {% if active_tab == 'promotions' %}is-active{% endif %}" href="/admin/notifications?tab=promotions">Promoções do app</a>
+    <a class="tab-link text-decoration-none {% if active_tab == 'history' %}is-active{% endif %}" href="/admin/notifications?tab=history">Histórico</a>
+  </nav>
+
+  {% if active_tab == 'push' %}
   <div class="content-grid">
     <section class="admin-card">
       <h2>Status técnico do envio</h2>
@@ -77,23 +103,16 @@
     </section>
 
     <section class="admin-card">
-      <h2>Histórico de notificações</h2>
+      <h2>Como usar</h2>
       <div class="quick-list">
-        {% for notification in latest_notifications %}
-          <div class="quick-item">
-            <span>
-              <strong>{{ notification.title }}</strong>
-              <span class="small-muted d-block">{{ notification.status }} · {{ notification.sent_count }} enviados · {{ notification.opened_count or 0 }} abertas · {{ notification.failed_count }} falhas</span>
-            </span>
-            <span class="small-muted">{{ format_dt(notification.created_at) }}</span>
-          </div>
-        {% else %}
-          <div class="small-muted">Nenhuma notificação registrada ainda.</div>
-        {% endfor %}
+        <div class="quick-item"><span><strong>Push imediato</strong><span class="small-muted d-block">Envie aviso curto para quem instalou o app ou autorizou notificações.</span></span></div>
+        <div class="quick-item"><span><strong>Use histórico separado</strong><span class="small-muted d-block">Os últimos envios ficam na guia Histórico, limitada a 20 por página.</span></span></div>
       </div>
     </section>
   </div>
+  {% endif %}
 
+  {% if active_tab == 'banners' %}
   <div class="content-grid">
     <section class="admin-card">
       <h2>Banner promocional no app</h2>
@@ -143,7 +162,9 @@
       </div>
     </section>
   </div>
+  {% endif %}
 
+  {% if active_tab == 'promotions' %}
   <div class="content-grid">
     <section class="admin-card">
       <h2>Promoções exclusivas do app</h2>
@@ -194,5 +215,32 @@
       </div>
     </section>
   </div>
+  {% endif %}
+
+  {% if active_tab == 'history' %}
+  <section class="admin-card">
+    <h2>Histórico de notificações</h2>
+    <div class="quick-list">
+      {% for notification in latest_notifications %}
+        <div class="quick-item">
+          <span>
+            <strong>{{ notification.title }}</strong>
+            <span class="small-muted d-block">{{ notification.status }} · {{ notification.sent_count }} enviados · {{ notification.opened_count or 0 }} abertas · {{ notification.failed_count }} falhas</span>
+          </span>
+          <span class="small-muted">{{ format_dt(notification.created_at) }}</span>
+        </div>
+      {% else %}
+        <div class="small-muted">Nenhuma notificação registrada ainda.</div>
+      {% endfor %}
+    </div>
+    <div class="pagination-row">
+      <span class="small-muted">Página {{ notification_page }} de {{ notification_total_pages }} · {{ notification_total }} registro(s)</span>
+      <div class="d-flex gap-2">
+        <a class="ca-pill ca-outline text-decoration-none {% if notification_page <= 1 %}disabled{% endif %}" href="/admin/notifications?tab=history&page={{ notification_page - 1 if notification_page > 1 else 1 }}">Anterior</a>
+        <a class="ca-pill ca-outline text-decoration-none {% if notification_page >= notification_total_pages %}disabled{% endif %}" href="/admin/notifications?tab=history&page={{ notification_page + 1 if notification_page < notification_total_pages else notification_total_pages }}">Próxima</a>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

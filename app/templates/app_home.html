@@ -4367,6 +4367,7 @@
         skipped: Boolean(stock.skipped),
         updatedAt: stock.updatedAt || new Date().toISOString()
       }));
+      queueHouseStockSync();
     }
 
     function normalizeGallonValidities(value, total, fallbackMonth = "", fallbackYear = "") {
@@ -4432,6 +4433,21 @@
         })),
         updated_at: stock.updatedAt || ""
       };
+    }
+
+    let houseStockSyncTimer = null;
+    function queueHouseStockSync() {
+      window.clearTimeout(houseStockSyncTimer);
+      houseStockSyncTimer = window.setTimeout(syncHouseStockToBackend, 450);
+    }
+
+    async function syncHouseStockToBackend() {
+      const stock = loadHouseStock();
+      if (!stock.calibrated && !stock.skipped) return;
+      await postAppApi("/api/app/house-stock", {
+        device_id: getDeviceId(),
+        ...houseStockPayloadForOrder(stock)
+      });
     }
 
     function showStockWarning(message) {

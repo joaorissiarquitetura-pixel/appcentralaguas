@@ -725,36 +725,7 @@ def admin_site(
 ):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
-
-    local_products = db.execute(select(Product).order_by(Product.display_order.asc(), Product.name.asc())).scalars().all()
-    products = []
-    catalog_message = ""
-    try:
-        grj_products = fetch_grj_products(limit=500)
-        products.extend(_admin_grj_product(product, index) for index, product in enumerate(grj_products, start=1))
-    except GRJCatalogUnavailable as exc:
-        catalog_message = f"Catalogo GRJ indisponivel no momento: {exc}"
-    products.extend(_admin_local_product(product) for product in local_products)
-
-    editing_product = db.get(Product, edit_product_id) if edit_product_id else None
-
-    return templates.TemplateResponse(
-        request=request,
-        name="admin_site.html",
-        context={
-            "admin": admin,
-            "business_name": settings.BUSINESS_NAME,
-            "products": products,
-            "local_product_count": len(local_products),
-            "grj_product_count": sum(1 for product in products if product.imported),
-            "catalog_message": catalog_message,
-            "editing_product": editing_product,
-            "open_shop_orders": 0,
-            "latest_shop_orders": [],
-            "err": err,
-            "success": success,
-        },
-    )
+    return RedirectResponse("/admin/coupons", status_code=303)
 
 
 @router.get("/coupons", response_class=HTMLResponse)
@@ -789,6 +760,8 @@ def admin_coupons(
 @router.get("/notifications", response_class=HTMLResponse)
 def admin_notifications(
     request: Request,
+    tab: str = "push",
+    page: int = 1,
     err: str = "",
     success: str = "",
     db: Session = Depends(get_db),
@@ -801,7 +774,15 @@ def admin_notifications(
         for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
     }
     subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
-    latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(30)).scalars().all()
+    notification_page = max(int(page or 1), 1)
+    notification_per_page = 20
+    notification_total = db.scalar(select(func.count(AppNotification.id))) or 0
+    latest_notifications = db.execute(
+        select(AppNotification)
+        .order_by(AppNotification.created_at.desc())
+        .offset((notification_page - 1) * notification_per_page)
+        .limit(notification_per_page)
+    ).scalars().all()
     banners = db.execute(select(AppBanner).order_by(AppBanner.active.desc(), AppBanner.display_order.asc(), AppBanner.created_at.desc()).limit(30)).scalars().all()
     app_promotions = db.execute(select(AppPromotion).order_by(AppPromotion.active.desc(), AppPromotion.display_order.asc(), AppPromotion.created_at.desc()).limit(30)).scalars().all()
 
@@ -812,8 +793,13 @@ def admin_notifications(
             "admin": admin,
             "business_name": settings.BUSINESS_NAME,
             "latest_notifications": latest_notifications,
+            "notification_page": notification_page,
+            "notification_per_page": notification_per_page,
+            "notification_total": notification_total,
+            "notification_total_pages": max((notification_total + notification_per_page - 1) // notification_per_page, 1),
             "banners": banners,
             "app_promotions": app_promotions,
+            "active_tab": tab if tab in {"push", "banners", "promotions", "history"} else "push",
             "device_count": db.scalar(select(func.count(AppDevice.id))) or 0,
             "fcm_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
             "push_active_count": sum(1 for subscription in subscriptions if subscription.active and subscription.device_id not in blocked_device_ids),
@@ -831,6 +817,7 @@ def whatsapp_campaigns_page(
     request: Request,
     campaign_id: int | None = None,
     conversation_id: int | None = None,
+    tab: str = "campaigns",
     err: str = "",
     success: str = "",
     db: Session = Depends(get_db),
@@ -889,6 +876,7 @@ def whatsapp_campaigns_page(
             "default_template": settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME.strip(),
             "default_language": settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR",
             "default_preview": _campaign_default_preview(),
+            "active_tab": tab if tab in {"campaigns", "messages"} else "campaigns",
             "format_dt": _admin_datetime_label,
             "err": err,
             "success": success,
@@ -909,17 +897,17 @@ def reply_whatsapp_conversation(
 
     conversation = db.get(WhatsAppConversation, conversation_id)
     if not conversation:
-        return RedirectResponse("/admin/whatsapp-campaigns?err=Conversa%20não%20encontrada", status_code=303)
+        return RedirectResponse("/admin/whatsapp-campaigns?tab=messages&err=Conversa%20não%20encontrada", status_code=303)
 
     message_text = (message or "").strip()
     if not message_text:
         return RedirectResponse(
-            f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&err=Digite%20uma%20mensagem",
+            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err=Digite%20uma%20mensagem",
             status_code=303,
         )
     if not whatsapp_cloud_api_configured():
         return RedirectResponse(
-            f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&err=WhatsApp%20Cloud%20API%20não%20configurado",
+            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err=WhatsApp%20Cloud%20API%20não%20configurado",
             status_code=303,
         )
 
@@ -929,7 +917,7 @@ def reply_whatsapp_conversation(
             f"Não foi possível enviar a resposta ({reason}). Se a janela de 24h fechou, envie um template primeiro."
         )
         return RedirectResponse(
-            f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&err={error}",
+            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err={error}",
             status_code=303,
         )
 
@@ -963,7 +951,7 @@ def reply_whatsapp_conversation(
     )
     db.commit()
     return RedirectResponse(
-        f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&success=Resposta%20enviada",
+        f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&success=Resposta%20enviada",
         status_code=303,
     )
 
@@ -1117,6 +1105,7 @@ def send_whatsapp_campaign_batch(
 @router.get("/app", response_class=HTMLResponse)
 def admin_app_backend(
     request: Request,
+    devices_page: int = 1,
     err: str = "",
     success: str = "",
     db: Session = Depends(get_db),
@@ -1129,10 +1118,17 @@ def admin_app_backend(
         row[0]
         for row in db.execute(select(AppDevice.device_id).where(AppDevice.is_blocked == True)).all()
     }
-    devices = db.execute(select(AppDevice).order_by(AppDevice.last_seen_at.desc()).limit(80)).scalars().all()
+    devices_page = max(int(devices_page or 1), 1)
+    devices_per_page = 20
+    device_total = db.scalar(select(func.count(AppDevice.id))) or 0
+    devices = db.execute(
+        select(AppDevice)
+        .order_by(AppDevice.last_seen_at.desc())
+        .offset((devices_page - 1) * devices_per_page)
+        .limit(devices_per_page)
+    ).scalars().all()
     subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
     location_logs = db.execute(select(LocationAccessLog).order_by(LocationAccessLog.created_at.desc()).limit(60)).scalars().all()
-    latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(12)).scalars().all()
     total_customers = db.scalar(select(func.count(Customer.id))) or 0
     customers_with_purchases = db.scalar(select(func.count(Customer.id)).where(Customer.first_purchase_at.is_not(None))) or 0
     total_tx = db.scalar(select(func.count(Transaction.id))) or 0
@@ -1153,8 +1149,10 @@ def admin_app_backend(
             "devices": devices,
             "subscriptions": subscriptions,
             "location_logs": location_logs,
-            "latest_notifications": latest_notifications,
-            "device_count": db.scalar(select(func.count(AppDevice.id))) or 0,
+            "device_count": device_total,
+            "devices_page": devices_page,
+            "devices_per_page": devices_per_page,
+            "devices_total_pages": max((device_total + devices_per_page - 1) // devices_per_page, 1),
             "active_24h_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.last_seen_at >= since_24h)) or 0,
             "blocked_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.is_blocked == True)) or 0,
             "fcm_device_count": db.scalar(select(func.count(AppDevice.id)).where(AppDevice.fcm_token.is_not(None), AppDevice.is_blocked.is_not(True))) or 0,
@@ -1490,7 +1488,7 @@ def create_or_update_coupon(
 ):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
-    redirect_to = "/admin/coupons" if "/admin/coupons" in request.headers.get("referer", "") else "/admin/site"
+    redirect_to = "/admin/coupons"
 
     code_normalized = code.strip().upper()
     if not code_normalized:
@@ -1547,7 +1545,7 @@ def toggle_coupon(coupon_id: int, request: Request, db: Session = Depends(get_db
             request=request,
         )
         db.commit()
-    redirect_to = "/admin/coupons" if "/admin/coupons" in request.headers.get("referer", "") else "/admin/site"
+    redirect_to = "/admin/coupons"
     return RedirectResponse(redirect_to, status_code=303)
 
 
@@ -1568,7 +1566,7 @@ def send_app_notification(
     elif "/admin/app" in referer:
         redirect_to = "/admin/app"
     else:
-        redirect_to = "/admin/site"
+        redirect_to = "/admin/notifications"
 
     try:
         notification = AppNotification(
@@ -1647,7 +1645,7 @@ def create_app_banner(
     try:
         image = _normalize_banner_image(image_url, banner_image)
     except ValueError as exc:
-        return RedirectResponse(f"/admin/notifications?err={quote(str(exc))}", status_code=303)
+        return RedirectResponse(f"/admin/notifications?tab=banners&err={quote(str(exc))}", status_code=303)
 
     banner = AppBanner(
         title=title.strip()[:120] or "Promoção",
@@ -1671,7 +1669,7 @@ def create_app_banner(
         request=request,
     )
     db.commit()
-    return RedirectResponse("/admin/notifications?success=Banner%20salvo", status_code=303)
+    return RedirectResponse("/admin/notifications?tab=banners&success=Banner%20salvo", status_code=303)
 
 
 @router.post("/notifications/banners/{banner_id}/toggle")
@@ -1680,7 +1678,7 @@ def toggle_app_banner(banner_id: int, request: Request, db: Session = Depends(ge
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
     banner = db.get(AppBanner, banner_id)
     if not banner:
-        return RedirectResponse("/admin/notifications?err=Banner%20não%20encontrado", status_code=303)
+        return RedirectResponse("/admin/notifications?tab=banners&err=Banner%20não%20encontrado", status_code=303)
     was_inactive = not bool(banner.active)
     banner.active = not bool(banner.active)
     if was_inactive and banner.active:
@@ -1695,7 +1693,7 @@ def toggle_app_banner(banner_id: int, request: Request, db: Session = Depends(ge
         request=request,
     )
     db.commit()
-    return RedirectResponse("/admin/notifications?success=Banner%20atualizado", status_code=303)
+    return RedirectResponse("/admin/notifications?tab=banners&success=Banner%20atualizado", status_code=303)
 
 
 @router.post("/notifications/promotions")
@@ -1737,7 +1735,7 @@ def create_app_promotion(
         request=request,
     )
     db.commit()
-    return RedirectResponse("/admin/notifications?success=Promoção%20do%20app%20salva", status_code=303)
+    return RedirectResponse("/admin/notifications?tab=promotions&success=Promoção%20do%20app%20salva", status_code=303)
 
 
 @router.post("/notifications/promotions/{promotion_id}/toggle")
@@ -1746,7 +1744,7 @@ def toggle_app_promotion(promotion_id: int, request: Request, db: Session = Depe
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
     promotion = db.get(AppPromotion, promotion_id)
     if not promotion:
-        return RedirectResponse("/admin/notifications?err=Promoção%20não%20encontrada", status_code=303)
+        return RedirectResponse("/admin/notifications?tab=promotions&err=Promoção%20não%20encontrada", status_code=303)
     promotion.active = not bool(promotion.active)
     log_admin_action(
         db,
@@ -1758,7 +1756,7 @@ def toggle_app_promotion(promotion_id: int, request: Request, db: Session = Depe
         request=request,
     )
     db.commit()
-    return RedirectResponse("/admin/notifications?success=Promoção%20atualizada", status_code=303)
+    return RedirectResponse("/admin/notifications?tab=promotions&success=Promoção%20atualizada", status_code=303)
 
 
 # --- ROTAS RESTANTES (LOGICA SEM TEMPLATE) ---
@@ -1838,11 +1836,12 @@ def create_or_update_product(
 ):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
+    return RedirectResponse("/admin/coupons?err=Produtos%20e%20preços%20são%20controlados%20pelo%20sistema%20GRJ", status_code=303)
     is_active = (active == "on")
     if product_id > 0:
         p = db.get(Product, product_id)
         if not p:
-            return RedirectResponse("/admin/site?err=Produto%20não%20encontrado", status_code=303)
+            return RedirectResponse("/admin/coupons?err=Produto%20não%20encontrado%20no%20cadastro%20local", status_code=303)
     else:
         p = Product(name=name.strip(), points_per_unit=int(points_per_unit), active=is_active)
         db.add(p)
@@ -1862,7 +1861,7 @@ def create_or_update_product(
     p.featured_on_home = featured_on_home == "on"
     p.active = is_active
     db.commit()
-    return RedirectResponse("/admin/site?success=Produto%20salvo", status_code=303)
+    return RedirectResponse("/admin/coupons?success=Produto%20salvo", status_code=303)
 
 @router.post("/attendants")
 def create_attendant(request: Request, name: str = Form(...), email: str = Form(...), password: str = Form(...), role: str = Form("attendant"), db: Session = Depends(get_db)):

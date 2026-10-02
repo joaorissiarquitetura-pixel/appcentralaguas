@@ -205,8 +205,7 @@
     </div>
   </section>
 
-  <section class="backend-split">
-    <div class="backend-card">
+  <section class="backend-card">
       <h2>Saúde do app</h2>
       <div class="status-list">
         <div class="status-line">
@@ -227,21 +226,6 @@
         </div>
         <div class="muted">Diagnóstico rápido do sistema: <code>/admin/app/status</code></div>
       </div>
-    </div>
-
-    <div class="backend-card">
-      <h2>Enviar aviso para clientes</h2>
-      <form class="form-grid push-form" method="post" action="/admin/notifications/send">
-        <input class="form-control" type="text" name="title" placeholder="Título que aparece no celular" required>
-        <textarea class="form-control" name="body" rows="3" placeholder="Mensagem para o cliente" required></textarea>
-        <select class="form-select" name="target">
-          <option value="all">Todos os dispositivos</option>
-          <option value="customers">Clientes identificados</option>
-        </select>
-        <input class="form-control" type="text" name="url" value="/app">
-        <button class="ca-pill ca-primary" type="submit">Enviar aviso</button>
-      </form>
-    </div>
   </section>
 
   <section class="backend-card">
@@ -304,6 +288,13 @@
         </tbody>
       </table>
     </div>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
+      <span class="muted">Página {{ devices_page }} de {{ devices_total_pages }} · {{ device_count }} acesso(s)</span>
+      <div class="d-flex gap-2">
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/app?devices_page={{ devices_page - 1 if devices_page > 1 else 1 }}">Anterior</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/app?devices_page={{ devices_page + 1 if devices_page < devices_total_pages else devices_total_pages }}">Próxima</a>
+      </div>
+    </div>
   </section>
 
   <section class="backend-split">
@@ -329,20 +320,6 @@
             {% endfor %}
           </tbody>
         </table>
-      </div>
-    </div>
-
-    <div class="backend-card">
-      <h2>Histórico de notificações</h2>
-      <div class="d-grid gap-2">
-        {% for notification in latest_notifications %}
-          <div>
-            <strong>{{ notification.title }}</strong>
-            <div class="muted">{{ notification.status }} · {{ notification.sent_count }} enviadas · {{ notification.failed_count }} falhas · {{ format_dt(notification.created_at) }}</div>
-          </div>
-        {% else %}
-          <div class="muted">Nenhuma notificação enviada ainda.</div>
-        {% endfor %}
       </div>
     </div>
   </section>

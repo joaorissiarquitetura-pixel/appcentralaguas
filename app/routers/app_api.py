@@ -8,7 +8,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, CustomerHouseStock, LocationAccessLog, PushSubscription
 from ..services.app_access import check_service_area
 from ..services.push import push_configured, send_fcm
 
@@ -66,6 +66,19 @@ class LocationCheckPayload(BaseModel):
 
 class DeviceEventPayload(BaseModel):
     device_id: str = ""
+
+
+class HouseStockPayload(BaseModel):
+    device_id: str = ""
+    calibrated: bool = False
+    skipped: bool = False
+    total: int = 0
+    full: int = 0
+    in_use: int = 0
+    empty: int = 0
+    oldest_validity: str = ""
+    validities: list[dict] = Field(default_factory=list)
+    updated_at: str = ""
 
 
 def _grj_app_status_url() -> str:
@@ -145,6 +158,25 @@ def _get_or_create_device(db: Session, device_id: str) -> AppDevice | None:
         device = AppDevice(device_id=normalized)
         db.add(device)
     return device
+
+
+def _bounded_int(value: int | float | str | None, *, minimum: int = 0, maximum: int = 30) -> int:
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        parsed = minimum
+    return max(minimum, min(maximum, parsed))
+
+
+def _normalized_house_validities(value: list[dict], total: int) -> list[dict]:
+    rows = []
+    for index, item in enumerate(value or []):
+        if not isinstance(item, dict):
+            continue
+        month = str(item.get("month") or "").strip()[:2]
+        year = str(item.get("year") or "").strip()[:4]
+        rows.append({"gallon": index + 1, "month": month, "year": year})
+    return rows[:total]
 
 
 def _link_recent_native_fcm_device(db: Session, customer_id: int | None) -> list[int]:
@@ -359,6 +391,47 @@ def app_promotions(request: Request, db: Session = Depends(get_db)):
             for promotion in promotions[:20]
         ],
     }
+
+
+@router.post("/house-stock")
+def save_house_stock(payload: HouseStockPayload, request: Request, db: Session = Depends(get_db)):
+    customer_id = _current_customer_id(request)
+    if customer_id is None:
+        return {"ok": False, "error": "customer_login_required"}
+
+    total = _bounded_int(payload.total, minimum=0, maximum=30)
+    in_use = _bounded_int(payload.in_use, minimum=0, maximum=min(5, total))
+    full = _bounded_int(payload.full, minimum=0, maximum=max(total - in_use, 0))
+    if full + in_use > total:
+        full = max(total - in_use, 0)
+    empty = max(total - full - in_use, _bounded_int(payload.empty, minimum=0, maximum=30))
+    now = datetime.utcnow()
+
+    stock = db.scalar(select(CustomerHouseStock).where(CustomerHouseStock.customer_id == customer_id))
+    if not stock:
+        stock = CustomerHouseStock(customer_id=customer_id, created_at=now)
+        db.add(stock)
+
+    stock.total = total
+    stock.full = full
+    stock.in_use = in_use
+    stock.empty = empty
+    stock.calibrated = bool(payload.calibrated)
+    stock.skipped = bool(payload.skipped)
+    stock.oldest_validity = payload.oldest_validity.strip()[:20] or None
+    stock.validities_json = json.dumps(_normalized_house_validities(payload.validities, total), ensure_ascii=False)
+    stock.source = "app_house"
+    stock.client_order_id = None
+    stock.updated_at = now
+
+    if payload.device_id.strip():
+        device = _get_or_create_device(db, payload.device_id)
+        if device:
+            device.customer_id = customer_id
+            device.last_seen_at = now
+
+    db.commit()
+    return {"ok": True}
 
 
 def _record_banner_event(db: Session, banner_id: int, payload: DeviceEventPayload, request: Request, event_type: str):
