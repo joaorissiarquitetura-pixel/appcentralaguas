@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, CustomerHouseStock, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, Customer, CustomerHouseStock, LocationAccessLog, PushSubscription
 from ..services.app_access import check_service_area
 from ..services.push import push_configured, send_fcm
 
@@ -79,6 +79,16 @@ class HouseStockPayload(BaseModel):
     oldest_validity: str = ""
     validities: list[dict] = Field(default_factory=list)
     updated_at: str = ""
+
+
+class CustomerAddressPayload(BaseModel):
+    cep: str = ""
+    street: str = ""
+    number: str = ""
+    complement: str = ""
+    neighborhood: str = ""
+    city: str = ""
+    state: str = "SP"
 
 
 def _grj_app_status_url() -> str:
@@ -430,6 +440,32 @@ def save_house_stock(payload: HouseStockPayload, request: Request, db: Session =
             device.customer_id = customer_id
             device.last_seen_at = now
 
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/address")
+def save_customer_address(payload: CustomerAddressPayload, request: Request, db: Session = Depends(get_db)):
+    customer_id = _current_customer_id(request)
+    if customer_id is None:
+        return {"ok": False, "error": "customer_login_required"}
+
+    customer = db.get(Customer, customer_id)
+    if not customer:
+        return {"ok": False, "error": "customer_not_found"}
+
+    street = payload.street.strip()[:200]
+    number = payload.number.strip()[:40]
+    if not street or not number:
+        return {"ok": False, "error": "street_and_number_required"}
+
+    customer.cep = payload.cep.strip()[:10] or customer.cep
+    customer.street = street
+    customer.number = number
+    customer.complement = payload.complement.strip()[:120] or None
+    customer.neighborhood = payload.neighborhood.strip()[:120] or customer.neighborhood
+    customer.city = payload.city.strip()[:80] or customer.city or "Votuporanga"
+    customer.state = payload.state.strip()[:8] or customer.state or "SP"
     db.commit()
     return {"ok": True}
 

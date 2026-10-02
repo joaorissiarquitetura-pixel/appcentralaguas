@@ -160,6 +160,7 @@ def _commercial_map_summary(db: Session) -> dict:
                     "city": customer.city,
                     "street": customer.street,
                     "number": customer.number,
+                    "complement": customer.complement,
                     "state": customer.state,
                     "cep": customer.cep,
                     "points": customer.points or 0,

@@ -2926,6 +2926,7 @@
       notes: "Pedido iniciado pelo app Central Águas"
     };
     const customerLoggedIn = {{ customer_logged_in|tojson }};
+    const addressSyncKey = "centralAguas.addressSyncPending." + {{ (customer.id if customer else "guest")|tojson }};
     const hydrationDefaults = {
       routine: {{ ("calma" if hydration_profile.rhythm == "individual" else "corrida" if hydration_profile.rhythm == "familia" else "normal")|tojson }},
       weight: "",
@@ -3172,6 +3173,41 @@
       } catch {
         return { ok: false };
       }
+    }
+
+    let addressSyncTimer = null;
+    function addressPayloadForSync() {
+      const cityParts = String(state.city || "").trim().split("/");
+      return {
+        street: String(state.street || "").trim(),
+        number: String(state.number || "").trim(),
+        complement: String(state.complement || "").trim(),
+        neighborhood: String(state.neighborhood || "").trim(),
+        city: cityParts[0].trim(),
+        state: (cityParts[1] || "SP").trim()
+      };
+    }
+
+    function queueCustomerAddressSync() {
+      if (!customerLoggedIn) return;
+      const address = addressPayloadForSync();
+      if (!address.street || !address.number) return;
+      localStorage.setItem(addressSyncKey, JSON.stringify(address));
+      window.clearTimeout(addressSyncTimer);
+      addressSyncTimer = window.setTimeout(syncCustomerAddressToBackend, 500);
+    }
+
+    async function syncCustomerAddressToBackend() {
+      if (!customerLoggedIn) return;
+      let address;
+      try {
+        address = JSON.parse(localStorage.getItem(addressSyncKey) || "null");
+      } catch {
+        address = null;
+      }
+      if (!address?.street || !address?.number) return;
+      const result = await postAppApi("/api/app/address", address);
+      if (result?.ok) localStorage.removeItem(addressSyncKey);
     }
 
     function dismissedBannerIds() {
@@ -5926,11 +5962,13 @@
       state.number = event.target.value.trim();
       updateLocationDisplay();
       setLocationStatus(addressIssue() || "Endereço pronto para entrega.");
+      queueCustomerAddressSync();
     });
 
     document.querySelector("[data-location-complement]")?.addEventListener("input", (event) => {
       state.complement = event.target.value.trim();
       updateLocationDisplay();
+      queueCustomerAddressSync();
     });
 
     document.querySelector("[data-hydration-routine]")?.addEventListener("change", (event) => {
@@ -6091,6 +6129,7 @@
     renderDeliveryPeriods();
     updateCheckout();
     updateLocationDisplay();
+    syncCustomerAddressToBackend();
     renderPayment();
     renderOrders();
     renderStoreCategory();

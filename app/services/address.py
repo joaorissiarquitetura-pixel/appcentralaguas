@@ -17,6 +17,16 @@ def geocode_address_query(address: str) -> Optional[dict]:
     if len(query) < 5:
         return None
 
+    query_normalized = query.casefold()
+    location_parts = [query]
+    if settings.SERVICE_AREA_CITY.casefold() not in query_normalized:
+        location_parts.append(settings.SERVICE_AREA_CITY)
+    if settings.SERVICE_AREA_STATE.casefold() not in query_normalized:
+        location_parts.append(settings.SERVICE_AREA_STATE)
+    if "brasil" not in query_normalized and "brazil" not in query_normalized:
+        location_parts.append("Brasil")
+    query = ", ".join(part for part in location_parts if part)
+
     google_key = settings.GOOGLE_MAPS_API_KEY.strip()
     if google_key:
         try:
@@ -40,6 +50,7 @@ def geocode_address_query(address: str) -> Optional[dict]:
                     "lon": float(location["lng"]),
                     "label": result.get("formatted_address", query),
                     "provider": "Google Maps",
+                    "precision": "precisa" if result.get("geometry", {}).get("location_type") == "ROOFTOP" else "aproximada",
                 }
             if payload.get("status") not in {"ZERO_RESULTS", "OK"}:
                 logger.warning("Google geocoding returned status=%s", payload.get("status"))
@@ -62,6 +73,7 @@ def geocode_address_query(address: str) -> Optional[dict]:
                 "lon": float(result["lon"]),
                 "label": result.get("display_name", query),
                 "provider": "OpenStreetMap",
+                "precision": "aproximada",
             }
     except Exception as exc:
         logger.warning("Fallback geocoding failed for query=%s: %s", query, exc)
