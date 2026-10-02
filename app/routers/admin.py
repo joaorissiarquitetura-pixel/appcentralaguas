@@ -152,11 +152,16 @@ def _commercial_map_summary(db: Session) -> dict:
             bucket["with_coordinates"] += 1
             markers.append(
                 {
+                    "id": customer.id,
                     "name": customer.name,
                     "lat": customer.lat,
                     "lon": customer.lon,
                     "neighborhood": neighborhood,
                     "city": customer.city,
+                    "street": customer.street,
+                    "number": customer.number,
+                    "state": customer.state,
+                    "cep": customer.cep,
                     "points": customer.points or 0,
                 }
             )
@@ -649,6 +654,50 @@ def map_page(request: Request, success: str = "", err: str = "", db: Session = D
             "err": err,
         }
     )
+
+
+@router.post("/map/customers/{customer_id}/coordinates", response_class=JSONResponse)
+async def update_customer_coordinates(
+    customer_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    customer = db.get(Customer, customer_id)
+    if not customer:
+        return JSONResponse({"ok": False, "error": "customer_not_found"}, status_code=404)
+
+    try:
+        lat = float(payload.get("lat"))
+        lon = float(payload.get("lon"))
+    except (TypeError, ValueError):
+        return JSONResponse({"ok": False, "error": "invalid_coordinates"}, status_code=400)
+
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return JSONResponse({"ok": False, "error": "invalid_coordinates"}, status_code=400)
+
+    customer.lat = lat
+    customer.lon = lon
+    log_admin_action(
+        db,
+        action="customer_coordinates_updated",
+        actor_attendant_id=admin.id,
+        entity_type="customer",
+        entity_id=customer.id,
+        details={"lat": lat, "lon": lon, "source": "admin_map_drag"},
+        request=request,
+    )
+    db.commit()
+    return {"ok": True, "lat": lat, "lon": lon}
+
 
 # --- ALERTAS INTELIGENTES ---
 @router.get("/alerts", response_class=HTMLResponse)

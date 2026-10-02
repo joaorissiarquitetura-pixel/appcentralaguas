@@ -29,7 +29,7 @@
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
     <div>
       <strong>Precisão dos pins</strong>
-      <div class="small text-muted">Recalcule usando rua, número da casa, bairro, cidade, UF e CEP.</div>
+      <div class="small text-muted">Recalcule usando rua, número da casa, bairro, cidade, UF e CEP. Quando o mapa público não acertar o número, arraste o pin e salve manualmente.</div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       <form method="post" action="/admin/map/geocode">
@@ -89,10 +89,64 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const customers = {{ customers_json | safe }};
 const markers = [];
+const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}[char]));
+
+async function saveCustomerPin(customerId, marker) {
+  const point = marker.getLatLng();
+  const status = document.querySelector(`[data-pin-status="${customerId}"]`);
+  if (status) status.textContent = 'Salvando...';
+  try {
+    const response = await fetch(`/admin/map/customers/${customerId}/coordinates`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({lat: point.lat, lon: point.lng})
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || 'save_failed');
+    }
+    if (status) status.textContent = 'Posição salva.';
+  } catch (error) {
+    if (status) status.textContent = 'Não foi possível salvar.';
+    console.error(error);
+  }
+}
+
+function popupHtml(customer) {
+  const address = [
+    [customer.street, customer.number].filter(Boolean).join(', '),
+    customer.neighborhood,
+    customer.city,
+    customer.state,
+    customer.cep
+  ].filter(Boolean).join(' - ');
+  return `
+    <strong>${escapeHtml(customer.name)}</strong><br>
+    <span>${escapeHtml(address || customer.neighborhood || '')}</span><br>
+    <span>${Number(customer.points || 0)} pts</span>
+    <div class="small text-muted mt-2">Arraste o pin até a casa correta e clique em salvar.</div>
+    <button class="btn btn-sm btn-primary mt-2" type="button" onclick="saveCustomerPin(${Number(customer.id)}, window.customerMarkers[${Number(customer.id)}])">Salvar posição</button>
+    <div class="small text-muted mt-1" data-pin-status="${Number(customer.id)}"></div>
+  `;
+}
+
+window.customerMarkers = {};
 customers.forEach((customer) => {
   if (customer.lat && customer.lon) {
-    const marker = L.marker([customer.lat, customer.lon]).addTo(map);
-    marker.bindPopup(`<strong>${customer.name}</strong><br>${customer.neighborhood || ''}<br>${customer.points || 0} pts`);
+    const marker = L.marker([customer.lat, customer.lon], {draggable: true}).addTo(map);
+    window.customerMarkers[Number(customer.id)] = marker;
+    marker.bindPopup(popupHtml(customer));
+    marker.on('dragend', () => {
+      marker.openPopup();
+      const status = document.querySelector(`[data-pin-status="${Number(customer.id)}"]`);
+      if (status) status.textContent = 'Pin movido. Clique em salvar para gravar.';
+    });
     markers.push(marker);
   }
 });
