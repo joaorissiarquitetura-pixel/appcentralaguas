@@ -911,6 +911,7 @@ def reply_whatsapp_conversation(
     conversation_id: int,
     request: Request,
     message: str = Form(...),
+    identify_sender: str = Form(""),
     db: Session = Depends(get_db),
 ):
     admin = require_admin(request, db)
@@ -933,7 +934,9 @@ def reply_whatsapp_conversation(
             status_code=303,
         )
 
-    ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=message_text)
+    sender_label = f"{admin.name.strip()} (Central Águas)" if identify_sender == "1" and admin.name.strip() else "Central Águas"
+    outgoing_text = f"{sender_label}\n\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
+    ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=outgoing_text)
     if not ok:
         error = quote(
             f"Não foi possível enviar a resposta ({reason}). Se a janela de 24h fechou, envie um template primeiro."
@@ -948,11 +951,12 @@ def reply_whatsapp_conversation(
         WhatsAppMessage(
             conversation_id=conversation.id,
             customer_id=conversation.customer_id,
+            authored_attendant_id=admin.id,
             phone=conversation.phone,
             direction="outbound",
             wa_message_id=wa_message_id,
             message_type="text",
-            text=message_text[:4096],
+            text=outgoing_text[:4096],
             status="sent",
             timestamp=now,
         )
@@ -968,7 +972,7 @@ def reply_whatsapp_conversation(
         actor_attendant_id=admin.id,
         entity_type="whatsapp_conversation",
         entity_id=conversation.id,
-        details={"message_id": wa_message_id, "phone": conversation.phone},
+        details={"message_id": wa_message_id, "phone": conversation.phone, "sender": sender_label},
         request=request,
     )
     db.commit()

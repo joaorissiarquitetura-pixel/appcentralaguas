@@ -326,7 +326,7 @@
         <form class="reply-box" method="post" action="/admin/whatsapp-conversations/{{ selected_conversation.id }}/reply">
           <textarea class="form-control" name="message" rows="3" maxlength="4096" placeholder="Digite sua resposta para {{ selected_conversation.customer_name or selected_conversation.phone }}" required></textarea>
           <div class="reply-actions">
-            <span class="small-muted">Resposta por texto livre funciona dentro da janela de 24h da Meta.</span>
+            <label class="small-muted d-flex align-items-center gap-2 mb-0"><input class="form-check-input mt-0" type="checkbox" name="identify_sender" value="1" checked> Assinar como {{ admin.name }} (Central Águas)</label>
             <button class="ca-pill ca-primary" type="submit"><i class="bi bi-send me-1"></i>Responder</button>
           </div>
         </form>
@@ -335,7 +335,7 @@
         {% for message in latest_messages|reverse %}
           <div class="message-card {{ message.direction }}">
             <div class="message-top">
-              <strong>{{ message.message_type }}</strong>
+              <strong>{% if message.direction == 'inbound' %}{{ message.customer.name if message.customer else selected_conversation.customer_name or selected_conversation.phone }}{% elif message.authored_attendant %}{{ message.authored_attendant.name }} (Central Águas){% else %}Central Águas{% endif %}</strong>
               <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{{ message.direction }}</span>
             </div>
             <div class="message-text">{{ message.text or 'Mensagem sem texto salvo' }}</div>

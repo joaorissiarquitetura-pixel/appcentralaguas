@@ -311,6 +311,7 @@ class WhatsAppMessage(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     conversation_id: Mapped[int] = mapped_column(ForeignKey("whatsapp_conversations.id"), index=True)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    authored_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True, index=True)
     phone: Mapped[str] = mapped_column(String(30), index=True)
     direction: Mapped[str] = mapped_column(String(12), default="inbound", index=True)
     wa_message_id: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True, index=True)
@@ -323,6 +324,7 @@ class WhatsAppMessage(Base):
 
     conversation = relationship("WhatsAppConversation", back_populates="messages")
     customer = relationship("Customer")
+    authored_attendant = relationship("Attendant")
 
 
 class WhatsAppMessageStatus(Base):
