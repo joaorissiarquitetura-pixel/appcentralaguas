@@ -24,7 +24,7 @@ from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppP
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
-from ..services.address import geocode_structured
+from ..services.address import geocode_address_query, geocode_structured
 from ..services.audit import log_admin_action
 from ..services.grj_catalog import GRJCatalogUnavailable, fetch_grj_products
 from ..services.push import fcm_configured, push_configured, send_fcm, send_notification_to_app_devices, send_notification_to_subscriptions
@@ -650,6 +650,7 @@ def map_page(request: Request, success: str = "", err: str = "", db: Session = D
             "neighborhoods": map_summary["neighborhoods"][:10],
             "campaign_zones": map_summary["campaign_zones"],
             "customers_json": map_summary["customers_json"],
+            "google_geocoding_configured": bool(settings.GOOGLE_MAPS_API_KEY.strip()),
             "success": success,
             "err": err,
         }
@@ -697,6 +698,26 @@ async def update_customer_coordinates(
     )
     db.commit()
     return {"ok": True, "lat": lat, "lon": lon}
+
+
+@router.post("/map/geocode-search", response_class=JSONResponse)
+async def geocode_map_search(request: Request, db: Session = Depends(get_db)):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    address = str(payload.get("address") or "").strip()
+    if len(address) < 5 or len(address) > 300:
+        return JSONResponse({"ok": False, "error": "invalid_address"}, status_code=400)
+
+    result = geocode_address_query(address)
+    if not result:
+        return JSONResponse({"ok": False, "error": "not_found"}, status_code=404)
+    return {"ok": True, **result}
 
 
 # --- ALERTAS INTELIGENTES ---

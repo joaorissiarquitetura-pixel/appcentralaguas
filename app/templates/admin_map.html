@@ -29,7 +29,7 @@
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
     <div>
       <strong>Precisão dos pins</strong>
-      <div class="small text-muted">Recalcule usando rua, número da casa, bairro, cidade, UF e CEP. Quando o mapa público não acertar o número, arraste o pin e salve manualmente.</div>
+      <div class="small text-muted">Busque uma rua com número para conferir o local. Dentro do pin do cliente, a busca move apenas aquele cliente antes de salvar.</div>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       <form method="post" action="/admin/map/geocode">
@@ -41,6 +41,16 @@
       </form>
     </div>
   </div>
+  <form id="map-address-search-form" class="mt-3" autocomplete="off">
+    <label class="form-label small fw-semibold" for="map-address-search">Localizar endereço no mapa</label>
+    <div class="input-group">
+      <input id="map-address-search" class="form-control" type="search" maxlength="300" placeholder="Ex.: Rua Amazonas, 123, Votuporanga - SP">
+      <button class="btn btn-outline-primary" type="submit">Buscar</button>
+    </div>
+    <div id="map-search-status" class="small text-muted mt-2">
+      {% if google_geocoding_configured %}Busca por Google Maps ativa.{% else %}Busca pública ativa. Configure GOOGLE_MAPS_API_KEY para precisão do Google Maps.{% endif %}
+    </div>
+  </form>
 </div>
 
 <div class="row g-4">
@@ -89,6 +99,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const customers = {{ customers_json | safe }};
 const markers = [];
+let searchMarker;
 const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;',
   '<': '&lt;',
@@ -118,20 +129,71 @@ async function saveCustomerPin(customerId, marker) {
   }
 }
 
-function popupHtml(customer) {
-  const address = [
+function customerAddress(customer) {
+  return [
     [customer.street, customer.number].filter(Boolean).join(', '),
     customer.neighborhood,
     customer.city,
     customer.state,
     customer.cep
   ].filter(Boolean).join(' - ');
+}
+
+async function locateAddress(address, marker, customerId) {
+  const query = String(address || '').trim();
+  const status = customerId
+    ? document.querySelector(`[data-pin-status="${customerId}"]`)
+    : document.getElementById('map-search-status');
+  if (query.length < 5) {
+    if (status) status.textContent = 'Informe rua e número para pesquisar.';
+    return;
+  }
+  if (status) status.textContent = 'Buscando endereço...';
+  try {
+    const response = await fetch('/admin/map/geocode-search', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({address: query})
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || 'not_found');
+
+    const point = [data.lat, data.lon];
+    if (marker) {
+      marker.setLatLng(point);
+      marker.openPopup();
+      if (status) status.textContent = `Encontrado por ${data.provider}. Confira e clique em salvar.`;
+    } else {
+      if (searchMarker) searchMarker.setLatLng(point);
+      else searchMarker = L.marker(point).addTo(map);
+      searchMarker.bindPopup(escapeHtml(data.label)).openPopup();
+      if (status) status.textContent = `Encontrado por ${data.provider}. Abra o pin do cliente para aplicar e salvar a posição.`;
+    }
+    map.setView(point, 19);
+  } catch (error) {
+    if (status) status.textContent = 'Endereço não encontrado. Confira rua, número, cidade e CEP.';
+    console.error(error);
+  }
+}
+
+function searchCustomerAddress(customerId) {
+  const input = document.querySelector(`[data-address-search="${customerId}"]`);
+  const marker = window.customerMarkers[customerId];
+  if (input && marker) locateAddress(input.value, marker, customerId);
+}
+
+function popupHtml(customer) {
+  const address = customerAddress(customer);
   return `
     <strong>${escapeHtml(customer.name)}</strong><br>
     <span>${escapeHtml(address || customer.neighborhood || '')}</span><br>
     <span>${Number(customer.points || 0)} pts</span>
-    <div class="small text-muted mt-2">Arraste o pin até a casa correta e clique em salvar.</div>
-    <button class="btn btn-sm btn-primary mt-2" type="button" onclick="saveCustomerPin(${Number(customer.id)}, window.customerMarkers[${Number(customer.id)}])">Salvar posição</button>
+    <label class="form-label small mt-2 mb-1">Endereço para este cliente</label>
+    <input class="form-control form-control-sm" type="search" data-address-search="${Number(customer.id)}" value="${escapeHtml(address)}">
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-sm btn-outline-primary" type="button" onclick="searchCustomerAddress(${Number(customer.id)})">Buscar endereço</button>
+      <button class="btn btn-sm btn-primary" type="button" onclick="saveCustomerPin(${Number(customer.id)}, window.customerMarkers[${Number(customer.id)}])">Salvar posição</button>
+    </div>
     <div class="small text-muted mt-1" data-pin-status="${Number(customer.id)}"></div>
   `;
 }
@@ -155,5 +217,10 @@ if (markers.length > 0) {
   const group = L.featureGroup(markers);
   map.fitBounds(group.getBounds().pad(0.1));
 }
+
+document.getElementById('map-address-search-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  locateAddress(document.getElementById('map-address-search').value);
+});
 </script>
 {% endblock %}

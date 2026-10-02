@@ -4,9 +4,68 @@ from typing import Optional
 
 import requests
 
+from ..config import settings
+
 logger = logging.getLogger(__name__)
 
 USER_AGENT = "CentralAguasApp_Votu (joaorissi.arquitetura@gmail.com)"
+
+
+def geocode_address_query(address: str) -> Optional[dict]:
+    """Busca um endereco pontual, preferindo o Google quando configurado."""
+    query = (address or "").strip()
+    if len(query) < 5:
+        return None
+
+    google_key = settings.GOOGLE_MAPS_API_KEY.strip()
+    if google_key:
+        try:
+            response = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={
+                    "address": query,
+                    "key": google_key,
+                    "language": "pt-BR",
+                    "region": "br",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("status") == "OK" and payload.get("results"):
+                result = payload["results"][0]
+                location = result["geometry"]["location"]
+                return {
+                    "lat": float(location["lat"]),
+                    "lon": float(location["lng"]),
+                    "label": result.get("formatted_address", query),
+                    "provider": "Google Maps",
+                }
+            if payload.get("status") not in {"ZERO_RESULTS", "OK"}:
+                logger.warning("Google geocoding returned status=%s", payload.get("status"))
+        except Exception as exc:
+            logger.warning("Google geocoding failed: %s", exc)
+
+    try:
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": query, "format": "jsonv2", "limit": 1},
+            headers={"User-Agent": USER_AGENT},
+            timeout=10,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if payload:
+            result = payload[0]
+            return {
+                "lat": float(result["lat"]),
+                "lon": float(result["lon"]),
+                "label": result.get("display_name", query),
+                "provider": "OpenStreetMap",
+            }
+    except Exception as exc:
+        logger.warning("Fallback geocoding failed for query=%s: %s", query, exc)
+    return None
 
 
 def sanitize_cep(cep: str) -> str:
