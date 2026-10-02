@@ -23,6 +23,13 @@ def whatsapp_cloud_configured() -> bool:
     )
 
 
+def whatsapp_cloud_api_configured() -> bool:
+    return bool(
+        settings.WHATSAPP_CLOUD_ACCESS_TOKEN.strip()
+        and settings.WHATSAPP_CLOUD_PHONE_NUMBER_ID.strip()
+    )
+
+
 def normalize_brazilian_phone(value: str | None) -> str | None:
     digits = _digits_only(value)
     if digits.startswith("00"):
@@ -143,6 +150,29 @@ def send_registration_code_whatsapp(*, to_phone: str, code: str) -> tuple[bool, 
     )
 
 
+def send_app_launch_campaign_whatsapp(
+    *,
+    to_phone: str,
+    customer_name: str,
+    template_name: str | None = None,
+    language: str | None = None,
+) -> tuple[bool, str]:
+    selected_template = (template_name or settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME or "").strip()
+    if not whatsapp_cloud_api_configured():
+        return False, "whatsapp_cloud_not_configured"
+    if not selected_template:
+        return False, "template_not_configured"
+
+    first_name = (customer_name or "cliente").strip().split(" ", 1)[0] or "cliente"
+    return _send_template_whatsapp(
+        to_phone=to_phone,
+        template_name=selected_template,
+        language=(language or settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE).strip() or "pt_BR",
+        body_parameters=[first_name[:60]],
+        log_label="app launch campaign",
+    )
+
+
 def _send_code_template_whatsapp(
     *,
     to_phone: str,
@@ -150,12 +180,55 @@ def _send_code_template_whatsapp(
     template_name: str,
     log_label: str,
 ) -> tuple[bool, str]:
-    if not whatsapp_cloud_configured():
+    return _send_template_whatsapp(
+        to_phone=to_phone,
+        template_name=template_name,
+        language=settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR",
+        body_parameters=[code],
+        button_parameters=[code],
+        log_label=log_label,
+    )
+
+
+def _send_template_whatsapp(
+    *,
+    to_phone: str,
+    template_name: str,
+    language: str,
+    body_parameters: list[str] | None = None,
+    button_parameters: list[str] | None = None,
+    log_label: str,
+) -> tuple[bool, str]:
+    if not whatsapp_cloud_api_configured():
         return False, "whatsapp_cloud_not_configured"
 
     phone = phone_to_whatsapp_e164(to_phone)
     if not phone:
         return False, "invalid_phone"
+
+    components = []
+    if body_parameters:
+        components.append(
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": str(parameter)}
+                    for parameter in body_parameters
+                ],
+            }
+        )
+    if button_parameters:
+        components.append(
+            {
+                "type": "button",
+                "sub_type": "url",
+                "index": "0",
+                "parameters": [
+                    {"type": "text", "text": str(parameter)}
+                    for parameter in button_parameters
+                ],
+            }
+        )
 
     phone_number_id = settings.WHATSAPP_CLOUD_PHONE_NUMBER_ID.strip()
     graph_version = settings.WHATSAPP_GRAPH_API_VERSION.strip() or "v20.0"
@@ -166,21 +239,11 @@ def _send_code_template_whatsapp(
         "type": "template",
         "template": {
             "name": template_name,
-            "language": {"code": settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR"},
-            "components": [
-                {
-                    "type": "body",
-                    "parameters": [{"type": "text", "text": code}],
-                },
-                {
-                    "type": "button",
-                    "sub_type": "url",
-                    "index": "0",
-                    "parameters": [{"type": "text", "text": code}],
-                },
-            ],
+            "language": {"code": language or "pt_BR"},
         },
     }
+    if components:
+        payload["template"]["components"] = components
     request = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),

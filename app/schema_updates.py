@@ -18,6 +18,8 @@ from .models import (
     LocationAccessLog,
     PushSubscription,
     PasswordResetToken,
+    WhatsAppCampaign,
+    WhatsAppCampaignRecipient,
 )
 
 
@@ -90,6 +92,8 @@ def ensure_runtime_schema_updates() -> None:
         CustomerHouseStock,
         AdminAuditLog,
         PasswordResetToken,
+        WhatsAppCampaign,
+        WhatsAppCampaignRecipient,
     ):
         table_model.__table__.create(bind=engine, checkfirst=True)
         _ensure_model_columns(table_model)

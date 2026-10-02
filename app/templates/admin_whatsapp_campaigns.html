@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block nav_right %}
+  <a class="ca-pill ca-outline text-decoration-none" href="/admin">Voltar ao painel</a>
+  <a class="ca-pill ca-primary text-decoration-none" href="/atendente/logout">Sair</a>
+{% endblock %}
+
+{% block content %}
+<style>
+  .wa-page { display: grid; gap: 22px; }
+  .wa-grid { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
+  .wa-card { padding: 24px; border: 1px solid var(--ca-line); border-radius: 18px; background: #fff; box-shadow: var(--ca-shadow); }
+  .wa-card h2 { margin: 0 0 14px; color: var(--ca-navy); font-size: 1.2rem; }
+  .wa-form { display: grid; gap: 14px; }
+  .wa-form-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .small-muted { color: var(--ca-text); font-size: 0.88rem; }
+  .metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .metric strong { display: block; color: var(--ca-navy); font-size: 1.8rem; line-height: 1; }
+  .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
+  .status-ok { background: #16a34a; }
+  .status-warn { background: #f59e0b; }
+  .status-bad { background: #dc2626; }
+  .campaign-list,
+  .recipient-list { display: grid; gap: 10px; }
+  .campaign-item,
+  .recipient-item { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--ca-line); border-radius: 12px; background: #f8fbff; }
+  .campaign-item.is-active { border-color: var(--ca-primary); background: #eef6ff; }
+  .recipient-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .status-pill { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: .76rem; font-weight: 800; background: #eef2ff; color: #344054; }
+  .status-pill.sent { background: #dcfce7; color: #166534; }
+  .status-pill.failed { background: #fee2e2; color: #991b1b; }
+  .status-pill.pending { background: #fef3c7; color: #92400e; }
+  .preview-box { padding: 12px; border: 1px solid var(--ca-line); border-radius: 12px; background: #f7fbff; white-space: pre-wrap; }
+  @media (max-width: 1100px) {
+    .wa-grid,
+    .wa-form-2,
+    .metric-row,
+    .recipient-item { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="wa-page">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <span class="section-label">WhatsApp</span>
+      <h1 class="display-serif mt-2 mb-1">Campanhas para clientes</h1>
+      <p class="small-muted mb-0">Comunique clientes do cartão fidelidade usando templates aprovados da Meta.</p>
+    </div>
+    <span class="tag">Olá, {{ admin.name }}</span>
+  </div>
+
+  {% if err %}<div class="alert alert-danger mb-0">{{ err }}</div>{% endif %}
+  {% if success %}<div class="alert alert-success mb-0">{{ success }}</div>{% endif %}
+
+  <div class="metric-row">
+    <div class="wa-card metric"><strong>{{ valid_phone_count }}</strong><span class="small-muted">telefones válidos</span></div>
+    <div class="wa-card metric"><strong>{{ campaigns|length }}</strong><span class="small-muted">campanhas recentes</span></div>
+    <div class="wa-card metric"><strong>{{ selected_campaign.sent_count if selected_campaign else 0 }}</strong><span class="small-muted">enviados na campanha</span></div>
+    <div class="wa-card metric"><strong>{{ selected_campaign.failed_count if selected_campaign else 0 }}</strong><span class="small-muted">falhas na campanha</span></div>
+  </div>
+
+  <div class="wa-grid">
+    <section class="wa-card">
+      <h2>Status técnico</h2>
+      <div class="d-grid gap-2 mb-4">
+        <div><span class="status-dot {{ 'status-ok' if api_configured else 'status-bad' }}"></span>Cloud API: <strong>{{ 'configurada' if api_configured else 'pendente' }}</strong></div>
+        <div><span class="status-dot {{ 'status-ok' if template_configured else 'status-warn' }}"></span>Template padrão: <strong>{{ default_template or 'não configurado' }}</strong></div>
+      </div>
+
+      <h2>Nova campanha</h2>
+      <form class="wa-form" method="post" action="/admin/whatsapp-campaigns">
+        <input class="form-control" type="text" name="name" value="Lançamento do app Central Águas" placeholder="Nome interno da campanha" required>
+        <div class="wa-form-2">
+          <input class="form-control" type="text" name="template_name" value="{{ default_template }}" placeholder="Nome do template aprovado">
+          <input class="form-control" type="text" name="template_language" value="{{ default_language }}" placeholder="Idioma. Ex: pt_BR">
+        </div>
+        <textarea class="form-control" name="message_preview" rows="5">{{ default_preview }}</textarea>
+        <div class="wa-form-2">
+          <input class="form-control" type="number" name="limit" value="300" min="1" max="5000">
+          <button class="ca-pill ca-primary" type="submit">Criar lista da campanha</button>
+        </div>
+        <div class="preview-box small-muted">O template esperado usa {{ "{{1}}" }} como primeiro nome do cliente. O botão “Acessar app” deve ser configurado no próprio template da Meta.</div>
+      </form>
+    </section>
+
+    <section class="wa-card">
+      <h2>Campanhas</h2>
+      <div class="campaign-list">
+        {% for campaign in campaigns %}
+          <a class="campaign-item text-decoration-none {% if selected_campaign and selected_campaign.id == campaign.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?campaign_id={{ campaign.id }}">
+            <strong>{{ campaign.name }}</strong>
+            <span class="small-muted">{{ campaign.status }} · {{ campaign.sent_count }} enviados · {{ campaign.failed_count }} falhas · {{ format_dt(campaign.created_at) }}</span>
+            <span class="small-muted">Template: {{ campaign.template_name }}</span>
+          </a>
+        {% else %}
+          <div class="small-muted">Nenhuma campanha criada ainda.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  {% if selected_campaign %}
+    <div class="wa-grid">
+      <section class="wa-card">
+        <h2>Enviar campanha selecionada</h2>
+        <div class="preview-box mb-3">{{ selected_campaign.message_preview }}</div>
+        <form class="wa-form" method="post" action="/admin/whatsapp-campaigns/{{ selected_campaign.id }}/send" onsubmit="return confirm('Enviar o próximo lote desta campanha?');">
+          <div class="wa-form-2">
+            <input class="form-control" type="number" name="batch_size" value="50" min="1" max="200">
+            <button class="ca-pill ca-primary" type="submit">Enviar próximo lote</button>
+          </div>
+          <div class="small-muted">Use lotes pequenos no começo para acompanhar qualidade, falhas e custo no Gestor do WhatsApp.</div>
+        </form>
+      </section>
+
+      <section class="wa-card">
+        <h2>Destinatários recentes</h2>
+        <div class="recipient-list">
+          {% for recipient in recipients %}
+            <div class="recipient-item">
+              <span>
+                <strong>{{ recipient.customer_name or 'Cliente' }}</strong>
+                <span class="small-muted d-block">{{ recipient.phone }}{% if recipient.error %} · {{ recipient.error }}{% endif %}</span>
+              </span>
+              <span class="status-pill {{ recipient.status }}">{{ recipient.status }}</span>
+            </div>
+          {% else %}
+            <div class="small-muted">Nenhum destinatário nesta campanha.</div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

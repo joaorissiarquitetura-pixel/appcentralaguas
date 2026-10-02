@@ -233,6 +233,44 @@ class AppNotificationEvent(Base):
     customer = relationship("Customer")
 
 
+class WhatsAppCampaign(Base):
+    __tablename__ = "whatsapp_campaigns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    template_name: Mapped[str] = mapped_column(String(120))
+    template_language: Mapped[str] = mapped_column(String(12), default="pt_BR")
+    message_preview: Mapped[str | None] = mapped_column(Text, nullable=True)
+    target: Mapped[str] = mapped_column(String(40), default="all_customers")
+    status: Mapped[str] = mapped_column(String(30), default="draft")
+    sent_count: Mapped[int] = mapped_column(Integer, default=0)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0)
+    skipped_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    created_by = relationship("Attendant")
+    recipients = relationship("WhatsAppCampaignRecipient", cascade="all, delete-orphan", back_populates="campaign")
+
+
+class WhatsAppCampaignRecipient(Base):
+    __tablename__ = "whatsapp_campaign_recipients"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("whatsapp_campaigns.id"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    phone: Mapped[str] = mapped_column(String(30), index=True)
+    customer_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
+    error: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    campaign = relationship("WhatsAppCampaign", back_populates="recipients")
+    customer = relationship("Customer")
+
+
 class AppOrderPushEvent(Base):
     __tablename__ = "app_order_push_events"
 

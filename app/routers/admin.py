@@ -20,7 +20,7 @@ import time as _time
 import json
 
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, CustomerHouseStock, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, CustomerHouseStock, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem, WhatsAppCampaign, WhatsAppCampaignRecipient
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
@@ -28,6 +28,7 @@ from ..services.address import geocode_structured
 from ..services.audit import log_admin_action
 from ..services.grj_catalog import GRJCatalogUnavailable, fetch_grj_products
 from ..services.push import fcm_configured, push_configured, send_fcm, send_notification_to_app_devices, send_notification_to_subscriptions
+from ..services.whatsapp import normalize_brazilian_phone, send_app_launch_campaign_whatsapp, whatsapp_cloud_api_configured
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/admin")
@@ -126,6 +127,33 @@ def _channel_label(channel: str | None) -> str:
     if text in {"entrega", "delivery"}:
         return "Sistema"
     return "Sistema" if text else "Sem compra"
+
+
+def _campaign_default_preview() -> str:
+    return (
+        "Olá, {{1}}! A Central Águas está com o app funcionando. "
+        "Acesse app.centralaguas.com.br para fazer pedidos, consultar seus pontos, "
+        "controlar seu estoque de galões e criar lembretes para beber água. "
+        "Para não receber mais avisos, responda SAIR."
+    )
+
+
+def _eligible_campaign_customers(db: Session, limit: int) -> list[Customer]:
+    customers = db.execute(
+        select(Customer)
+        .where(Customer.phone.is_not(None))
+        .order_by(Customer.name.asc(), Customer.id.asc())
+        .limit(max(1, min(int(limit or 500), 5000)))
+    ).scalars().all()
+    seen: set[str] = set()
+    eligible = []
+    for customer in customers:
+        phone = normalize_brazilian_phone(customer.phone)
+        if not phone or phone in seen:
+            continue
+        seen.add(phone)
+        eligible.append(customer)
+    return eligible
 
 
 def _house_stock_summary(stock: CustomerHouseStock | None) -> dict:
@@ -676,6 +704,200 @@ def admin_notifications(
             "err": err,
             "success": success,
         },
+    )
+
+
+@router.get("/whatsapp-campaigns", response_class=HTMLResponse)
+def whatsapp_campaigns_page(
+    request: Request,
+    campaign_id: int | None = None,
+    err: str = "",
+    success: str = "",
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return RedirectResponse("/atendente/login", status_code=303)
+
+    campaigns = db.execute(
+        select(WhatsAppCampaign).order_by(WhatsAppCampaign.created_at.desc()).limit(30)
+    ).scalars().all()
+    selected_campaign = db.get(WhatsAppCampaign, campaign_id) if campaign_id else (campaigns[0] if campaigns else None)
+    recipients = []
+    if selected_campaign:
+        recipients = db.execute(
+            select(WhatsAppCampaignRecipient)
+            .where(WhatsAppCampaignRecipient.campaign_id == selected_campaign.id)
+            .order_by(WhatsAppCampaignRecipient.id.desc())
+            .limit(120)
+        ).scalars().all()
+
+    valid_phone_count = len(_eligible_campaign_customers(db, 5000))
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_whatsapp_campaigns.html",
+        context={
+            "business_name": settings.BUSINESS_NAME,
+            "admin": admin,
+            "campaigns": campaigns,
+            "selected_campaign": selected_campaign,
+            "recipients": recipients,
+            "valid_phone_count": valid_phone_count,
+            "template_configured": bool(settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME.strip()),
+            "api_configured": whatsapp_cloud_api_configured(),
+            "default_template": settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME.strip(),
+            "default_language": settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR",
+            "default_preview": _campaign_default_preview(),
+            "format_dt": _admin_datetime_label,
+            "err": err,
+            "success": success,
+        },
+    )
+
+
+@router.post("/whatsapp-campaigns")
+def create_whatsapp_campaign(
+    request: Request,
+    name: str = Form(...),
+    template_name: str = Form(""),
+    template_language: str = Form("pt_BR"),
+    message_preview: str = Form(""),
+    limit: int = Form(500),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return RedirectResponse("/atendente/login", status_code=303)
+
+    selected_template = template_name.strip() or settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME.strip()
+    if not selected_template:
+        return RedirectResponse("/admin/whatsapp-campaigns?err=Configure%20o%20nome%20do%20template%20WhatsApp", status_code=303)
+
+    customers = _eligible_campaign_customers(db, limit)
+    if not customers:
+        return RedirectResponse("/admin/whatsapp-campaigns?err=Nenhum%20cliente%20com%20telefone%20válido", status_code=303)
+
+    campaign = WhatsAppCampaign(
+        name=name.strip()[:120] or "Campanha WhatsApp",
+        template_name=selected_template[:120],
+        template_language=(template_language.strip() or "pt_BR")[:12],
+        message_preview=message_preview.strip() or _campaign_default_preview(),
+        target="all_customers",
+        status="draft",
+        created_by_attendant_id=admin.id,
+    )
+    db.add(campaign)
+    db.flush()
+
+    added = 0
+    for customer in customers:
+        phone = normalize_brazilian_phone(customer.phone)
+        if not phone:
+            continue
+        db.add(
+            WhatsAppCampaignRecipient(
+                campaign_id=campaign.id,
+                customer_id=customer.id,
+                phone=phone,
+                customer_name=customer.name,
+                status="pending",
+            )
+        )
+        added += 1
+
+    log_admin_action(
+        db,
+        action="whatsapp_campaign_created",
+        actor_attendant_id=admin.id,
+        entity_type="whatsapp_campaign",
+        entity_id=campaign.id,
+        details={"template": campaign.template_name, "recipients": added},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse(
+        f"/admin/whatsapp-campaigns?campaign_id={campaign.id}&success=Campanha%20criada%20com%20{added}%20destinatário(s)",
+        status_code=303,
+    )
+
+
+@router.post("/whatsapp-campaigns/{campaign_id}/send")
+def send_whatsapp_campaign_batch(
+    campaign_id: int,
+    request: Request,
+    batch_size: int = Form(50),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return RedirectResponse("/atendente/login", status_code=303)
+
+    campaign = db.get(WhatsAppCampaign, campaign_id)
+    if not campaign:
+        return RedirectResponse("/admin/whatsapp-campaigns?err=Campanha%20não%20encontrada", status_code=303)
+    if not whatsapp_cloud_api_configured():
+        return RedirectResponse(f"/admin/whatsapp-campaigns?campaign_id={campaign.id}&err=WhatsApp%20Cloud%20API%20não%20configurado", status_code=303)
+
+    recipients = db.execute(
+        select(WhatsAppCampaignRecipient)
+        .where(
+            WhatsAppCampaignRecipient.campaign_id == campaign.id,
+            WhatsAppCampaignRecipient.status == "pending",
+        )
+        .order_by(WhatsAppCampaignRecipient.id.asc())
+        .limit(max(1, min(int(batch_size or 50), 200)))
+    ).scalars().all()
+    if not recipients:
+        campaign.status = "sent" if (campaign.sent_count or 0) else campaign.status
+        campaign.sent_at = campaign.sent_at or datetime.utcnow()
+        db.commit()
+        return RedirectResponse(f"/admin/whatsapp-campaigns?campaign_id={campaign.id}&success=Nenhum%20destinatário%20pendente", status_code=303)
+
+    sent = 0
+    failed = 0
+    now = datetime.utcnow()
+    campaign.status = "sending"
+    for recipient in recipients:
+        ok, reason = send_app_launch_campaign_whatsapp(
+            to_phone=recipient.phone,
+            customer_name=recipient.customer_name or "",
+            template_name=campaign.template_name,
+            language=campaign.template_language,
+        )
+        if ok:
+            recipient.status = "sent"
+            recipient.error = None
+            recipient.sent_at = datetime.utcnow()
+            sent += 1
+        else:
+            recipient.status = "failed"
+            recipient.error = reason[:180]
+            failed += 1
+        db.add(recipient)
+
+    campaign.sent_count = int(campaign.sent_count or 0) + sent
+    campaign.failed_count = int(campaign.failed_count or 0) + failed
+    campaign.sent_at = now
+    remaining = db.scalar(
+        select(func.count(WhatsAppCampaignRecipient.id)).where(
+            WhatsAppCampaignRecipient.campaign_id == campaign.id,
+            WhatsAppCampaignRecipient.status == "pending",
+        )
+    ) or 0
+    campaign.status = "sent" if remaining == 0 and failed == 0 else "partial" if sent else "failed"
+    log_admin_action(
+        db,
+        action="whatsapp_campaign_batch_sent",
+        actor_attendant_id=admin.id,
+        entity_type="whatsapp_campaign",
+        entity_id=campaign.id,
+        details={"sent": sent, "failed": failed, "remaining": remaining},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse(
+        f"/admin/whatsapp-campaigns?campaign_id={campaign.id}&success=Lote%20enviado:%20{sent}%20sucesso,%20{failed}%20falha(s),%20{remaining}%20pendente(s)",
+        status_code=303,
     )
 
 
