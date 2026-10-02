@@ -131,7 +131,14 @@ def geocode_pending_customers(db: Session, *, actor_attendant_id: int | None = N
         rua = customer.street
         if rua and not rua.lower().startswith(("rua", "av", "alameda", "travessa", "praca", "praça")):
             rua = f"Rua {rua}"
-        result = geocode_structured(street=rua, city=customer.city or "Votuporanga", cep=customer.cep)
+        result = geocode_structured(
+            street=rua,
+            number=customer.number,
+            neighborhood=customer.neighborhood,
+            city=customer.city or "Votuporanga",
+            state=customer.state or "SP",
+            cep=customer.cep,
+        )
         if result:
             customer.lat, customer.lon = result
             db.add(customer)

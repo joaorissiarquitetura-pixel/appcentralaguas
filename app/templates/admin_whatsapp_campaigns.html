@@ -7,14 +7,71 @@
 {% block content %}
 <style>
   .wa-page { display: grid; gap: 22px; }
-  .wa-grid { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(0, 1.1fr); gap: 18px; align-items: start; }
-  .wa-card { padding: 24px; border: 1px solid var(--ca-line); border-radius: 18px; background: #fff; box-shadow: var(--ca-shadow); }
-  .wa-card h2 { margin: 0 0 14px; color: var(--ca-navy); font-size: 1.2rem; }
+  .wa-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    border: 1px solid #d9e8ff;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ffffff 0%, #f4f9ff 58%, #eef7ff 100%);
+    box-shadow: 0 18px 42px rgba(17, 84, 196, 0.09);
+  }
+  .wa-hero p { max-width: 680px; }
+  .wa-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+  .wa-grid { display: grid; grid-template-columns: minmax(360px, .92fr) minmax(0, 1.08fr); gap: 18px; align-items: start; }
+  .wa-card {
+    padding: 22px;
+    border: 1px solid #dbe8fb;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 36px rgba(15, 77, 160, 0.08);
+  }
+  .wa-card h2 { margin: 0; color: var(--ca-navy); font-size: 1.08rem; letter-spacing: 0; }
+  .wa-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .wa-title-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: inline-grid;
+    place-items: center;
+    background: #eaf4ff;
+    color: var(--ca-primary);
+    flex: 0 0 auto;
+  }
+  .wa-heading { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .wa-form { display: grid; gap: 14px; }
   .wa-form-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .small-muted { color: var(--ca-text); font-size: 0.88rem; }
   .metric-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .metric strong { display: block; color: var(--ca-navy); font-size: 1.8rem; line-height: 1; }
+  .metric {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 86px;
+  }
+  .metric strong { display: block; color: var(--ca-navy); font-size: 1.7rem; line-height: 1; }
+  .metric i {
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #eff6ff;
+    color: var(--ca-primary);
+  }
+  .wa-status-panel { display: grid; gap: 10px; margin-bottom: 22px; }
+  .wa-status-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #dbe8fb;
+    border-radius: 12px;
+    background: #f8fbff;
+  }
   .status-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; margin-right: 7px; }
   .status-ok { background: #16a34a; }
   .status-warn { background: #f59e0b; }
@@ -22,51 +79,112 @@
   .campaign-list,
   .recipient-list { display: grid; gap: 10px; }
   .campaign-item,
-  .recipient-item { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--ca-line); border-radius: 12px; background: #f8fbff; }
-  .campaign-item.is-active { border-color: var(--ca-primary); background: #eef6ff; }
+  .recipient-item {
+    display: grid;
+    gap: 5px;
+    padding: 13px 14px;
+    border: 1px solid #dbe8fb;
+    border-radius: 12px;
+    background: #f8fbff;
+    color: inherit;
+  }
+  .campaign-item:hover { border-color: #a9ccff; background: #f2f8ff; }
+  .campaign-item.is-active { border-color: var(--ca-primary); background: #eef6ff; box-shadow: inset 4px 0 0 var(--ca-primary); }
   .recipient-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-  .status-pill { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: .76rem; font-weight: 800; background: #eef2ff; color: #344054; }
+  .status-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: .74rem; font-weight: 800; background: #eef2ff; color: #344054; white-space: nowrap; }
   .status-pill.sent { background: #dcfce7; color: #166534; }
   .status-pill.failed { background: #fee2e2; color: #991b1b; }
   .status-pill.pending { background: #fef3c7; color: #92400e; }
-  .preview-box { padding: 12px; border: 1px solid var(--ca-line); border-radius: 12px; background: #f7fbff; white-space: pre-wrap; }
+  .preview-box { padding: 13px 14px; border: 1px solid #dbe8fb; border-radius: 12px; background: #f7fbff; white-space: pre-wrap; }
+  .wa-inbox-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .wa-inbox-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .wa-unread {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--ca-primary);
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 800;
+  }
+  .message-stack { display: grid; gap: 12px; }
+  .message-card {
+    display: grid;
+    gap: 7px;
+    padding: 14px;
+    border: 1px solid #dbe8fb;
+    border-radius: 14px;
+    background: #f8fbff;
+  }
+  .message-card.inbound { background: #fffaf0; border-color: #f4dfaa; }
+  .message-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .message-text { color: #27364b; line-height: 1.45; }
+  .reply-box {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 14px;
+    border: 1px solid #dbe8fb;
+    border-radius: 14px;
+    background: #f8fbff;
+  }
+  .reply-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   @media (max-width: 1100px) {
+    .wa-hero { align-items: flex-start; flex-direction: column; }
+    .wa-hero-actions { justify-content: flex-start; }
     .wa-grid,
     .wa-form-2,
     .metric-row,
-    .recipient-item { grid-template-columns: 1fr; }
+    .recipient-item,
+    .wa-inbox-item { grid-template-columns: 1fr; }
   }
 </style>
 
 <div class="wa-page">
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+  <div class="wa-hero">
     <div>
       <span class="section-label">WhatsApp</span>
       <h1 class="display-serif mt-2 mb-1">Campanhas para clientes</h1>
       <p class="small-muted mb-0">Comunique clientes do cartão fidelidade usando templates aprovados da Meta.</p>
     </div>
-    <span class="tag">Olá, {{ admin.name }}</span>
+    <div class="wa-hero-actions">
+      <span class="tag">Olá, {{ admin.name }}</span>
+      <a class="ca-pill ca-outline text-decoration-none" href="/admin/app">Backend app</a>
+    </div>
   </div>
 
   {% if err %}<div class="alert alert-danger mb-0">{{ err }}</div>{% endif %}
   {% if success %}<div class="alert alert-success mb-0">{{ success }}</div>{% endif %}
 
   <div class="metric-row">
-    <div class="wa-card metric"><strong>{{ valid_phone_count }}</strong><span class="small-muted">telefones válidos</span></div>
-    <div class="wa-card metric"><strong>{{ campaigns|length }}</strong><span class="small-muted">campanhas recentes</span></div>
-    <div class="wa-card metric"><strong>{{ selected_campaign.sent_count if selected_campaign else 0 }}</strong><span class="small-muted">enviados na campanha</span></div>
-    <div class="wa-card metric"><strong>{{ selected_campaign.failed_count if selected_campaign else 0 }}</strong><span class="small-muted">falhas na campanha</span></div>
+    <div class="wa-card metric"><i class="bi bi-person-check"></i><span><strong>{{ valid_phone_count }}</strong><span class="small-muted">telefones válidos</span></span></div>
+    <div class="wa-card metric"><i class="bi bi-megaphone"></i><span><strong>{{ campaigns|length }}</strong><span class="small-muted">campanhas recentes</span></span></div>
+    <div class="wa-card metric"><i class="bi bi-send-check"></i><span><strong>{{ selected_campaign.sent_count if selected_campaign else 0 }}</strong><span class="small-muted">enviados na campanha</span></span></div>
+    <div class="wa-card metric"><i class="bi bi-exclamation-triangle"></i><span><strong>{{ selected_campaign.failed_count if selected_campaign else 0 }}</strong><span class="small-muted">falhas na campanha</span></span></div>
   </div>
 
   <div class="wa-grid">
     <section class="wa-card">
-      <h2>Status técnico</h2>
-      <div class="d-grid gap-2 mb-4">
-        <div><span class="status-dot {{ 'status-ok' if api_configured else 'status-bad' }}"></span>Cloud API: <strong>{{ 'configurada' if api_configured else 'pendente' }}</strong></div>
-        <div><span class="status-dot {{ 'status-ok' if template_configured else 'status-warn' }}"></span>Template padrão: <strong>{{ default_template or 'não configurado' }}</strong></div>
+      <div class="wa-card-head">
+        <div class="wa-heading">
+          <span class="wa-title-icon"><i class="bi bi-sliders"></i></span>
+          <h2>Status técnico</h2>
+        </div>
+      </div>
+      <div class="wa-status-panel">
+        <div class="wa-status-line"><span><span class="status-dot {{ 'status-ok' if api_configured else 'status-bad' }}"></span>Cloud API</span><strong>{{ 'configurada' if api_configured else 'pendente' }}</strong></div>
+        <div class="wa-status-line"><span><span class="status-dot {{ 'status-ok' if template_configured else 'status-warn' }}"></span>Template padrão</span><strong>{{ default_template or 'não configurado' }}</strong></div>
       </div>
 
-      <h2>Nova campanha</h2>
+      <div class="wa-card-head">
+        <div class="wa-heading">
+          <span class="wa-title-icon"><i class="bi bi-plus-lg"></i></span>
+          <h2>Nova campanha</h2>
+        </div>
+      </div>
       <form class="wa-form" method="post" action="/admin/whatsapp-campaigns">
         <input class="form-control" type="text" name="name" value="Lançamento do app Central Águas" placeholder="Nome interno da campanha" required>
         <div class="wa-form-2">
@@ -83,7 +201,12 @@
     </section>
 
     <section class="wa-card">
-      <h2>Campanhas</h2>
+      <div class="wa-card-head">
+        <div class="wa-heading">
+          <span class="wa-title-icon"><i class="bi bi-list-check"></i></span>
+          <h2>Campanhas</h2>
+        </div>
+      </div>
       <div class="campaign-list">
         {% for campaign in campaigns %}
           <a class="campaign-item text-decoration-none {% if selected_campaign and selected_campaign.id == campaign.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?campaign_id={{ campaign.id }}">
@@ -101,7 +224,12 @@
   {% if selected_campaign %}
     <div class="wa-grid">
       <section class="wa-card">
-        <h2>Enviar campanha selecionada</h2>
+        <div class="wa-card-head">
+          <div class="wa-heading">
+            <span class="wa-title-icon"><i class="bi bi-send"></i></span>
+            <h2>Enviar campanha selecionada</h2>
+          </div>
+        </div>
         <div class="preview-box mb-3">{{ selected_campaign.message_preview }}</div>
         <form class="wa-form" method="post" action="/admin/whatsapp-campaigns/{{ selected_campaign.id }}/send" onsubmit="return confirm('Enviar o próximo lote desta campanha?');">
           <div class="wa-form-2">
@@ -113,7 +241,12 @@
       </section>
 
       <section class="wa-card">
-        <h2>Destinatários recentes</h2>
+        <div class="wa-card-head">
+          <div class="wa-heading">
+            <span class="wa-title-icon"><i class="bi bi-people"></i></span>
+            <h2>Destinatários recentes</h2>
+          </div>
+        </div>
         <div class="recipient-list">
           {% for recipient in recipients %}
             <div class="recipient-item">
@@ -133,14 +266,24 @@
 
   <div class="wa-grid">
     <section class="wa-card">
-      <h2>Mensagens recebidas</h2>
+      <div class="wa-card-head">
+        <div class="wa-heading">
+          <span class="wa-title-icon"><i class="bi bi-inbox"></i></span>
+          <h2>Mensagens recebidas</h2>
+        </div>
+      </div>
       <div class="campaign-list">
         {% for conversation in conversations %}
-          <div class="campaign-item">
-            <strong>{{ conversation.customer_name or conversation.phone }}</strong>
-            <span class="small-muted">{{ conversation.phone }} · {{ conversation.unread_count or 0 }} não lida(s) · {{ format_dt(conversation.last_message_at) }}</span>
+          <a class="campaign-item wa-inbox-item text-decoration-none {% if selected_conversation and selected_conversation.id == conversation.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?conversation_id={{ conversation.id }}{% if selected_campaign %}&campaign_id={{ selected_campaign.id }}{% endif %}">
+            <span>
+              <span class="wa-inbox-name">
+                <strong>{{ conversation.customer_name or conversation.phone }}</strong>
+                {% if conversation.unread_count %}<span class="wa-unread">{{ conversation.unread_count }}</span>{% endif %}
+              </span>
+              <span class="small-muted d-block">{{ conversation.phone }} · {{ format_dt(conversation.last_message_at) }}</span>
+            </span>
             {% if conversation.opt_out %}<span class="status-pill failed">opt-out</span>{% endif %}
-          </div>
+          </a>
         {% else %}
           <div class="small-muted">Nenhuma mensagem recebida ainda. Depois de salvar o webhook na Meta, as mensagens aparecerão aqui.</div>
         {% endfor %}
@@ -148,16 +291,30 @@
     </section>
 
     <section class="wa-card">
-      <h2>Últimas mensagens</h2>
-      <div class="recipient-list">
-        {% for message in latest_messages %}
-          <div class="recipient-item">
-            <span>
+      <div class="wa-card-head">
+        <div class="wa-heading">
+          <span class="wa-title-icon"><i class="bi bi-chat-dots"></i></span>
+          <h2>{{ selected_conversation.customer_name or selected_conversation.phone if selected_conversation else 'Últimas mensagens' }}</h2>
+        </div>
+      </div>
+      {% if selected_conversation %}
+        <form class="reply-box" method="post" action="/admin/whatsapp-conversations/{{ selected_conversation.id }}/reply">
+          <textarea class="form-control" name="message" rows="3" maxlength="4096" placeholder="Digite sua resposta para {{ selected_conversation.customer_name or selected_conversation.phone }}" required></textarea>
+          <div class="reply-actions">
+            <span class="small-muted">Resposta por texto livre funciona dentro da janela de 24h da Meta.</span>
+            <button class="ca-pill ca-primary" type="submit"><i class="bi bi-send me-1"></i>Responder</button>
+          </div>
+        </form>
+      {% endif %}
+      <div class="message-stack">
+        {% for message in latest_messages|reverse %}
+          <div class="message-card {{ message.direction }}">
+            <div class="message-top">
               <strong>{{ message.message_type }}</strong>
-              <span class="small-muted d-block">{{ message.text or 'Mensagem sem texto salvo' }}</span>
-              <span class="small-muted d-block">{{ format_dt(message.timestamp) }}</span>
-            </span>
-            <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{{ message.direction }}</span>
+              <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{{ message.direction }}</span>
+            </div>
+            <div class="message-text">{{ message.text or 'Mensagem sem texto salvo' }}</div>
+            <span class="small-muted">{{ format_dt(message.timestamp) }}</span>
           </div>
         {% else %}
           <div class="small-muted">Selecione uma conversa depois que chegarem mensagens.</div>

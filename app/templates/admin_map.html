@@ -18,6 +18,31 @@
   </div>
 </div>
 
+{% if err %}
+  <div class="alert alert-danger">{{ err }}</div>
+{% endif %}
+{% if success %}
+  <div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<div class="ca-card p-3 mb-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div>
+      <strong>Precisão dos pins</strong>
+      <div class="small text-muted">Recalcule usando rua, número da casa, bairro, cidade, UF e CEP.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <form method="post" action="/admin/map/geocode">
+        <button class="ca-pill ca-outline" type="submit">Preencher pendentes</button>
+      </form>
+      <form method="post" action="/admin/map/geocode" onsubmit="return confirm('Recalcular todos os pins usando número da casa? Isso pode demorar alguns minutos.');">
+        <input type="hidden" name="force" value="1">
+        <button class="ca-pill ca-primary" type="submit">Recalcular todos</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="row g-4">
   <div class="col-lg-8">
     <div class="ca-card p-3">

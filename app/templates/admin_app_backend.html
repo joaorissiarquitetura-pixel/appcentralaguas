@@ -23,6 +23,7 @@
     box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
   }
   .backend-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  .business-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
   .backend-card {
     padding: 18px;
     border: 1px solid rgba(15, 23, 42, .08);
@@ -38,6 +39,7 @@
   .status-warn { background: #f59e0b; }
   .status-bad { background: #dc2626; }
   .backend-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .78fr); gap: 16px; align-items: start; }
+  .business-split { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
   .backend-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: .9rem; }
   .backend-table th, .backend-table td { padding: 12px 10px; border-bottom: 1px solid rgba(15, 23, 42, .08); vertical-align: top; }
   .backend-table th { color: #475569; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
@@ -79,13 +81,36 @@
     align-items: center;
   }
   .nav-link { white-space: nowrap; }
+  .quick-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .insight-list { display: grid; gap: 10px; }
+  .insight-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid rgba(15, 23, 42, .08);
+  }
+  .insight-row:last-child { border-bottom: 0; }
+  .alert-preview {
+    display: grid;
+    gap: 5px;
+    padding: 12px;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+  .alert-preview.critico { border-color: #fecaca; background: #fff7f7; }
+  .alert-preview.aviso { border-color: #fde68a; background: #fffbeb; }
   @media (max-width: 1100px) {
     .backend-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .backend-split { grid-template-columns: 1fr; }
+    .business-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .backend-split,
+    .business-split { grid-template-columns: 1fr; }
   }
   @media (max-width: 720px) {
     .backend-hero { padding: 18px; }
-    .backend-kpis { grid-template-columns: 1fr; }
+    .backend-kpis,
+    .business-kpis { grid-template-columns: 1fr; }
     .device-actions,
     .device-actions .block-form { grid-template-columns: 1fr; }
   }
@@ -112,6 +137,72 @@
     <div class="backend-card backend-kpi"><strong>{{ push_active_count }}</strong><span>notificações web ativas</span></div>
     <div class="backend-card backend-kpi"><strong>{{ blocked_device_count }}</strong><span>bloqueados</span></div>
     <div class="backend-card backend-kpi"><strong>{{ location_denied_count }}</strong><span>fora da área/localização negada</span></div>
+  </section>
+
+  <section class="backend-card">
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+      <div>
+        <span class="tag">Inteligência comercial</span>
+        <h2 class="mt-2 mb-1">Fidelidade, mapa e consumo</h2>
+        <p class="muted mb-0">Os mesmos sinais úteis do painel gerencial, agora junto do backend do app.</p>
+      </div>
+      <div class="quick-actions">
+        <a class="ca-pill ca-primary text-decoration-none" href="/admin/map">Abrir mapa</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/alerts">Ver alertas</a>
+        <a class="ca-pill ca-outline text-decoration-none" href="/admin/customers">Clientes</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="business-kpis">
+    <div class="backend-card backend-kpi"><strong>{{ total_customers }}</strong><span>clientes fidelidade</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ customers_with_purchases }}</strong><span>com compra registrada</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ conversion_percent }}%</strong><span>conversão da base</span></div>
+    <div class="backend-card backend-kpi"><strong>{{ open_alerts }}</strong><span>alertas de consumo</span></div>
+  </section>
+
+  <section class="business-split">
+    <div class="backend-card">
+      <h2>Mapa comercial</h2>
+      <div class="muted mb-3">
+        {{ map_summary.with_coords }} clientes com pin · {{ map_summary.missing }} sem geolocalização
+      </div>
+      <div class="insight-list">
+        {% for item in neighborhoods %}
+          <div class="insight-row">
+            <span>
+              <strong>{{ item.neighborhood }}</strong>
+              <span class="muted d-block">{{ item.city }} · {{ item.with_coordinates }} com pin</span>
+            </span>
+            <strong>{{ item.customers }}</strong>
+          </div>
+        {% else %}
+          <div class="muted">Sem bairros cadastrados ainda.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="backend-card">
+      <h2>Alertas de consumo</h2>
+      <div class="insight-list">
+        {% for item in consumption_alerts %}
+          <div class="alert-preview {{ item.status }}">
+            <div class="d-flex justify-content-between gap-2">
+              <strong>{{ item.customer.name }}</strong>
+              <span class="pill-state {{ 'danger' if item.status == 'critico' else '' }}">{{ item.msg }}</span>
+            </div>
+            <div class="muted">Último pedido: {{ item.last_date }} · previsão: {{ item.next_date }}</div>
+          </div>
+        {% else %}
+          <div class="muted">Nenhum alerta ativo. Use a tela de alertas para atualizar a análise.</div>
+        {% endfor %}
+      </div>
+      <div class="quick-actions">
+        <form method="post" action="/admin/alerts/generate">
+          <button class="ca-pill ca-primary" type="submit">Atualizar análise</button>
+        </form>
+      </div>
+    </div>
   </section>
 
   <section class="backend-split">

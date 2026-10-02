@@ -28,7 +28,7 @@ from ..services.address import geocode_structured
 from ..services.audit import log_admin_action
 from ..services.grj_catalog import GRJCatalogUnavailable, fetch_grj_products
 from ..services.push import fcm_configured, push_configured, send_fcm, send_notification_to_app_devices, send_notification_to_subscriptions
-from ..services.whatsapp import normalize_brazilian_phone, send_app_launch_campaign_whatsapp, whatsapp_cloud_api_configured
+from ..services.whatsapp import normalize_brazilian_phone, send_app_launch_campaign_whatsapp, send_text_whatsapp, whatsapp_cloud_api_configured
 
 templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(prefix="/admin")
@@ -127,6 +127,103 @@ def _channel_label(channel: str | None) -> str:
     if text in {"entrega", "delivery"}:
         return "Sistema"
     return "Sistema" if text else "Sem compra"
+
+
+def _commercial_map_summary(db: Session) -> dict:
+    customers = db.execute(select(Customer)).scalars().all()
+    by_neighborhood = {}
+    markers = []
+
+    for customer in customers:
+        neighborhood = customer.neighborhood or "Sem bairro"
+        bucket = by_neighborhood.setdefault(
+            neighborhood,
+            {
+                "neighborhood": neighborhood,
+                "city": customer.city or "Sem cidade",
+                "customers": 0,
+                "with_coordinates": 0,
+                "loyalty_points": 0,
+            },
+        )
+        bucket["customers"] += 1
+        bucket["loyalty_points"] += customer.points or 0
+        if customer.lat is not None and customer.lon is not None:
+            bucket["with_coordinates"] += 1
+            markers.append(
+                {
+                    "name": customer.name,
+                    "lat": customer.lat,
+                    "lon": customer.lon,
+                    "neighborhood": neighborhood,
+                    "city": customer.city,
+                    "points": customer.points or 0,
+                }
+            )
+
+    neighborhoods = sorted(
+        by_neighborhood.values(),
+        key=lambda item: (item["customers"], item["with_coordinates"], item["loyalty_points"]),
+        reverse=True,
+    )
+    campaign_zones = []
+    for row in neighborhoods[:5]:
+        campaign_zones.append(
+            {
+                "neighborhood": row["neighborhood"],
+                "city": row["city"],
+                "customers": row["customers"],
+                "signal": "forte" if row["customers"] >= 10 else "media" if row["customers"] >= 5 else "teste",
+                "reason": "Alta concentração para impulsionamento regional." if row["customers"] >= 5 else "Base pequena, boa para campanha de validação.",
+            }
+        )
+
+    total = len(customers)
+    return {
+        "total": total,
+        "with_coords": len(markers),
+        "missing": max(total - len(markers), 0),
+        "neighborhoods": neighborhoods,
+        "campaign_zones": campaign_zones,
+        "customers_json": json.dumps(markers),
+    }
+
+
+def _active_consumption_alerts(db: Session, limit: int = 200) -> list[dict]:
+    alerts_db = db.execute(
+        select(Alert).where(Alert.resolved_at.is_(None)).order_by(Alert.created_at.desc()).limit(limit)
+    ).scalars().all()
+
+    alerts_display = []
+    for alert in alerts_db:
+        last_txs = db.execute(
+            select(Transaction.created_at)
+            .where(Transaction.customer_id == alert.customer_id)
+            .order_by(Transaction.created_at.desc())
+            .limit(5)
+        ).scalars().all()
+
+        avg_days, last_date_str, next_date_str = 0, "N/A", "N/A"
+        if last_txs:
+            last_tx_date = last_txs[0]
+            last_date_str = last_tx_date.strftime("%d/%m/%Y")
+            if len(last_txs) >= 2:
+                intervals = [max(1, (last_txs[i] - last_txs[i + 1]).days) for i in range(len(last_txs) - 1)]
+                avg_days = int(sum(intervals) / len(intervals))
+                next_date_str = (last_tx_date + timedelta(days=avg_days)).strftime("%d/%m/%Y")
+
+        alerts_display.append(
+            {
+                "customer": alert.customer,
+                "avg": avg_days,
+                "last_date": last_date_str,
+                "next_date": next_date_str,
+                "status": "critico" if alert.type == "overdue" else "aviso",
+                "msg": "Atrasado!" if alert.type == "overdue" else "Próximo do fim",
+            }
+        )
+
+    return alerts_display
 
 
 def _campaign_default_preview() -> str:
@@ -530,16 +627,11 @@ def list_customers(request: Request, q: str = "", db: Session = Depends(get_db))
 
 # --- MAPA DE CLIENTES ---
 @router.get("/map", response_class=HTMLResponse)
-def map_page(request: Request, db: Session = Depends(get_db)):
+def map_page(request: Request, success: str = "", err: str = "", db: Session = Depends(get_db)):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
 
-    total = db.scalar(select(func.count(Customer.id)))
-    with_coords = db.scalar(select(func.count(Customer.id)).where(Customer.lat.is_not(None)))
-    customers_db = db.execute(select(Customer).where(Customer.lat.is_not(None))).scalars().all()
-    
-    customers_list = [{"name": c.name, "lat": c.lat, "lon": c.lon, "neighborhood": c.neighborhood, "city": c.city} for c in customers_db]
-    customers_json = json.dumps(customers_list)
+    map_summary = _commercial_map_summary(db)
 
     return templates.TemplateResponse(
         request=request,
@@ -547,10 +639,14 @@ def map_page(request: Request, db: Session = Depends(get_db)):
         context={
             "business_name": settings.BUSINESS_NAME,
             "admin": admin,
-            "total": int(total or 0),
-            "with_coords": int(with_coords or 0),
-            "missing": int((total or 0) - (with_coords or 0)),
-            "customers_json": customers_json
+            "total": map_summary["total"],
+            "with_coords": map_summary["with_coords"],
+            "missing": map_summary["missing"],
+            "neighborhoods": map_summary["neighborhoods"][:10],
+            "campaign_zones": map_summary["campaign_zones"],
+            "customers_json": map_summary["customers_json"],
+            "success": success,
+            "err": err,
         }
     )
 
@@ -560,33 +656,7 @@ def alerts_page(request: Request, db: Session = Depends(get_db)):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
 
-    alerts_db = db.execute(
-        select(Alert).where(Alert.resolved_at.is_(None)).order_by(Alert.created_at.desc()).limit(200)
-    ).scalars().all()
-    
-    alerts_display = []
-    for alert in alerts_db:
-        last_txs = db.execute(
-            select(Transaction.created_at).where(Transaction.customer_id == alert.customer_id).order_by(Transaction.created_at.desc()).limit(5)
-        ).scalars().all()
-        
-        avg_days, last_date_str, next_date_str = 0, "N/A", "N/A"
-        if last_txs:
-            last_tx_date = last_txs[0]
-            last_date_str = last_tx_date.strftime("%d/%m/%Y")
-            if len(last_txs) >= 2:
-                intervals = [max(1, (last_txs[i] - last_txs[i+1]).days) for i in range(len(last_txs)-1)]
-                avg_days = int(sum(intervals) / len(intervals))
-                next_date_str = (last_tx_date + timedelta(days=avg_days)).strftime("%d/%m/%Y")
-        
-        alerts_display.append({
-            "customer": alert.customer,
-            "avg": avg_days,
-            "last_date": last_date_str,
-            "next_date": next_date_str,
-            "status": "critico" if alert.type == "overdue" else "aviso",
-            "msg": "Atrasado!" if alert.type == "overdue" else "Próximo do fim"
-        })
+    alerts_display = _active_consumption_alerts(db)
 
     return templates.TemplateResponse(
         request=request, 
@@ -711,6 +781,7 @@ def admin_notifications(
 def whatsapp_campaigns_page(
     request: Request,
     campaign_id: int | None = None,
+    conversation_id: int | None = None,
     err: str = "",
     success: str = "",
     db: Session = Depends(get_db),
@@ -736,7 +807,11 @@ def whatsapp_campaigns_page(
         .order_by(WhatsAppConversation.last_message_at.desc().nullslast(), WhatsAppConversation.updated_at.desc())
         .limit(40)
     ).scalars().all()
-    selected_conversation = conversations[0] if conversations else None
+    selected_conversation = None
+    if conversation_id:
+        selected_conversation = db.get(WhatsAppConversation, conversation_id)
+    if not selected_conversation:
+        selected_conversation = conversations[0] if conversations else None
     latest_messages = []
     if selected_conversation:
         latest_messages = db.execute(
@@ -769,6 +844,78 @@ def whatsapp_campaigns_page(
             "err": err,
             "success": success,
         },
+    )
+
+
+@router.post("/whatsapp-conversations/{conversation_id}/reply")
+def reply_whatsapp_conversation(
+    conversation_id: int,
+    request: Request,
+    message: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return RedirectResponse("/atendente/login", status_code=303)
+
+    conversation = db.get(WhatsAppConversation, conversation_id)
+    if not conversation:
+        return RedirectResponse("/admin/whatsapp-campaigns?err=Conversa%20não%20encontrada", status_code=303)
+
+    message_text = (message or "").strip()
+    if not message_text:
+        return RedirectResponse(
+            f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&err=Digite%20uma%20mensagem",
+            status_code=303,
+        )
+    if not whatsapp_cloud_api_configured():
+        return RedirectResponse(
+            f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&err=WhatsApp%20Cloud%20API%20não%20configurado",
+            status_code=303,
+        )
+
+    ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=message_text)
+    if not ok:
+        error = quote(
+            f"Não foi possível enviar a resposta ({reason}). Se a janela de 24h fechou, envie um template primeiro."
+        )
+        return RedirectResponse(
+            f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&err={error}",
+            status_code=303,
+        )
+
+    now = datetime.utcnow()
+    db.add(
+        WhatsAppMessage(
+            conversation_id=conversation.id,
+            customer_id=conversation.customer_id,
+            phone=conversation.phone,
+            direction="outbound",
+            wa_message_id=wa_message_id,
+            message_type="text",
+            text=message_text[:4096],
+            status="sent",
+            timestamp=now,
+        )
+    )
+    conversation.last_message_at = now
+    conversation.last_outbound_at = now
+    conversation.unread_count = 0
+    conversation.updated_at = now
+    conversation.assigned_attendant_id = conversation.assigned_attendant_id or admin.id
+    log_admin_action(
+        db,
+        action="whatsapp_conversation_reply_sent",
+        actor_attendant_id=admin.id,
+        entity_type="whatsapp_conversation",
+        entity_id=conversation.id,
+        details={"message_id": wa_message_id, "phone": conversation.phone},
+        request=request,
+    )
+    db.commit()
+    return RedirectResponse(
+        f"/admin/whatsapp-campaigns?conversation_id={conversation.id}&success=Resposta%20enviada",
+        status_code=303,
     )
 
 
@@ -937,6 +1084,12 @@ def admin_app_backend(
     subscriptions = db.execute(select(PushSubscription).order_by(PushSubscription.updated_at.desc()).limit(80)).scalars().all()
     location_logs = db.execute(select(LocationAccessLog).order_by(LocationAccessLog.created_at.desc()).limit(60)).scalars().all()
     latest_notifications = db.execute(select(AppNotification).order_by(AppNotification.created_at.desc()).limit(12)).scalars().all()
+    total_customers = db.scalar(select(func.count(Customer.id))) or 0
+    customers_with_purchases = db.scalar(select(func.count(Customer.id)).where(Customer.first_purchase_at.is_not(None))) or 0
+    total_tx = db.scalar(select(func.count(Transaction.id))) or 0
+    open_alerts = db.scalar(select(func.count(Alert.id)).where(Alert.resolved_at.is_(None))) or 0
+    map_summary = _commercial_map_summary(db)
+    consumption_alerts = _active_consumption_alerts(db, limit=6)
 
     push_active_count = sum(1 for subscription in subscriptions if subscription.active and subscription.device_id not in blocked_device_ids)
     location_allowed_count = db.scalar(select(func.count(LocationAccessLog.id)).where(LocationAccessLog.allowed == True)) or 0
@@ -959,6 +1112,15 @@ def admin_app_backend(
             "push_active_count": push_active_count,
             "location_allowed_count": location_allowed_count,
             "location_denied_count": location_denied_count,
+            "total_customers": total_customers,
+            "customers_with_purchases": customers_with_purchases,
+            "total_tx": total_tx,
+            "open_alerts": open_alerts,
+            "conversion_percent": int((customers_with_purchases / total_customers) * 100) if total_customers else 0,
+            "map_summary": map_summary,
+            "neighborhoods": map_summary["neighborhoods"][:6],
+            "campaign_zones": map_summary["campaign_zones"][:3],
+            "consumption_alerts": consumption_alerts,
             "push_configured": push_configured(),
             "fcm_configured": fcm_configured(),
             "format_dt": _admin_datetime_label,
@@ -1664,18 +1826,30 @@ def create_attendant(request: Request, name: str = Form(...), email: str = Form(
     return RedirectResponse("/admin", status_code=303)
 
 @router.post("/map/geocode")
-def geocode_pending(request: Request, db: Session = Depends(get_db)):
+def geocode_pending(request: Request, force: str = Form(""), db: Session = Depends(get_db)):
     admin = require_admin(request, db)
     if not admin: return RedirectResponse("/atendente/login", status_code=303)
-    pending = db.execute(select(Customer).where(Customer.lat.is_(None), Customer.street.is_not(None))).scalars().all()
+    query = select(Customer).where(Customer.street.is_not(None))
+    if force != "1":
+        query = query.where(Customer.lat.is_(None))
+    pending = db.execute(query.order_by(Customer.id.asc())).scalars().all()
+    updated = 0
     for c in pending:
         rua = c.street if c.street.lower().startswith(('rua', 'av', 'alameda')) else f"Rua {c.street}"
-        resultado = geocode_structured(street=rua, city="Votuporanga", cep=c.cep)
+        resultado = geocode_structured(
+            street=rua,
+            number=c.number,
+            neighborhood=c.neighborhood,
+            city=c.city or "Votuporanga",
+            state=c.state or "SP",
+            cep=c.cep,
+        )
         if resultado:
             c.lat, c.lon = resultado
+            updated += 1
             db.commit()
         _time.sleep(1.2)
-    return RedirectResponse("/admin/map", status_code=303)
+    return RedirectResponse(f"/admin/map?success={quote(f'Coordenadas atualizadas: {updated}')}", status_code=303)
 
 @router.post("/alerts/generate")
 def generate_alerts_action(request: Request, db: Session = Depends(get_db)):

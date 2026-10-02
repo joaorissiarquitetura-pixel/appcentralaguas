@@ -173,6 +173,53 @@ def send_app_launch_campaign_whatsapp(
     )
 
 
+def send_text_whatsapp(*, to_phone: str, text: str) -> tuple[bool, str, str | None]:
+    if not whatsapp_cloud_api_configured():
+        return False, "whatsapp_cloud_not_configured", None
+
+    phone = phone_to_whatsapp_e164(to_phone)
+    message_text = (text or "").strip()
+    if not phone:
+        return False, "invalid_phone", None
+    if not message_text:
+        return False, "empty_message", None
+
+    phone_number_id = settings.WHATSAPP_CLOUD_PHONE_NUMBER_ID.strip()
+    graph_version = settings.WHATSAPP_GRAPH_API_VERSION.strip() or "v20.0"
+    url = f"https://graph.facebook.com/{graph_version}/{phone_number_id}/messages"
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "text",
+        "text": {"preview_url": False, "body": message_text[:4096]},
+    }
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {settings.WHATSAPP_CLOUD_ACCESS_TOKEN.strip()}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=12) as response:
+            body = response.read().decode("utf-8", errors="replace")
+            if response.status >= 400:
+                return False, f"http_{response.status}", None
+            data = json.loads(body or "{}")
+            messages = data.get("messages") or []
+            message_id = str((messages[0] or {}).get("id") or "") if messages else ""
+            return True, "sent", message_id or None
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        logger.warning("WhatsApp manual text send failed HTTP %s: %s", exc.code, body)
+        return False, f"http_{exc.code}", None
+    except Exception as exc:
+        logger.warning("WhatsApp manual text send failed: %s", exc)
+        return False, "request_failed", None
+
+
 def _send_code_template_whatsapp(
     *,
     to_phone: str,
