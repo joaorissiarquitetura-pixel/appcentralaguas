@@ -19,6 +19,7 @@ from .routers.attendant import router as attendant_router
 from .routers.customer import router as customer_router
 from .routers.gotinha import router as gotinha_router
 from .routers.public import router as public_router
+from .routers.whatsapp_webhook import router as whatsapp_webhook_router
 from .schema_updates import ensure_runtime_schema_updates
 
 load_dotenv()
@@ -71,6 +72,7 @@ def on_startup():
 
 
 app.include_router(public_router)
+app.include_router(whatsapp_webhook_router)
 app.include_router(customer_router)
 app.include_router(gotinha_router)
 app.include_router(app_api_router)

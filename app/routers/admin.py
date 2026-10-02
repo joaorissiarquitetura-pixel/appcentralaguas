@@ -20,7 +20,7 @@ import time as _time
 import json
 
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, CustomerHouseStock, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem, WhatsAppCampaign, WhatsAppCampaignRecipient
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppPromotion, Attendant, Coupon, Customer, CustomerHouseStock, LocationAccessLog, Product, PushSubscription, Transaction, LoyaltyLedger, Alert, Redemption, TransactionItem, WhatsAppCampaign, WhatsAppCampaignRecipient, WhatsAppConversation, WhatsAppMessage
 from ..auth import get_current_attendant_id, is_admin
 from ..security import hash_password
 from ..config import settings
@@ -731,6 +731,20 @@ def whatsapp_campaigns_page(
             .order_by(WhatsAppCampaignRecipient.id.desc())
             .limit(120)
         ).scalars().all()
+    conversations = db.execute(
+        select(WhatsAppConversation)
+        .order_by(WhatsAppConversation.last_message_at.desc().nullslast(), WhatsAppConversation.updated_at.desc())
+        .limit(40)
+    ).scalars().all()
+    selected_conversation = conversations[0] if conversations else None
+    latest_messages = []
+    if selected_conversation:
+        latest_messages = db.execute(
+            select(WhatsAppMessage)
+            .where(WhatsAppMessage.conversation_id == selected_conversation.id)
+            .order_by(WhatsAppMessage.timestamp.desc())
+            .limit(20)
+        ).scalars().all()
 
     valid_phone_count = len(_eligible_campaign_customers(db, 5000))
     return templates.TemplateResponse(
@@ -742,6 +756,9 @@ def whatsapp_campaigns_page(
             "campaigns": campaigns,
             "selected_campaign": selected_campaign,
             "recipients": recipients,
+            "conversations": conversations,
+            "selected_conversation": selected_conversation,
+            "latest_messages": latest_messages,
             "valid_phone_count": valid_phone_count,
             "template_configured": bool(settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME.strip()),
             "api_configured": whatsapp_cloud_api_configured(),

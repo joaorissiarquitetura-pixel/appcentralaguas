@@ -130,5 +130,40 @@
       </section>
     </div>
   {% endif %}
+
+  <div class="wa-grid">
+    <section class="wa-card">
+      <h2>Mensagens recebidas</h2>
+      <div class="campaign-list">
+        {% for conversation in conversations %}
+          <div class="campaign-item">
+            <strong>{{ conversation.customer_name or conversation.phone }}</strong>
+            <span class="small-muted">{{ conversation.phone }} · {{ conversation.unread_count or 0 }} não lida(s) · {{ format_dt(conversation.last_message_at) }}</span>
+            {% if conversation.opt_out %}<span class="status-pill failed">opt-out</span>{% endif %}
+          </div>
+        {% else %}
+          <div class="small-muted">Nenhuma mensagem recebida ainda. Depois de salvar o webhook na Meta, as mensagens aparecerão aqui.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="wa-card">
+      <h2>Últimas mensagens</h2>
+      <div class="recipient-list">
+        {% for message in latest_messages %}
+          <div class="recipient-item">
+            <span>
+              <strong>{{ message.message_type }}</strong>
+              <span class="small-muted d-block">{{ message.text or 'Mensagem sem texto salvo' }}</span>
+              <span class="small-muted d-block">{{ format_dt(message.timestamp) }}</span>
+            </span>
+            <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{{ message.direction }}</span>
+          </div>
+        {% else %}
+          <div class="small-muted">Selecione uma conversa depois que chegarem mensagens.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
 </div>
 {% endblock %}

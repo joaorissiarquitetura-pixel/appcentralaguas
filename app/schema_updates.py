@@ -20,6 +20,9 @@ from .models import (
     PasswordResetToken,
     WhatsAppCampaign,
     WhatsAppCampaignRecipient,
+    WhatsAppConversation,
+    WhatsAppMessage,
+    WhatsAppMessageStatus,
 )
 
 
@@ -94,6 +97,9 @@ def ensure_runtime_schema_updates() -> None:
         PasswordResetToken,
         WhatsAppCampaign,
         WhatsAppCampaignRecipient,
+        WhatsAppConversation,
+        WhatsAppMessage,
+        WhatsAppMessageStatus,
     ):
         table_model.__table__.create(bind=engine, checkfirst=True)
         _ensure_model_columns(table_model)

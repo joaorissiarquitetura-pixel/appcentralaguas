@@ -271,6 +271,60 @@ class WhatsAppCampaignRecipient(Base):
     customer = relationship("Customer")
 
 
+class WhatsAppConversation(Base):
+    __tablename__ = "whatsapp_conversations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    phone: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    customer_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="open", index=True)
+    assigned_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True, index=True)
+    last_message_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
+    last_inbound_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_outbound_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    unread_count: Mapped[int] = mapped_column(Integer, default=0)
+    opt_out: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    customer = relationship("Customer")
+    assigned_attendant = relationship("Attendant")
+    messages = relationship("WhatsAppMessage", cascade="all, delete-orphan", back_populates="conversation")
+
+
+class WhatsAppMessage(Base):
+    __tablename__ = "whatsapp_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("whatsapp_conversations.id"), index=True)
+    customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True, index=True)
+    phone: Mapped[str] = mapped_column(String(30), index=True)
+    direction: Mapped[str] = mapped_column(String(12), default="inbound", index=True)
+    wa_message_id: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True, index=True)
+    message_type: Mapped[str] = mapped_column(String(40), default="text")
+    text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    raw_payload: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    conversation = relationship("WhatsAppConversation", back_populates="messages")
+    customer = relationship("Customer")
+
+
+class WhatsAppMessageStatus(Base):
+    __tablename__ = "whatsapp_message_statuses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    wa_message_id: Mapped[str] = mapped_column(String(160), index=True)
+    recipient_phone: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(40), index=True)
+    raw_payload: Mapped[str | None] = mapped_column(Text, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class AppOrderPushEvent(Base):
     __tablename__ = "app_order_push_events"
 
