@@ -2947,7 +2947,8 @@
       records: [],
       date: localDateIso()
     };
-    const hydrationKey = "centralAguas.hydrationProfile";
+    const legacyHydrationKey = "centralAguas.hydrationProfile";
+    const hydrationKey = "centralAguas.hydrationProfile." + {{ (customer.id if customer else "guest")|tojson }};
     const notificationKey = "centralAguas.hydrationNotifications";
     const deliveryNotificationKey = "centralAguas.deliveryNotifications";
     const houseStockKey = "centralAguas.houseStock";
@@ -4254,7 +4255,7 @@
 
     function loadHydrationProfile() {
       try {
-        const saved = JSON.parse(localStorage.getItem(hydrationKey) || "{}");
+        const saved = JSON.parse(localStorage.getItem(hydrationKey) || localStorage.getItem(legacyHydrationKey) || "{}");
         const today = localDateIso();
         const savedDate = /^\d{4}-\d{2}-\d{2}$/.test(String(saved.date || "")) ? String(saved.date).slice(0, 10) : today;
         const rawRecords = Array.isArray(saved.records) ? [...saved.records] : [];
@@ -4305,7 +4306,39 @@
     }
 
     function saveHydrationProfile(profile) {
-      localStorage.setItem(hydrationKey, JSON.stringify(profile));
+      const saved = { ...profile, updatedAt: new Date().toISOString() };
+      localStorage.setItem(hydrationKey, JSON.stringify(saved));
+      queueHydrationSync();
+    }
+
+    let hydrationSyncTimer = null;
+    function hasHydrationData(profile) {
+      return Boolean(profile?.setupComplete || (profile?.records || []).length);
+    }
+
+    function queueHydrationSync() {
+      if (!customerLoggedIn) return;
+      window.clearTimeout(hydrationSyncTimer);
+      hydrationSyncTimer = window.setTimeout(syncHydrationToBackend, 450);
+    }
+
+    async function syncHydrationToBackend() {
+      if (!customerLoggedIn) return;
+      const profile = loadHydrationProfile();
+      if (!hasHydrationData(profile)) return;
+      await postAppApi("/api/app/hydration", { profile });
+    }
+
+    async function loadHydrationFromBackend() {
+      if (!customerLoggedIn) return;
+      const result = await fetch("/api/app/hydration").then((response) => response.json()).catch(() => null);
+      if (!result?.ok) return;
+      if (result.profile) {
+        localStorage.setItem(hydrationKey, JSON.stringify({ ...result.profile, updatedAt: result.updated_at || "" }));
+        renderHydration();
+        return;
+      }
+      if (hasHydrationData(loadHydrationProfile())) syncHydrationToBackend();
     }
 
     function formatMl(value) {
@@ -6137,6 +6170,7 @@
     renderAddressHistory();
     renderHouseStock();
     renderHydration();
+    loadHydrationFromBackend();
     renderNotificationStatus();
     refreshOrdersFromGrj();
     setInterval(() => {

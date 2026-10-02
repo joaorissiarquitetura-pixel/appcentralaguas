@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, Customer, CustomerHouseStock, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, Customer, CustomerHouseStock, CustomerHydrationProfile, LocationAccessLog, PushSubscription
 from ..services.app_access import check_service_area
 from ..services.push import push_configured, send_fcm
 
@@ -89,6 +89,10 @@ class CustomerAddressPayload(BaseModel):
     neighborhood: str = ""
     city: str = ""
     state: str = "SP"
+
+
+class HydrationProfilePayload(BaseModel):
+    profile: dict = Field(default_factory=dict)
 
 
 def _grj_app_status_url() -> str:
@@ -468,6 +472,78 @@ def save_customer_address(payload: CustomerAddressPayload, request: Request, db:
     customer.state = payload.state.strip()[:8] or customer.state or "SP"
     db.commit()
     return {"ok": True}
+
+
+def _hydration_profile_payload(profile: dict) -> dict:
+    def bounded_int(value, minimum: int, maximum: int, default: int) -> int:
+        try:
+            return max(minimum, min(maximum, int(float(value))))
+        except (TypeError, ValueError):
+            return default
+
+    records = []
+    for item in profile.get("records", []) if isinstance(profile.get("records"), list) else []:
+        if not isinstance(item, dict):
+            continue
+        date = str(item.get("date") or "")[:10]
+        at = str(item.get("at") or "")[:40]
+        try:
+            amount = bounded_int(item.get("amountMl"), 1, 1500, 0)
+        except (TypeError, ValueError):
+            continue
+        if len(date) == 10 and amount:
+            records.append({"date": date, "at": at, "amountMl": amount})
+
+    safe_profile = {
+        "routine": str(profile.get("routine") or "normal")[:20],
+        "weight": bounded_int(profile.get("weight"), 0, 180, 0),
+        "sex": str(profile.get("sex") or "neutral")[:20],
+        "cupMl": bounded_int(profile.get("cupMl"), 100, 1000, 300),
+        "selectedDrinkMl": bounded_int(profile.get("selectedDrinkMl"), 100, 1500, 300),
+        "wakeTime": str(profile.get("wakeTime") or "08:00")[:5],
+        "sleepTime": str(profile.get("sleepTime") or "23:00")[:5],
+        "lunchTime": str(profile.get("lunchTime") or "12:00")[:5],
+        "dinnerTime": str(profile.get("dinnerTime") or "19:30")[:5],
+        "workType": str(profile.get("workType") or "leve")[:20],
+        "reminderMode": str(profile.get("reminderMode") or "standard")[:20],
+        "reminderIntervalMin": bounded_int(profile.get("reminderIntervalMin"), 30, 180, 90),
+        "stopAtGoal": bool(profile.get("stopAtGoal", True)),
+        "weekendMode": bool(profile.get("weekendMode", False)),
+        "setupComplete": bool(profile.get("setupComplete", False)),
+        "records": records[-1000:],
+    }
+    return safe_profile
+
+
+@router.get("/hydration")
+def get_hydration_profile(request: Request, db: Session = Depends(get_db)):
+    customer_id = _current_customer_id(request)
+    if customer_id is None:
+        return {"ok": False, "error": "customer_login_required"}
+    stored = db.scalar(select(CustomerHydrationProfile).where(CustomerHydrationProfile.customer_id == customer_id))
+    if not stored:
+        return {"ok": True, "profile": None}
+    try:
+        profile = json.loads(stored.profile_json or "{}")
+    except json.JSONDecodeError:
+        profile = {}
+    return {"ok": True, "profile": profile, "updated_at": stored.updated_at.isoformat() if stored.updated_at else ""}
+
+
+@router.post("/hydration")
+def save_hydration_profile(payload: HydrationProfilePayload, request: Request, db: Session = Depends(get_db)):
+    customer_id = _current_customer_id(request)
+    if customer_id is None:
+        return {"ok": False, "error": "customer_login_required"}
+    stored = db.scalar(select(CustomerHydrationProfile).where(CustomerHydrationProfile.customer_id == customer_id))
+    now = datetime.utcnow()
+    if not stored:
+        stored = CustomerHydrationProfile(customer_id=customer_id, created_at=now)
+        db.add(stored)
+    stored.profile_json = json.dumps(_hydration_profile_payload(payload.profile), ensure_ascii=False)
+    stored.updated_at = now
+    db.commit()
+    return {"ok": True, "updated_at": now.isoformat()}
 
 
 def _record_banner_event(db: Session, banner_id: int, payload: DeviceEventPayload, request: Request, event_type: str):

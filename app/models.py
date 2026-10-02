@@ -202,6 +202,18 @@ class CustomerHouseStock(Base):
     customer = relationship("Customer")
 
 
+class CustomerHydrationProfile(Base):
+    __tablename__ = "customer_hydration_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"), unique=True, index=True)
+    profile_json: Mapped[str] = mapped_column(Text, default="{}", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    customer = relationship("Customer")
+
+
 class AppNotification(Base):
     __tablename__ = "app_notifications"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
