@@ -638,13 +638,7 @@ def _customer_coupons(db: Session, customer_id: int | None = None) -> SimpleName
 # --- ROTA HOME ---
 @router.get("/")
 def home(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="home.html",
-        context={
-            "business_name": settings.BUSINESS_NAME,
-        },
-    )
+    return RedirectResponse("/app", status_code=307)
 
 
 @router.get("/app", response_class=HTMLResponse)
