@@ -872,6 +872,12 @@ def whatsapp_campaigns_page(
         selected_conversation = conversations[0] if conversations else None
     latest_messages = []
     if selected_conversation:
+        if active_tab == "messages" and selected_conversation.unread_count:
+            selected_conversation.unread_count = 0
+            selected_conversation.last_read_by_attendant_id = admin.id
+            selected_conversation.last_read_at = datetime.utcnow()
+            selected_conversation.updated_at = selected_conversation.last_read_at
+            db.commit()
         latest_messages = db.execute(
             select(WhatsAppMessage)
             .where(WhatsAppMessage.conversation_id == selected_conversation.id)
@@ -935,7 +941,7 @@ def reply_whatsapp_conversation(
         )
 
     sender_label = f"{admin.name.strip()} (Central Águas)" if identify_sender == "1" and admin.name.strip() else "Central Águas"
-    outgoing_text = f"{sender_label}\n\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
+    outgoing_text = f"*{sender_label}*\n\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
     ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=outgoing_text)
     if not ok:
         error = quote(

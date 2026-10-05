@@ -90,6 +90,8 @@
   }
   .campaign-item:hover { border-color: #a9ccff; background: #f2f8ff; }
   .campaign-item.is-active { border-color: var(--ca-primary); background: #eef6ff; box-shadow: inset 4px 0 0 var(--ca-primary); }
+  .campaign-item.has-unread { border-color: #75a9ff; background: #eff6ff; }
+  .campaign-item.has-unread .wa-inbox-name strong { color: #0b4ccb; }
   .recipient-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .status-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: .74rem; font-weight: 800; background: #eef2ff; color: #344054; white-space: nowrap; }
   .status-pill.sent { background: #dcfce7; color: #166534; }
@@ -110,6 +112,8 @@
     font-size: .72rem;
     font-weight: 800;
   }
+  .wa-unread-label { color: #0b4ccb; font-size: .72rem; font-weight: 800; }
+  .wa-read-state { color: #166534; font-size: .8rem; font-weight: 700; }
   .message-stack { display: grid; gap: 12px; }
   .message-card {
     display: grid;
@@ -299,13 +303,13 @@
       </div>
       <div class="campaign-list">
         {% for conversation in conversations %}
-          <a class="campaign-item wa-inbox-item text-decoration-none {% if selected_conversation and selected_conversation.id == conversation.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?tab=messages&conversation_id={{ conversation.id }}{% if selected_campaign %}&campaign_id={{ selected_campaign.id }}{% endif %}">
+          <a class="campaign-item wa-inbox-item text-decoration-none {% if conversation.unread_count %}has-unread{% endif %} {% if selected_conversation and selected_conversation.id == conversation.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?tab=messages&conversation_id={{ conversation.id }}{% if selected_campaign %}&campaign_id={{ selected_campaign.id }}{% endif %}">
             <span>
               <span class="wa-inbox-name">
                 <strong>{{ conversation.customer_name or conversation.phone }}</strong>
                 {% if conversation.unread_count %}<span class="wa-unread">{{ conversation.unread_count }}</span>{% endif %}
               </span>
-              <span class="small-muted d-block">{{ conversation.phone }} · {{ format_dt(conversation.last_message_at) }}</span>
+              <span class="small-muted d-block">{{ conversation.phone }} · {{ format_dt(conversation.last_message_at) }}{% if conversation.unread_count %} · <span class="wa-unread-label">Nova mensagem</span>{% endif %}</span>
             </span>
             {% if conversation.opt_out %}<span class="status-pill failed">opt-out</span>{% endif %}
           </a>
@@ -319,7 +323,7 @@
       <div class="wa-card-head">
         <div class="wa-heading">
           <span class="wa-title-icon"><i class="bi bi-chat-dots"></i></span>
-          <h2>{{ selected_conversation.customer_name or selected_conversation.phone if selected_conversation else 'Últimas mensagens' }}</h2>
+          <div><h2>{{ selected_conversation.customer_name or selected_conversation.phone if selected_conversation else 'Últimas mensagens' }}</h2>{% if selected_conversation and selected_conversation.last_read_at %}<span class="wa-read-state">Lido por {{ selected_conversation.last_read_by_attendant.name if selected_conversation.last_read_by_attendant else 'atendente' }} · {{ format_dt(selected_conversation.last_read_at) }}</span>{% endif %}</div>
         </div>
       </div>
       {% if selected_conversation %}
@@ -349,4 +353,13 @@
   </div>
   {% endif %}
 </div>
+{% if active_tab == 'messages' %}
+<script>
+  window.setInterval(() => {
+    const reply = document.querySelector('.reply-box textarea');
+    if (document.visibilityState !== 'visible' || (reply && (reply === document.activeElement || reply.value.trim()))) return;
+    window.location.reload();
+  }, 12000);
+</script>
+{% endif %}
 {% endblock %}

@@ -296,12 +296,15 @@ class WhatsAppConversation(Base):
     last_inbound_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     last_outbound_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     unread_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_read_by_attendant_id: Mapped[int | None] = mapped_column(ForeignKey("attendants.id"), nullable=True, index=True)
+    last_read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     opt_out: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     customer = relationship("Customer")
-    assigned_attendant = relationship("Attendant")
+    assigned_attendant = relationship("Attendant", foreign_keys=[assigned_attendant_id])
+    last_read_by_attendant = relationship("Attendant", foreign_keys=[last_read_by_attendant_id])
     messages = relationship("WhatsAppMessage", cascade="all, delete-orphan", back_populates="conversation")
 
 
