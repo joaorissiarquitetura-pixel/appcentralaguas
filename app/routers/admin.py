@@ -872,7 +872,7 @@ def whatsapp_campaigns_page(
         selected_conversation = conversations[0] if conversations else None
     latest_messages = []
     if selected_conversation:
-        if active_tab == "messages" and selected_conversation.unread_count:
+        if tab == "messages" and selected_conversation.unread_count:
             selected_conversation.unread_count = 0
             selected_conversation.last_read_by_attendant_id = admin.id
             selected_conversation.last_read_at = datetime.utcnow()
