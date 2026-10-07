@@ -1057,6 +1057,106 @@ def whatsapp_campaigns_page(
     )
 
 
+def _whatsapp_message_author_label(message: WhatsAppMessage, conversation: WhatsAppConversation | None = None) -> str:
+    if message.direction == "inbound":
+        if message.customer and message.customer.name:
+            return message.customer.name
+        if conversation:
+            return conversation.customer_name or conversation.phone
+        return message.phone
+    if message.authored_attendant:
+        return f"{message.authored_attendant.name} (Central Águas)"
+    return "Central Águas"
+
+
+def _whatsapp_message_status_label(message: WhatsAppMessage) -> str:
+    if message.direction == "inbound":
+        return "recebida"
+    if message.message_type == "template":
+        return "campanha enviada"
+    if message.message_type == "auto_reply":
+        return "automática"
+    return "enviada"
+
+
+def _whatsapp_message_payload(message: WhatsAppMessage, conversation: WhatsAppConversation | None = None) -> dict:
+    return {
+        "id": message.id,
+        "direction": message.direction,
+        "author": _whatsapp_message_author_label(message, conversation),
+        "status": _whatsapp_message_status_label(message),
+        "status_class": "sent" if message.direction == "outbound" else "pending",
+        "text": message.text or "Mensagem sem texto salvo",
+        "timestamp": _admin_datetime_label(message.timestamp),
+    }
+
+
+def _latest_whatsapp_messages(db: Session, conversation_id: int, limit: int = 40) -> list[WhatsAppMessage]:
+    return list(
+        reversed(
+            db.execute(
+                select(WhatsAppMessage)
+                .where(WhatsAppMessage.conversation_id == conversation_id)
+                .order_by(WhatsAppMessage.timestamp.desc(), WhatsAppMessage.id.desc())
+                .limit(limit)
+            ).scalars().all()
+        )
+    )
+
+
+def _send_whatsapp_conversation_reply(
+    *,
+    db: Session,
+    admin: Attendant,
+    conversation: WhatsAppConversation,
+    message: str,
+    identify_sender: str,
+    request: Request,
+) -> tuple[bool, str, WhatsAppMessage | None]:
+    message_text = (message or "").strip()
+    if not message_text:
+        return False, "Digite uma mensagem", None
+    if not whatsapp_cloud_api_configured():
+        return False, "WhatsApp Cloud API não configurado", None
+
+    sender_label = f"{admin.name.strip()} (Central Águas)" if identify_sender == "1" and admin.name.strip() else "Central Águas"
+    outgoing_text = f"*{sender_label}*\n\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
+    ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=outgoing_text)
+    if not ok:
+        return False, f"Não foi possível enviar a resposta ({reason}). Se a janela de 24h fechou, envie um template primeiro.", None
+
+    now = datetime.utcnow()
+    outgoing_message = WhatsAppMessage(
+        conversation_id=conversation.id,
+        customer_id=conversation.customer_id,
+        authored_attendant_id=admin.id,
+        phone=conversation.phone,
+        direction="outbound",
+        wa_message_id=wa_message_id,
+        message_type="text",
+        text=outgoing_text[:4096],
+        status="sent",
+        timestamp=now,
+    )
+    db.add(outgoing_message)
+    db.flush()
+    conversation.last_message_at = now
+    conversation.last_outbound_at = now
+    conversation.unread_count = 0
+    conversation.updated_at = now
+    conversation.assigned_attendant_id = conversation.assigned_attendant_id or admin.id
+    log_admin_action(
+        db,
+        action="whatsapp_conversation_reply_sent",
+        actor_attendant_id=admin.id,
+        entity_type="whatsapp_conversation",
+        entity_id=conversation.id,
+        details={"message_id": wa_message_id, "phone": conversation.phone, "sender": sender_label},
+        request=request,
+    )
+    return True, "sent", outgoing_message
+
+
 @router.post("/whatsapp-conversations/{conversation_id}/reply")
 def reply_whatsapp_conversation(
     conversation_id: int,
@@ -1073,63 +1173,100 @@ def reply_whatsapp_conversation(
     if not conversation:
         return RedirectResponse("/admin/whatsapp-campaigns?tab=messages&err=Conversa%20não%20encontrada", status_code=303)
 
-    message_text = (message or "").strip()
-    if not message_text:
-        return RedirectResponse(
-            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err=Digite%20uma%20mensagem",
-            status_code=303,
-        )
-    if not whatsapp_cloud_api_configured():
-        return RedirectResponse(
-            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err=WhatsApp%20Cloud%20API%20não%20configurado",
-            status_code=303,
-        )
-
-    sender_label = f"{admin.name.strip()} (Central Águas)" if identify_sender == "1" and admin.name.strip() else "Central Águas"
-    outgoing_text = f"*{sender_label}*\n\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
-    ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=outgoing_text)
-    if not ok:
-        error = quote(
-            f"Não foi possível enviar a resposta ({reason}). Se a janela de 24h fechou, envie um template primeiro."
-        )
-        return RedirectResponse(
-            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err={error}",
-            status_code=303,
-        )
-
-    now = datetime.utcnow()
-    db.add(
-        WhatsAppMessage(
-            conversation_id=conversation.id,
-            customer_id=conversation.customer_id,
-            authored_attendant_id=admin.id,
-            phone=conversation.phone,
-            direction="outbound",
-            wa_message_id=wa_message_id,
-            message_type="text",
-            text=outgoing_text[:4096],
-            status="sent",
-            timestamp=now,
-        )
-    )
-    conversation.last_message_at = now
-    conversation.last_outbound_at = now
-    conversation.unread_count = 0
-    conversation.updated_at = now
-    conversation.assigned_attendant_id = conversation.assigned_attendant_id or admin.id
-    log_admin_action(
-        db,
-        action="whatsapp_conversation_reply_sent",
-        actor_attendant_id=admin.id,
-        entity_type="whatsapp_conversation",
-        entity_id=conversation.id,
-        details={"message_id": wa_message_id, "phone": conversation.phone, "sender": sender_label},
+    ok, result, _sent_message = _send_whatsapp_conversation_reply(
+        db=db,
+        admin=admin,
+        conversation=conversation,
+        message=message,
+        identify_sender=identify_sender,
         request=request,
     )
+    if not ok:
+        return RedirectResponse(
+            f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&err={quote(result)}",
+            status_code=303,
+        )
+
     db.commit()
     return RedirectResponse(
         f"/admin/whatsapp-campaigns?tab=messages&conversation_id={conversation.id}&success=Resposta%20enviada",
         status_code=303,
+    )
+
+
+@router.get("/whatsapp-conversations/{conversation_id}/messages")
+def whatsapp_conversation_messages(
+    conversation_id: int,
+    request: Request,
+    after_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+
+    conversation = db.get(WhatsAppConversation, conversation_id)
+    if not conversation:
+        return JSONResponse({"ok": False, "error": "not_found"}, status_code=404)
+
+    messages_query = select(WhatsAppMessage).where(WhatsAppMessage.conversation_id == conversation.id)
+    if after_id:
+        messages_query = messages_query.where(WhatsAppMessage.id > after_id)
+    messages = db.execute(
+        messages_query.order_by(WhatsAppMessage.timestamp.asc(), WhatsAppMessage.id.asc()).limit(80)
+    ).scalars().all()
+
+    if conversation.unread_count:
+        conversation.unread_count = 0
+        conversation.last_read_by_attendant_id = admin.id
+        conversation.last_read_at = datetime.utcnow()
+        conversation.updated_at = conversation.last_read_at
+        db.commit()
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "conversation_id": conversation.id,
+            "last_message_id": max([message.id for message in messages], default=after_id),
+            "messages": [_whatsapp_message_payload(message, conversation) for message in messages],
+        }
+    )
+
+
+@router.post("/whatsapp-conversations/{conversation_id}/reply-json")
+async def reply_whatsapp_conversation_json(
+    conversation_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    admin = require_admin(request, db)
+    if not admin:
+        return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+
+    conversation = db.get(WhatsAppConversation, conversation_id)
+    if not conversation:
+        return JSONResponse({"ok": False, "error": "Conversa não encontrada"}, status_code=404)
+
+    form = await request.form()
+    ok, result, sent_message = _send_whatsapp_conversation_reply(
+        db=db,
+        admin=admin,
+        conversation=conversation,
+        message=str(form.get("message") or ""),
+        identify_sender=str(form.get("identify_sender") or ""),
+        request=request,
+    )
+    if not ok:
+        db.rollback()
+        return JSONResponse({"ok": False, "error": result}, status_code=400)
+
+    db.commit()
+    db.refresh(sent_message)
+    return JSONResponse(
+        {
+            "ok": True,
+            "message": _whatsapp_message_payload(sent_message, conversation),
+        }
     )
 
 

@@ -365,7 +365,7 @@
       </div>
     </section>
 
-    <section class="wa-card chat-card">
+    <section class="wa-card chat-card" {% if selected_conversation %}data-conversation-id="{{ selected_conversation.id }}"{% endif %}>
       <div class="wa-card-head">
         <div class="wa-heading">
           <span class="wa-title-icon"><i class="bi bi-chat-dots"></i></span>
@@ -374,7 +374,7 @@
       </div>
       <div class="message-stack" data-message-stack>
         {% for message in latest_messages|reverse %}
-          <div class="message-card {{ message.direction }}">
+          <div class="message-card {{ message.direction }}" data-message-id="{{ message.id }}">
             <div class="message-top">
               <strong>{% if message.direction == 'inbound' %}{{ message.customer.name if message.customer else selected_conversation.customer_name or selected_conversation.phone }}{% elif message.authored_attendant %}{{ message.authored_attendant.name }} (Central Águas){% else %}Central Águas{% endif %}</strong>
               <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{% if message.direction == 'inbound' %}recebida{% elif message.message_type == 'template' %}campanha enviada{% else %}enviada{% endif %}</span>
@@ -402,12 +402,94 @@
 {% if active_tab == 'messages' %}
 <script>
   const messageStack = document.querySelector('[data-message-stack]');
+  const chatCard = document.querySelector('[data-conversation-id]');
+  let lastMessageId = 0;
   if (messageStack) {
+    const messageCards = messageStack.querySelectorAll('[data-message-id]');
+    const lastCard = messageCards[messageCards.length - 1];
+    lastMessageId = Number(lastCard?.dataset.messageId || 0);
     messageStack.scrollTop = messageStack.scrollHeight;
+  }
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char]));
+  }
+  function nearConversationBottom() {
+    if (!messageStack) return true;
+    return messageStack.scrollHeight - messageStack.scrollTop - messageStack.clientHeight < 120;
+  }
+  function appendChatMessage(message, forceScroll = false) {
+    if (!messageStack || !message || !message.id || messageStack.querySelector(`[data-message-id="${message.id}"]`)) return;
+    const shouldScroll = forceScroll || nearConversationBottom();
+    const card = document.createElement('div');
+    card.className = `message-card ${message.direction || ''}`;
+    card.dataset.messageId = String(message.id);
+    card.innerHTML = `
+      <div class="message-top">
+        <strong>${escapeHtml(message.author)}</strong>
+        <span class="status-pill ${escapeHtml(message.status_class || 'pending')}">${escapeHtml(message.status)}</span>
+      </div>
+      <div class="message-text">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>
+      <span class="small-muted">${escapeHtml(message.timestamp)}</span>
+    `;
+    messageStack.appendChild(card);
+    lastMessageId = Math.max(lastMessageId, Number(message.id || 0));
+    if (shouldScroll) {
+      messageStack.scrollTop = messageStack.scrollHeight;
+    }
+  }
+  async function fetchNewMessages(forceScroll = false) {
+    if (!chatCard || !messageStack) return;
+    try {
+      const response = await fetch(`/admin/whatsapp-conversations/${chatCard.dataset.conversationId}/messages?after_id=${lastMessageId}`, {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (!data.ok || !Array.isArray(data.messages)) return;
+      data.messages.forEach((message) => appendChatMessage(message, forceScroll));
+    } catch (_error) {
+      // Mantém a tela quieta se a rede oscilar.
+    }
   }
   const replyForm = document.querySelector('[data-reply-form]');
   const replyTextarea = document.querySelector('[data-reply-textarea]');
   if (replyForm && replyTextarea) {
+    replyForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const message = replyTextarea.value.trim();
+      if (!message) return;
+      const submitButton = replyForm.querySelector('button[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+      try {
+        const formData = new FormData(replyForm);
+        formData.set('message', message);
+        const response = await fetch(replyForm.action.replace('/reply', '/reply-json'), {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          alert(data.error || 'Não foi possível enviar a resposta.');
+          return;
+        }
+        replyTextarea.value = '';
+        appendChatMessage(data.message, true);
+        await fetchNewMessages(true);
+      } catch (_error) {
+        alert('Não foi possível enviar a resposta agora.');
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+        replyTextarea.focus();
+      }
+    });
     replyTextarea.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
       event.preventDefault();
@@ -420,10 +502,9 @@
     });
   }
   window.setInterval(() => {
-    const reply = document.querySelector('[data-reply-textarea]');
-    if (document.visibilityState !== 'visible' || (reply && (reply === document.activeElement || reply.value.trim()))) return;
-    window.location.reload();
-  }, 12000);
+    if (document.visibilityState !== 'visible') return;
+    fetchNewMessages(false);
+  }, 4000);
 </script>
 {% endif %}
 {% endblock %}
