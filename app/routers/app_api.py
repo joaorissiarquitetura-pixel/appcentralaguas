@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel, Field
@@ -16,12 +17,14 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_customer_id
 from ..config import settings
 from ..database import get_db
-from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, Customer, CustomerHouseStock, CustomerHydrationProfile, LocationAccessLog, PushSubscription
+from ..models import AppBanner, AppBannerEvent, AppDevice, AppNotification, AppNotificationEvent, AppOrderPushEvent, AppPromotion, Customer, CustomerHouseStock, CustomerHydrationProfile, LocationAccessLog, LoyaltyLedger, PushSubscription
 from ..services.app_access import check_service_area
+from ..services.loyalty import card_progress, cards_completed, points_balance
 from ..services.push import push_configured, send_fcm
 
 router = APIRouter(prefix="/api/app", tags=["App"])
 logger = logging.getLogger(__name__)
+APP_TZ = ZoneInfo(settings.LOCAL_TZ)
 
 
 class DeviceRegisterPayload(BaseModel):
@@ -119,6 +122,53 @@ def _blocked_response(device: AppDevice | None):
             "reason": device.block_reason or "Acesso bloqueado pelo administrador.",
         }
     return None
+
+
+def _app_datetime_label(value: datetime | None) -> str:
+    if not value:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=ZoneInfo("UTC"))
+    return value.astimezone(APP_TZ).strftime("%d/%m/%Y %H:%M")
+
+
+@router.get("/loyalty")
+def app_loyalty(request: Request, db: Session = Depends(get_db)):
+    customer_id = _current_customer_id(request)
+    if not customer_id:
+        return {"ok": False, "error": "customer_login_required"}
+
+    balance = points_balance(db, customer_id)
+    progress = card_progress(balance)
+    completed = cards_completed(balance)
+    missing = settings.CARD_TARGET_POINTS - progress if progress else settings.CARD_TARGET_POINTS
+    ledger = (
+        db.execute(
+            select(LoyaltyLedger)
+            .where(LoyaltyLedger.customer_id == customer_id)
+            .order_by(LoyaltyLedger.created_at.desc(), LoyaltyLedger.id.desc())
+            .limit(20)
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "ok": True,
+        "target": settings.CARD_TARGET_POINTS,
+        "balance": balance,
+        "progress": progress,
+        "completed": completed,
+        "missing": missing,
+        "coupon_available": completed > 0,
+        "history": [
+            {
+                "date_label": _app_datetime_label(item.created_at),
+                "reason": item.reason or "Movimentação de pontos",
+                "delta_points": int(item.delta_points or 0),
+            }
+            for item in ledger
+        ],
+    }
 
 
 def _normalized_cancel_reason(value: str | None) -> str:

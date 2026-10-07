@@ -1,4 +1,4 @@
-const CACHE_NAME = "central-aguas-app-v10";
+const CACHE_NAME = "central-aguas-app-v11";
 const APP_SHELL = [
   "/app",
   "/manifest.webmanifest",

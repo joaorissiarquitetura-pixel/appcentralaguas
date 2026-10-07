@@ -2533,7 +2533,7 @@
         </header>
         <article class="loyalty-card">
           <div class="small"><i class="bi bi-award-fill"></i> Cliente Central</div>
-          <h2>
+          <h2 data-loyalty-title>
             {% if loyalty.available and loyalty.completed %}
               {{ loyalty.completed }} cartão{{ 'ões' if loyalty.completed > 1 else '' }} completo{{ 's' if loyalty.completed > 1 else '' }}
             {% else %}
@@ -2541,33 +2541,35 @@
             {% endif %}
           </h2>
           <div class="progress-track"><span></span></div>
-          <p class="small">
+          <p class="small" data-loyalty-message>
             {% if loyalty.available and loyalty.completed %}
               Você tem cupom de fidelidade disponível. Próximo cartão: {{ loyalty.progress }} de {{ loyalty_target }} pontos.
             {% else %}
               Faltam só {{ loyalty.missing if loyalty.available else loyalty_target }} para sua próxima recompensa.
             {% endif %}
           </p>
-          <button class="primary-button" type="button" {% if loyalty.available and loyalty.coupon_available %}data-go="coupons"{% else %}disabled aria-disabled="true"{% endif %}>{{ 'Usar cupom disponível' if loyalty.available and loyalty.coupon_available else 'Sem cupom disponível' }}</button>
+          <button class="primary-button" type="button" data-loyalty-coupon-button {% if loyalty.available and loyalty.coupon_available %}data-go="coupons"{% else %}disabled aria-disabled="true"{% endif %}>{{ 'Usar cupom disponível' if loyalty.available and loyalty.coupon_available else 'Sem cupom disponível' }}</button>
         </article>
         <button class="menu-row" type="button" data-go="coupons"><span class="blue-icon"><i class="bi bi-ticket-perforated-fill"></i></span><span class="row-copy"><strong>Meus cupons</strong><span>{{ coupons.available|length }} disponíveis para usar no app</span></span><i class="bi bi-chevron-right"></i></button>
         <h2 class="section-title">Histórico de pontos</h2>
-        {% for item in loyalty_history %}
-          <div class="history-row">
-            <span class="blue-icon"><i class="bi {{ item.icon }}"></i></span>
-            <span class="row-copy">
-              <strong>{{ item.date_label }} · {{ item.reason }}</strong>
-              <span>{{ 'Última movimentação' if loop.first else 'Movimentação de pontos' }}</span>
-            </span>
-            <strong>{{ '+' if item.delta_points > 0 else '' }}{{ item.delta_points }} ponto{{ 's' if item.delta_points != 1 and item.delta_points != -1 else '' }}</strong>
-          </div>
-        {% else %}
-          <div class="empty-state">
-            <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
-            <strong>Nenhuma movimentação ainda.</strong>
-            <span>Seus pontos aparecem aqui do mais recente para o mais antigo.</span>
-          </div>
-        {% endfor %}
+        <div data-loyalty-history>
+          {% for item in loyalty_history %}
+            <div class="history-row">
+              <span class="blue-icon"><i class="bi {{ item.icon }}"></i></span>
+              <span class="row-copy">
+                <strong>{{ item.date_label }} · {{ item.reason }}</strong>
+                <span>{{ 'Última movimentação' if loop.first else 'Movimentação de pontos' }}</span>
+              </span>
+              <strong>{{ '+' if item.delta_points > 0 else '' }}{{ item.delta_points }} ponto{{ 's' if item.delta_points != 1 and item.delta_points != -1 else '' }}</strong>
+            </div>
+          {% else %}
+            <div class="empty-state">
+              <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
+              <strong>Nenhuma movimentação ainda.</strong>
+              <span>Seus pontos aparecem aqui do mais recente para o mais antigo.</span>
+            </div>
+          {% endfor %}
+        </div>
         <button class="secondary-button" type="button" data-go="home">Voltar para o app</button>
       </div>
     </section>
@@ -3054,6 +3056,7 @@
       notes: "Pedido iniciado pelo app Central Águas"
     };
     const customerLoggedIn = {{ customer_logged_in|tojson }};
+    const loyaltyTarget = {{ loyalty_target|tojson }};
     const addressSyncKey = "centralAguas.addressSyncPending." + {{ (customer.id if customer else "guest")|tojson }};
     const hydrationDefaults = {
       routine: {{ ("calma" if hydration_profile.rhythm == "individual" else "corrida" if hydration_profile.rhythm == "familia" else "normal")|tojson }},
@@ -3221,6 +3224,85 @@
         '"': "&quot;",
         "'": "&#039;"
       }[char]));
+    }
+
+    function pointLabel(value) {
+      const points = Number(value || 0);
+      return `${points} ponto${Math.abs(points) === 1 ? "" : "s"}`;
+    }
+
+    function renderLoyalty(data) {
+      if (!data?.ok) return;
+      const target = Number(data.target || loyaltyTarget || 10);
+      const progress = Number(data.progress || 0);
+      const completed = Number(data.completed || 0);
+      const missing = Number(data.missing || target);
+      const title = document.querySelector("[data-loyalty-title]");
+      const message = document.querySelector("[data-loyalty-message]");
+      const couponButton = document.querySelector("[data-loyalty-coupon-button]");
+      const progressBar = document.querySelector(".loyalty-card .progress-track span");
+      const history = document.querySelector("[data-loyalty-history]");
+      if (title) {
+        title.textContent = completed > 0
+          ? `${completed} cartão${completed > 1 ? "ões" : ""} completo${completed > 1 ? "s" : ""}`
+          : `${progress} de ${target} pontos`;
+      }
+      if (message) {
+        message.textContent = completed > 0
+          ? `Você tem cupom de fidelidade disponível. Próximo cartão: ${progress} de ${target} pontos.`
+          : `Faltam só ${missing} para sua próxima recompensa.`;
+      }
+      if (progressBar) {
+        progressBar.style.width = `${Math.min(100, Math.max(0, progress / target * 100))}%`;
+      }
+      if (couponButton) {
+        couponButton.textContent = completed > 0 ? "Usar cupom disponível" : "Sem cupom disponível";
+        couponButton.disabled = completed <= 0;
+        couponButton.setAttribute("aria-disabled", completed > 0 ? "false" : "true");
+        if (completed > 0) {
+          couponButton.dataset.go = "coupons";
+        } else {
+          couponButton.removeAttribute("data-go");
+        }
+      }
+      if (history) {
+        const rows = Array.isArray(data.history) ? data.history : [];
+        history.innerHTML = rows.length ? rows.map((item, index) => {
+          const delta = Number(item.delta_points || 0);
+          const icon = delta < 0 ? "bi-ticket-perforated" : "bi-droplet-fill";
+          const signed = `${delta > 0 ? "+" : ""}${pointLabel(delta)}`;
+          return `
+            <div class="history-row">
+              <span class="blue-icon"><i class="bi ${icon}"></i></span>
+              <span class="row-copy">
+                <strong>${escapeHtml(item.date_label || "")} · ${escapeHtml(item.reason || "Movimentação de pontos")}</strong>
+                <span>${index === 0 ? "Última movimentação" : "Movimentação de pontos"}</span>
+              </span>
+              <strong>${escapeHtml(signed)}</strong>
+            </div>
+          `;
+        }).join("") : `
+          <div class="empty-state">
+            <span class="blue-icon"><i class="bi bi-clock-history"></i></span>
+            <strong>Nenhuma movimentação ainda.</strong>
+            <span>Seus pontos aparecem aqui do mais recente para o mais antigo.</span>
+          </div>
+        `;
+      }
+    }
+
+    async function refreshLoyalty() {
+      if (!customerLoggedIn) return;
+      try {
+        const response = await fetch("/api/app/loyalty", {
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        if (!response.ok) return;
+        renderLoyalty(await response.json());
+      } catch (_error) {
+        // Se a rede oscilar, mantem os dados renderizados no carregamento.
+      }
     }
 
     function activeCartItems() {
@@ -5438,6 +5520,9 @@
         renderOrders();
         refreshOrdersFromGrj();
       }
+      if (name === "loyalty") {
+        refreshLoyalty();
+      }
       if (name === "store") {
         renderStoreCategory();
         updateCartIndicators();
@@ -6406,6 +6491,9 @@
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         refreshOrdersFromGrj();
+        if (document.querySelector('[data-screen="loyalty"]')?.classList.contains("is-active")) {
+          refreshLoyalty();
+        }
       }
     });
     trackNotificationOpenFromUrl();
