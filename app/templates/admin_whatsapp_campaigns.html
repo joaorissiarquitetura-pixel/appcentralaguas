@@ -138,39 +138,81 @@
     flex-direction: column;
     min-height: 620px;
     max-height: calc(100vh - 230px);
+    padding: 0;
+    overflow: hidden;
+  }
+  .chat-card .wa-card-head {
+    margin: 0;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid #e4edf8;
+    background: #ffffff;
   }
   .message-stack {
-    display: grid;
-    gap: 12px;
     overflow-y: auto;
-    padding-right: 4px;
+    padding: 18px 18px 14px;
     scroll-behavior: smooth;
     flex: 1 1 auto;
     min-height: 260px;
+    background:
+      radial-gradient(circle at 20px 20px, rgba(23, 87, 172, .035) 0 1px, transparent 1px),
+      radial-gradient(circle at 70px 55px, rgba(23, 87, 172, .025) 0 1px, transparent 1px),
+      #f4f8fb;
+    background-size: 92px 78px;
   }
   .message-card {
-    display: grid;
-    gap: 7px;
-    padding: 14px;
-    border: 1px solid #dbe8fb;
-    border-radius: 14px;
-    background: #f8fbff;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: fit-content;
+    max-width: min(78%, 620px);
+    margin: 0 0 8px;
+    padding: 8px 10px 6px;
+    border: 1px solid rgba(15, 23, 42, .06);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 1px 1px rgba(15, 23, 42, .05);
+    white-space: pre-wrap;
   }
-  .message-card.inbound { background: #fffaf0; border-color: #f4dfaa; }
-  .message-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-  .message-text { color: #27364b; line-height: 1.45; }
+  .message-card.outbound {
+    margin-left: auto;
+    border-color: #bfe7ad;
+    background: #dcf8c6;
+  }
+  .message-card.inbound {
+    margin-right: auto;
+    border-color: rgba(15, 23, 42, .08);
+    background: #ffffff;
+  }
+  .message-top { display: flex; justify-content: flex-start; gap: 8px; align-items: baseline; }
+  .message-top strong { color: #075e54; font-size: .82rem; line-height: 1.15; }
+  .message-card.inbound .message-top strong { color: #1d4ed8; }
+  .message-status { display: none; }
+  .message-text { color: #111827; line-height: 1.34; font-size: .96rem; }
+  .message-time { align-self: flex-end; color: #667085; font-size: .72rem; line-height: 1; margin-top: 1px; }
   .reply-box {
-    display: grid;
+    display: flex;
     gap: 10px;
-    margin-top: 14px;
-    padding: 14px;
-    border: 1px solid #dbe8fb;
-    border-radius: 14px;
-    background: #f8fbff;
+    align-items: flex-end;
+    margin: 0;
+    padding: 12px 16px;
+    border: 0;
+    border-top: 1px solid #dbe8fb;
+    border-radius: 0;
+    background: #f0f4f7;
     flex: 0 0 auto;
   }
-  .reply-box textarea { min-height: 54px; max-height: 160px; resize: vertical; }
-  .reply-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .reply-box textarea {
+    min-height: 44px;
+    max-height: 130px;
+    resize: none;
+    border-radius: 22px;
+    padding: 10px 16px;
+    background: #fff;
+  }
+  .reply-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+  .reply-actions label { display: none !important; }
+  .reply-actions .ca-pill { min-height: 44px; width: 48px; padding: 0; border-radius: 999px; }
+  .reply-actions .ca-pill .reply-label { display: none; }
   .tab-nav { display: flex; gap: 10px; flex-wrap: wrap; }
   .tab-link {
     min-height: 42px;
@@ -376,11 +418,11 @@
         {% for message in latest_messages|reverse %}
           <div class="message-card {{ message.direction }}" data-message-id="{{ message.id }}">
             <div class="message-top">
-              <strong>{% if message.direction == 'inbound' %}{{ message.customer.name if message.customer else selected_conversation.customer_name or selected_conversation.phone }}{% elif message.authored_attendant %}{{ message.authored_attendant.name }} (Central Águas){% else %}Central Águas{% endif %}</strong>
-              <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{% if message.direction == 'inbound' %}recebida{% elif message.message_type == 'template' %}campanha enviada{% else %}enviada{% endif %}</span>
+              <strong>{% if message.direction == 'inbound' %}{{ message.customer.name if message.customer else selected_conversation.customer_name or selected_conversation.phone }}{% elif message.authored_attendant %}{{ message.authored_attendant.name }} - Central Águas{% else %}Central Águas{% endif %}</strong>
+              <span class="message-status">{% if message.direction == 'inbound' %}recebida{% elif message.message_type == 'template' %}campanha enviada{% else %}enviada{% endif %}</span>
             </div>
             <div class="message-text">{{ message.text or 'Mensagem sem texto salvo' }}</div>
-            <span class="small-muted">{{ format_dt(message.timestamp) }}</span>
+            <span class="message-time">{{ format_dt(message.timestamp) }}</span>
           </div>
         {% else %}
           <div class="small-muted">Selecione uma conversa depois que chegarem mensagens.</div>
@@ -390,8 +432,8 @@
         <form class="reply-box" method="post" action="/admin/whatsapp-conversations/{{ selected_conversation.id }}/reply" data-reply-form>
           <textarea class="form-control" name="message" rows="2" maxlength="4096" placeholder="Digite sua resposta para {{ selected_conversation.customer_name or selected_conversation.phone }}" required data-reply-textarea></textarea>
           <div class="reply-actions">
-            <label class="small-muted d-flex align-items-center gap-2 mb-0"><input class="form-check-input mt-0" type="checkbox" name="identify_sender" value="1" checked> Assinar como {{ admin.name }} (Central Águas)</label>
-            <button class="ca-pill ca-primary" type="submit"><i class="bi bi-send me-1"></i>Responder</button>
+            <input type="hidden" name="identify_sender" value="1">
+            <button class="ca-pill ca-primary" type="submit" title="Enviar"><i class="bi bi-send"></i><span class="reply-label">Responder</span></button>
           </div>
         </form>
       {% endif %}
@@ -432,10 +474,10 @@
     card.innerHTML = `
       <div class="message-top">
         <strong>${escapeHtml(message.author)}</strong>
-        <span class="status-pill ${escapeHtml(message.status_class || 'pending')}">${escapeHtml(message.status)}</span>
+        <span class="message-status">${escapeHtml(message.status)}</span>
       </div>
       <div class="message-text">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>
-      <span class="small-muted">${escapeHtml(message.timestamp)}</span>
+      <span class="message-time">${escapeHtml(message.timestamp)}</span>
     `;
     messageStack.appendChild(card);
     lastMessageId = Math.max(lastMessageId, Number(message.id || 0));

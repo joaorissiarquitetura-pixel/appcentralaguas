@@ -17,6 +17,7 @@ from .whatsapp import normalize_brazilian_phone, send_text_whatsapp
 
 logger = logging.getLogger(__name__)
 AUTO_REPLY_COOLDOWN = timedelta(hours=12)
+MEDIA_MESSAGE_TYPES = {"image", "sticker", "video", "audio", "document"}
 
 
 def _timestamp_from_whatsapp(value: str | int | None) -> datetime:
@@ -75,53 +76,77 @@ def _business_order_contact() -> str:
     return "(17) 99744-0441"
 
 
-def _auto_reply_text(inbound_text: str) -> str:
+def _auto_reply_text(inbound_text: str, message_type: str = "text") -> str:
+    if message_type in MEDIA_MESSAGE_TYPES:
+        return (
+            "Recebi seu arquivo, mas por aqui ainda não consigo analisar foto, áudio, documento ou figurinha.\n\n"
+            "Me manda a informação por texto que eu te ajudo melhor."
+        )
+
     text = _plain_text(inbound_text)
     order_words = ("pedido", "pedir", "comprar", "agua", "galão", "galao", "garrafao", "entrega")
     if any(word in text for word in order_words):
         return (
-            "Oi! Para pedir água, você pode fazer seu pedido pelo app da Central Águas:\n"
+            "Oi! Para pedir água, você pode fazer pelo app da Central Águas:\n"
             "https://app.centralaguas.com.br\n\n"
-            f"Se preferir atendimento pelo WhatsApp, use nosso número de pedidos: {_business_order_contact()}.\n\n"
-            "Por aqui eu consigo orientar por texto, mas não consigo analisar fotos, áudios ou figurinhas."
+            f"Se preferir falar pelo WhatsApp, nosso número de pedidos é {_business_order_contact()}."
         )
     return (
-        "Oi! Obrigado por chamar a Central Águas.\n\n"
-        "Você já pode conhecer e usar nosso app para fazer pedidos, consultar pontos, controlar seus galões "
-        "e criar lembretes:\n"
+        "Oi! Tudo bem? Posso te ajudar por aqui.\n\n"
+        "Para pedir água, consultar seus pontos ou acompanhar seus galões, você também pode usar o app:\n"
         "https://app.centralaguas.com.br\n\n"
-        f"Para pedidos pelo WhatsApp, fale com nosso atendimento em {_business_order_contact()}.\n\n"
-        "Por aqui eu consigo orientar por texto, mas não consigo analisar fotos, áudios ou figurinhas."
+        f"Se quiser atendimento pelo WhatsApp para pedidos, é só chamar {_business_order_contact()}."
     )
 
 
-def _should_auto_reply(db: Session, conversation: WhatsAppConversation, inbound_text: str) -> bool:
+def _should_auto_reply(
+    db: Session,
+    conversation: WhatsAppConversation,
+    inbound_text: str,
+    message_type: str = "text",
+) -> bool:
     if conversation.opt_out:
         return False
     if not (inbound_text or "").strip():
         return False
     if _plain_text(inbound_text).strip() in {"sair", "parar", "stop", "cancelar"}:
         return False
-    last_auto_reply_at = db.scalar(
-        select(WhatsAppMessage.timestamp)
+    last_auto_replies = db.scalars(
+        select(WhatsAppMessage)
         .where(
             WhatsAppMessage.conversation_id == conversation.id,
             WhatsAppMessage.direction == "outbound",
             WhatsAppMessage.message_type == "auto_reply",
         )
         .order_by(WhatsAppMessage.timestamp.desc())
-        .limit(1)
-    )
-    if last_auto_reply_at and datetime.utcnow() - last_auto_reply_at < AUTO_REPLY_COOLDOWN:
+        .limit(5)
+    ).all()
+    if message_type in MEDIA_MESSAGE_TYPES:
+        for reply in last_auto_replies:
+            try:
+                payload = json.loads(reply.raw_payload or "{}")
+            except json.JSONDecodeError:
+                payload = {}
+            if payload.get("inbound_type") in MEDIA_MESSAGE_TYPES:
+                if datetime.utcnow() - reply.timestamp < timedelta(minutes=30):
+                    return False
+                break
+    elif last_auto_replies and datetime.utcnow() - last_auto_replies[0].timestamp < AUTO_REPLY_COOLDOWN:
         return False
     return True
 
 
-def _send_auto_reply(db: Session, conversation: WhatsAppConversation, customer: Customer | None, inbound_text: str) -> None:
-    if not _should_auto_reply(db, conversation, inbound_text):
+def _send_auto_reply(
+    db: Session,
+    conversation: WhatsAppConversation,
+    customer: Customer | None,
+    inbound_text: str,
+    message_type: str = "text",
+) -> None:
+    if not _should_auto_reply(db, conversation, inbound_text, message_type):
         return
 
-    reply_text = _auto_reply_text(inbound_text)
+    reply_text = _auto_reply_text(inbound_text, message_type)
     ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=reply_text)
     now = datetime.utcnow()
     db.add(
@@ -133,7 +158,10 @@ def _send_auto_reply(db: Session, conversation: WhatsAppConversation, customer: 
             wa_message_id=wa_message_id,
             message_type="auto_reply",
             text=reply_text,
-            raw_payload=json.dumps({"auto_reply": True, "reason": reason}, ensure_ascii=False),
+            raw_payload=json.dumps(
+                {"auto_reply": True, "reason": reason, "inbound_type": message_type},
+                ensure_ascii=False,
+            ),
             status="accepted" if ok else f"failed:{reason}"[:40],
             timestamp=now,
         )
@@ -265,5 +293,5 @@ def _store_message(db: Session, message: dict, contacts_by_wa_id: dict[str, dict
         db.rollback()
         logger.info("Duplicate WhatsApp message ignored id=%s", wa_message_id)
         return "duplicate"
-    _send_auto_reply(db, conversation, customer, text)
+    _send_auto_reply(db, conversation, customer, text, message_type)
     return "stored"

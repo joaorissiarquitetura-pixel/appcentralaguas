@@ -1065,7 +1065,7 @@ def _whatsapp_message_author_label(message: WhatsAppMessage, conversation: Whats
             return conversation.customer_name or conversation.phone
         return message.phone
     if message.authored_attendant:
-        return f"{message.authored_attendant.name} (Central Águas)"
+        return f"{message.authored_attendant.name} - Central Águas"
     return "Central Águas"
 
 
@@ -1119,8 +1119,8 @@ def _send_whatsapp_conversation_reply(
     if not whatsapp_cloud_api_configured():
         return False, "WhatsApp Cloud API não configurado", None
 
-    sender_label = f"{admin.name.strip()} (Central Águas)" if identify_sender == "1" and admin.name.strip() else "Central Águas"
-    outgoing_text = f"*{sender_label}*\n\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
+    sender_label = f"{admin.name.strip()} - Central Águas" if identify_sender == "1" and admin.name.strip() else "Central Águas"
+    outgoing_text = f"*{sender_label}*\n{message_text}" if identify_sender == "1" and admin.name.strip() else message_text
     ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=outgoing_text)
     if not ok:
         return False, f"Não foi possível enviar a resposta ({reason}). Se a janela de 24h fechou, envie um template primeiro.", None
