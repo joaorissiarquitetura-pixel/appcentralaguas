@@ -276,11 +276,15 @@ class WhatsAppCampaignRecipient(Base):
     customer_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
     error: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    conversation_id: Mapped[int | None] = mapped_column(ForeignKey("whatsapp_conversations.id"), nullable=True, index=True)
+    message_id: Mapped[int | None] = mapped_column(ForeignKey("whatsapp_messages.id"), nullable=True, index=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     campaign = relationship("WhatsAppCampaign", back_populates="recipients")
     customer = relationship("Customer")
+    conversation = relationship("WhatsAppConversation", foreign_keys=[conversation_id])
+    message = relationship("WhatsAppMessage", foreign_keys=[message_id])
 
 
 class WhatsAppConversation(Base):

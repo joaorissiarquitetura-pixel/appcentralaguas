@@ -164,12 +164,36 @@ def send_app_launch_campaign_whatsapp(
         return False, "template_not_configured"
 
     first_name = (customer_name or "cliente").strip().split(" ", 1)[0] or "cliente"
-    return _send_template_whatsapp(
+    ok, reason, _message_id = _send_template_whatsapp(
         to_phone=to_phone,
         template_name=selected_template,
         language=(language or settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE).strip() or "pt_BR",
         body_parameters=[first_name[:60]],
         log_label="app launch campaign",
+    )
+    return ok, reason
+
+
+def send_campaign_template_whatsapp(
+    *,
+    to_phone: str,
+    customer_name: str,
+    template_name: str | None = None,
+    language: str | None = None,
+) -> tuple[bool, str, str | None]:
+    selected_template = (template_name or settings.WHATSAPP_APP_LAUNCH_TEMPLATE_NAME or "").strip()
+    if not whatsapp_cloud_api_configured():
+        return False, "whatsapp_cloud_not_configured", None
+    if not selected_template:
+        return False, "template_not_configured", None
+
+    first_name = (customer_name or "cliente").strip().split(" ", 1)[0] or "cliente"
+    return _send_template_whatsapp(
+        to_phone=to_phone,
+        template_name=selected_template,
+        language=(language or settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE).strip() or "pt_BR",
+        body_parameters=[first_name[:60]],
+        log_label="campaign",
     )
 
 
@@ -227,7 +251,7 @@ def _send_code_template_whatsapp(
     template_name: str,
     log_label: str,
 ) -> tuple[bool, str]:
-    return _send_template_whatsapp(
+    ok, reason, _message_id = _send_template_whatsapp(
         to_phone=to_phone,
         template_name=template_name,
         language=settings.WHATSAPP_RESET_TEMPLATE_LANGUAGE.strip() or "pt_BR",
@@ -235,6 +259,7 @@ def _send_code_template_whatsapp(
         button_parameters=[code],
         log_label=log_label,
     )
+    return ok, reason
 
 
 def _send_template_whatsapp(
@@ -245,13 +270,13 @@ def _send_template_whatsapp(
     body_parameters: list[str] | None = None,
     button_parameters: list[str] | None = None,
     log_label: str,
-) -> tuple[bool, str]:
+) -> tuple[bool, str, str | None]:
     if not whatsapp_cloud_api_configured():
-        return False, "whatsapp_cloud_not_configured"
+        return False, "whatsapp_cloud_not_configured", None
 
     phone = phone_to_whatsapp_e164(to_phone)
     if not phone:
-        return False, "invalid_phone"
+        return False, "invalid_phone", None
 
     components = []
     if body_parameters:
@@ -302,13 +327,17 @@ def _send_template_whatsapp(
     )
     try:
         with urllib.request.urlopen(request, timeout=12) as response:
+            body = response.read().decode("utf-8", errors="replace")
             if response.status >= 400:
-                return False, f"http_{response.status}"
-        return True, "sent"
+                return False, f"http_{response.status}", None
+            data = json.loads(body or "{}")
+            messages = data.get("messages") or []
+            message_id = str((messages[0] or {}).get("id") or "") if messages else ""
+        return True, "sent", message_id or None
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         logger.warning("WhatsApp %s send failed HTTP %s: %s", log_label, exc.code, body)
-        return False, f"http_{exc.code}"
+        return False, f"http_{exc.code}", None
     except Exception as exc:
         logger.warning("WhatsApp %s send failed: %s", log_label, exc)
-        return False, "request_failed"
+        return False, "request_failed", None

@@ -78,6 +78,12 @@
   .status-bad { background: #dc2626; }
   .campaign-list,
   .recipient-list { display: grid; gap: 10px; }
+  .campaign-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+  }
   .campaign-item,
   .recipient-item {
     display: grid;
@@ -92,6 +98,19 @@
   .campaign-item.is-active { border-color: var(--ca-primary); background: #eef6ff; box-shadow: inset 4px 0 0 var(--ca-primary); }
   .campaign-item.has-unread { border-color: #75a9ff; background: #eff6ff; }
   .campaign-item.has-unread .wa-inbox-name strong { color: #0b4ccb; }
+  .campaign-delete-form { display: flex; }
+  .campaign-delete-button {
+    width: 44px;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    background: #fff5f5;
+    color: #b42318;
+    cursor: pointer;
+  }
+  .campaign-delete-button:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+  }
   .recipient-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
   .status-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 0 10px; border-radius: 999px; font-size: .74rem; font-weight: 800; background: #eef2ff; color: #344054; white-space: nowrap; }
   .status-pill.sent { background: #dcfce7; color: #166534; }
@@ -159,8 +178,10 @@
     .wa-grid,
     .wa-form-2,
     .metric-row,
+    .campaign-row,
     .recipient-item,
     .wa-inbox-item { grid-template-columns: 1fr; }
+    .campaign-delete-button { width: 100%; min-height: 42px; }
   }
 </style>
 
@@ -182,7 +203,7 @@
 
   <nav class="tab-nav" aria-label="Áreas do WhatsApp">
     <a class="tab-link text-decoration-none {% if active_tab == 'campaigns' %}is-active{% endif %}" href="/admin/whatsapp-campaigns?tab=campaigns{% if selected_campaign %}&campaign_id={{ selected_campaign.id }}{% endif %}">Campanhas</a>
-    <a class="tab-link text-decoration-none {% if active_tab == 'messages' %}is-active{% endif %}" href="/admin/whatsapp-campaigns?tab=messages{% if selected_conversation %}&conversation_id={{ selected_conversation.id }}{% endif %}">Mensagens recebidas</a>
+    <a class="tab-link text-decoration-none {% if active_tab == 'messages' %}is-active{% endif %}" href="/admin/whatsapp-campaigns?tab=messages{% if selected_conversation %}&conversation_id={{ selected_conversation.id }}{% endif %}">Mensagens</a>
   </nav>
 
   {% if active_tab == 'campaigns' %}
@@ -236,11 +257,16 @@
       </div>
       <div class="campaign-list">
         {% for campaign in campaigns %}
-          <a class="campaign-item text-decoration-none {% if selected_campaign and selected_campaign.id == campaign.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?campaign_id={{ campaign.id }}">
-            <strong>{{ campaign.name }}</strong>
-            <span class="small-muted">{{ campaign.status }} · {{ campaign.sent_count }} enviados · {{ campaign.failed_count }} falhas · {{ format_dt(campaign.created_at) }}</span>
-            <span class="small-muted">Template: {{ campaign.template_name }}</span>
-          </a>
+          <div class="campaign-row">
+            <a class="campaign-item text-decoration-none {% if selected_campaign and selected_campaign.id == campaign.id %}is-active{% endif %}" href="/admin/whatsapp-campaigns?campaign_id={{ campaign.id }}">
+              <strong>{{ campaign.name }}</strong>
+              <span class="small-muted">{{ campaign.status }} · {{ campaign.sent_count }} enviados · {{ campaign.failed_count }} falhas · {{ format_dt(campaign.created_at) }}</span>
+              <span class="small-muted">Template: {{ campaign.template_name }}</span>
+            </a>
+            <form class="campaign-delete-form" method="post" action="/admin/whatsapp-campaigns/{{ campaign.id }}/delete" onsubmit="return confirm('Excluir esta campanha? Esta ação remove a lista de destinatários da campanha.');">
+              <button class="campaign-delete-button" type="submit" aria-label="Excluir campanha {{ campaign.name }}"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
         {% else %}
           <div class="small-muted">Nenhuma campanha criada ainda.</div>
         {% endfor %}
@@ -256,6 +282,9 @@
             <span class="wa-title-icon"><i class="bi bi-send"></i></span>
             <h2>Enviar campanha selecionada</h2>
           </div>
+          <form method="post" action="/admin/whatsapp-campaigns/{{ selected_campaign.id }}/delete" onsubmit="return confirm('Excluir esta campanha? Esta ação remove a lista de destinatários da campanha.');">
+            <button class="ca-pill ca-outline" type="submit"><i class="bi bi-trash"></i> Excluir</button>
+          </form>
         </div>
         <div class="preview-box mb-3">{{ selected_campaign.message_preview }}</div>
         <form class="wa-form" method="post" action="/admin/whatsapp-campaigns/{{ selected_campaign.id }}/send" onsubmit="return confirm('Enviar o próximo lote desta campanha?');">
@@ -298,7 +327,7 @@
       <div class="wa-card-head">
         <div class="wa-heading">
           <span class="wa-title-icon"><i class="bi bi-inbox"></i></span>
-          <h2>Mensagens recebidas</h2>
+          <h2>Mensagens</h2>
         </div>
       </div>
       <div class="campaign-list">
@@ -314,7 +343,7 @@
             {% if conversation.opt_out %}<span class="status-pill failed">opt-out</span>{% endif %}
           </a>
         {% else %}
-          <div class="small-muted">Nenhuma mensagem recebida ainda. Depois de salvar o webhook na Meta, as mensagens aparecerão aqui.</div>
+          <div class="small-muted">Nenhuma conversa ainda. As campanhas enviadas e as mensagens recebidas aparecerão aqui.</div>
         {% endfor %}
       </div>
     </section>
@@ -340,7 +369,7 @@
           <div class="message-card {{ message.direction }}">
             <div class="message-top">
               <strong>{% if message.direction == 'inbound' %}{{ message.customer.name if message.customer else selected_conversation.customer_name or selected_conversation.phone }}{% elif message.authored_attendant %}{{ message.authored_attendant.name }} (Central Águas){% else %}Central Águas{% endif %}</strong>
-              <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{{ message.direction }}</span>
+              <span class="status-pill {{ 'sent' if message.direction == 'outbound' else 'pending' }}">{% if message.direction == 'inbound' %}recebida{% elif message.message_type == 'template' %}campanha enviada{% else %}enviada{% endif %}</span>
             </div>
             <div class="message-text">{{ message.text or 'Mensagem sem texto salvo' }}</div>
             <span class="small-muted">{{ format_dt(message.timestamp) }}</span>

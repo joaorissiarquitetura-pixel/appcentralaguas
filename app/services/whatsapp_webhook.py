@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
 import logging
 from datetime import datetime
 
@@ -45,7 +47,7 @@ def _message_text(message: dict) -> str:
     return ""
 
 
-def _get_or_create_conversation(db: Session, *, phone: str, customer: Customer | None) -> WhatsAppConversation:
+def get_or_create_whatsapp_conversation(db: Session, *, phone: str, customer: Customer | None) -> WhatsAppConversation:
     conversation = db.scalar(select(WhatsAppConversation).where(WhatsAppConversation.phone == phone))
     if conversation:
         if customer and not conversation.customer_id:
@@ -62,6 +64,13 @@ def _get_or_create_conversation(db: Session, *, phone: str, customer: Customer |
     db.add(conversation)
     db.flush()
     return conversation
+
+
+def verify_whatsapp_webhook_signature(raw_body: bytes, signature_header: str | None, app_secret: str) -> bool:
+    if not app_secret or not signature_header or not signature_header.startswith("sha256="):
+        return False
+    expected = "sha256=" + hmac.new(app_secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature_header)
 
 
 def process_whatsapp_webhook(db: Session, payload: dict) -> dict[str, int]:
@@ -122,7 +131,7 @@ def _store_message(db: Session, message: dict, contacts_by_wa_id: dict[str, dict
     customer = _customer_for_phone(db, from_phone)
     contact = contacts_by_wa_id.get(str(message.get("from") or "")) or {}
     profile_name = ((contact.get("profile") or {}).get("name") or "").strip()
-    conversation = _get_or_create_conversation(db, phone=from_phone, customer=customer)
+    conversation = get_or_create_whatsapp_conversation(db, phone=from_phone, customer=customer)
     if profile_name and not conversation.customer_name:
         conversation.customer_name = profile_name[:160]
 
