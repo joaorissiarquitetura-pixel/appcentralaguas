@@ -515,7 +515,7 @@
               <strong>{% if message.direction == 'inbound' %}{{ message.customer.name if message.customer else selected_conversation.customer_name or selected_conversation.phone }}{% elif message.authored_attendant %}{{ message.authored_attendant.name }} - Central Águas{% else %}Central Águas{% endif %}</strong>
               <span class="message-status">{% if message.direction == 'inbound' %}recebida{% elif message.message_type == 'template' %}campanha enviada{% else %}enviada{% endif %}</span>
             </div>
-            <div class="message-text">{{ message.text or 'Mensagem sem texto salvo' }}</div>
+            <div class="message-text">{{ format_whatsapp_message_text(message) }}</div>
             <span class="message-time">{{ format_dt(message.timestamp) }}</span>
           </div>
         {% else %}

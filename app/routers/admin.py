@@ -1051,6 +1051,7 @@ def whatsapp_campaigns_page(
             "default_preview": _campaign_default_preview(),
             "active_tab": tab if tab in {"campaigns", "messages"} else "campaigns",
             "format_dt": _admin_datetime_label,
+            "format_whatsapp_message_text": _whatsapp_message_display_text,
             "err": err,
             "success": success,
         },
@@ -1079,6 +1080,23 @@ def _whatsapp_message_status_label(message: WhatsAppMessage) -> str:
     return "enviada"
 
 
+def _whatsapp_message_display_text(message: WhatsAppMessage) -> str:
+    text = message.text or ""
+    if message.direction == "outbound" and message.authored_attendant and message.authored_attendant.name:
+        attendant_name = message.authored_attendant.name.strip()
+        signature_prefixes = (
+            f"*{attendant_name} - Central Águas*\n",
+            f"*{attendant_name} (Central Águas)*\n",
+            f"{attendant_name} - Central Águas\n",
+            f"{attendant_name} (Central Águas)\n",
+        )
+        for prefix in signature_prefixes:
+            if text.startswith(prefix):
+                text = text[len(prefix):]
+                break
+    return text.strip() or "Mensagem sem texto salvo"
+
+
 def _whatsapp_message_payload(message: WhatsAppMessage, conversation: WhatsAppConversation | None = None) -> dict:
     return {
         "id": message.id,
@@ -1086,7 +1104,7 @@ def _whatsapp_message_payload(message: WhatsAppMessage, conversation: WhatsAppCo
         "author": _whatsapp_message_author_label(message, conversation),
         "status": _whatsapp_message_status_label(message),
         "status_class": "sent" if message.direction == "outbound" else "pending",
-        "text": message.text or "Mensagem sem texto salvo",
+        "text": _whatsapp_message_display_text(message),
         "timestamp": _admin_datetime_label(message.timestamp),
     }
 
