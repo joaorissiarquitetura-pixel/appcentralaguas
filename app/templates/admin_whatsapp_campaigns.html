@@ -133,7 +133,21 @@
   }
   .wa-unread-label { color: #0b4ccb; font-size: .72rem; font-weight: 800; }
   .wa-read-state { color: #166534; font-size: .8rem; font-weight: 700; }
-  .message-stack { display: grid; gap: 12px; }
+  .chat-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 620px;
+    max-height: calc(100vh - 230px);
+  }
+  .message-stack {
+    display: grid;
+    gap: 12px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scroll-behavior: smooth;
+    flex: 1 1 auto;
+    min-height: 260px;
+  }
   .message-card {
     display: grid;
     gap: 7px;
@@ -148,12 +162,14 @@
   .reply-box {
     display: grid;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-top: 14px;
     padding: 14px;
     border: 1px solid #dbe8fb;
     border-radius: 14px;
     background: #f8fbff;
+    flex: 0 0 auto;
   }
+  .reply-box textarea { min-height: 54px; max-height: 160px; resize: vertical; }
   .reply-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .tab-nav { display: flex; gap: 10px; flex-wrap: wrap; }
   .tab-link {
@@ -182,6 +198,7 @@
     .recipient-item,
     .wa-inbox-item { grid-template-columns: 1fr; }
     .campaign-delete-button { width: 100%; min-height: 42px; }
+    .chat-card { min-height: 540px; max-height: none; }
   }
 </style>
 
@@ -348,23 +365,14 @@
       </div>
     </section>
 
-    <section class="wa-card">
+    <section class="wa-card chat-card">
       <div class="wa-card-head">
         <div class="wa-heading">
           <span class="wa-title-icon"><i class="bi bi-chat-dots"></i></span>
           <div><h2>{{ selected_conversation.customer_name or selected_conversation.phone if selected_conversation else 'Últimas mensagens' }}</h2>{% if selected_conversation and selected_conversation.last_read_at %}<span class="wa-read-state">Lido por {{ selected_conversation.last_read_by_attendant.name if selected_conversation.last_read_by_attendant else 'atendente' }} · {{ format_dt(selected_conversation.last_read_at) }}</span>{% endif %}</div>
         </div>
       </div>
-      {% if selected_conversation %}
-        <form class="reply-box" method="post" action="/admin/whatsapp-conversations/{{ selected_conversation.id }}/reply">
-          <textarea class="form-control" name="message" rows="3" maxlength="4096" placeholder="Digite sua resposta para {{ selected_conversation.customer_name or selected_conversation.phone }}" required></textarea>
-          <div class="reply-actions">
-            <label class="small-muted d-flex align-items-center gap-2 mb-0"><input class="form-check-input mt-0" type="checkbox" name="identify_sender" value="1" checked> Assinar como {{ admin.name }} (Central Águas)</label>
-            <button class="ca-pill ca-primary" type="submit"><i class="bi bi-send me-1"></i>Responder</button>
-          </div>
-        </form>
-      {% endif %}
-      <div class="message-stack">
+      <div class="message-stack" data-message-stack>
         {% for message in latest_messages|reverse %}
           <div class="message-card {{ message.direction }}">
             <div class="message-top">
@@ -378,14 +386,41 @@
           <div class="small-muted">Selecione uma conversa depois que chegarem mensagens.</div>
         {% endfor %}
       </div>
+      {% if selected_conversation %}
+        <form class="reply-box" method="post" action="/admin/whatsapp-conversations/{{ selected_conversation.id }}/reply" data-reply-form>
+          <textarea class="form-control" name="message" rows="2" maxlength="4096" placeholder="Digite sua resposta para {{ selected_conversation.customer_name or selected_conversation.phone }}" required data-reply-textarea></textarea>
+          <div class="reply-actions">
+            <label class="small-muted d-flex align-items-center gap-2 mb-0"><input class="form-check-input mt-0" type="checkbox" name="identify_sender" value="1" checked> Assinar como {{ admin.name }} (Central Águas)</label>
+            <button class="ca-pill ca-primary" type="submit"><i class="bi bi-send me-1"></i>Responder</button>
+          </div>
+        </form>
+      {% endif %}
     </section>
   </div>
   {% endif %}
 </div>
 {% if active_tab == 'messages' %}
 <script>
+  const messageStack = document.querySelector('[data-message-stack]');
+  if (messageStack) {
+    messageStack.scrollTop = messageStack.scrollHeight;
+  }
+  const replyForm = document.querySelector('[data-reply-form]');
+  const replyTextarea = document.querySelector('[data-reply-textarea]');
+  if (replyForm && replyTextarea) {
+    replyTextarea.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+      event.preventDefault();
+      if (!replyTextarea.value.trim()) return;
+      if (replyForm.requestSubmit) {
+        replyForm.requestSubmit();
+      } else {
+        replyForm.submit();
+      }
+    });
+  }
   window.setInterval(() => {
-    const reply = document.querySelector('.reply-box textarea');
+    const reply = document.querySelector('[data-reply-textarea]');
     if (document.visibilityState !== 'visible' || (reply && (reply === document.activeElement || reply.value.trim()))) return;
     window.location.reload();
   }, 12000);
