@@ -363,21 +363,40 @@ def _refresh_campaign_message_history(db: Session) -> None:
         db.commit()
 
 
-def _eligible_campaign_customers(db: Session, limit: int) -> list[Customer]:
+def _campaign_recipient_phones_for_template(db: Session, template_name: str) -> set[str]:
+    selected_template = (template_name or "").strip()
+    if not selected_template:
+        return set()
+
+    rows = db.execute(
+        select(WhatsAppCampaignRecipient.phone)
+        .join(WhatsAppCampaign, WhatsAppCampaign.id == WhatsAppCampaignRecipient.campaign_id)
+        .where(
+            WhatsAppCampaign.template_name == selected_template,
+            WhatsAppCampaignRecipient.status.in_(["pending", "sent"]),
+        )
+    ).scalars().all()
+    return {phone for phone in (normalize_brazilian_phone(row) for row in rows) if phone}
+
+
+def _eligible_campaign_customers(db: Session, limit: int, exclude_template_name: str | None = None) -> list[Customer]:
+    target = max(1, min(int(limit or 500), 5000))
+    excluded_phones = _campaign_recipient_phones_for_template(db, exclude_template_name or "")
     customers = db.execute(
         select(Customer)
         .where(Customer.phone.is_not(None))
         .order_by(Customer.name.asc(), Customer.id.asc())
-        .limit(max(1, min(int(limit or 500), 5000)))
     ).scalars().all()
     seen: set[str] = set()
     eligible = []
     for customer in customers:
         phone = normalize_brazilian_phone(customer.phone)
-        if not phone or phone in seen:
+        if not phone or phone in seen or phone in excluded_phones:
             continue
         seen.add(phone)
         eligible.append(customer)
+        if len(eligible) >= target:
+            break
     return eligible
 
 
@@ -1132,9 +1151,9 @@ def create_whatsapp_campaign(
     if not selected_template:
         return RedirectResponse("/admin/whatsapp-campaigns?err=Configure%20o%20nome%20do%20template%20WhatsApp", status_code=303)
 
-    customers = _eligible_campaign_customers(db, limit)
+    customers = _eligible_campaign_customers(db, limit, exclude_template_name=selected_template)
     if not customers:
-        return RedirectResponse("/admin/whatsapp-campaigns?err=Nenhum%20cliente%20com%20telefone%20válido", status_code=303)
+        return RedirectResponse("/admin/whatsapp-campaigns?err=Nenhum%20cliente%20novo%20para%20este%20template", status_code=303)
 
     campaign = WhatsAppCampaign(
         name=name.strip()[:120] or "Campanha WhatsApp",
