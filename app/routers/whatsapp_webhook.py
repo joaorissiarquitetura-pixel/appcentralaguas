@@ -31,13 +31,17 @@ def verify_whatsapp_webhook(request: Request):
 @router.post("")
 async def receive_whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
     raw_body = await request.body()
-    if not verify_whatsapp_webhook_signature(
-        raw_body,
-        request.headers.get("X-Hub-Signature-256"),
-        settings.WHATSAPP_WEBHOOK_APP_SECRET.strip(),
-    ):
-        logger.warning("WhatsApp webhook rejected: invalid or missing Meta signature")
-        return JSONResponse({"ok": False, "error": "invalid_signature"}, status_code=403)
+    app_secret = settings.WHATSAPP_WEBHOOK_APP_SECRET.strip()
+    if app_secret:
+        if not verify_whatsapp_webhook_signature(
+            raw_body,
+            request.headers.get("X-Hub-Signature-256"),
+            app_secret,
+        ):
+            logger.warning("WhatsApp webhook rejected: invalid or missing Meta signature")
+            return JSONResponse({"ok": False, "error": "invalid_signature"}, status_code=403)
+    else:
+        logger.warning("WhatsApp webhook signature validation skipped: WHATSAPP_WEBHOOK_APP_SECRET is not configured")
     try:
         payload = json.loads(raw_body)
     except Exception:
