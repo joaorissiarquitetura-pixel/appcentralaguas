@@ -4,16 +4,19 @@ import json
 import hashlib
 import hmac
 import logging
-from datetime import datetime
+import unicodedata
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..models import Customer, WhatsAppConversation, WhatsAppMessage, WhatsAppMessageStatus
-from .whatsapp import normalize_brazilian_phone
+from .whatsapp import normalize_brazilian_phone, send_text_whatsapp
 
 logger = logging.getLogger(__name__)
+AUTO_REPLY_COOLDOWN = timedelta(hours=12)
 
 
 def _timestamp_from_whatsapp(value: str | int | None) -> datetime:
@@ -45,6 +48,91 @@ def _message_text(message: dict) -> str:
         list_reply = interactive.get("list_reply") or {}
         return str(button_reply.get("title") or list_reply.get("title") or "")
     return ""
+
+
+def _plain_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    without_marks = "".join(char for char in normalized if not unicodedata.combining(char))
+    return without_marks.lower()
+
+
+def _business_order_contact() -> str:
+    digits = "".join(char for char in settings.BUSINESS_WHATSAPP_NUMBER if char.isdigit())
+    if digits.startswith("55") and len(digits) >= 12:
+        local = digits[2:]
+        return f"({local[:2]}) {local[2:7]}-{local[7:11]}"
+    if len(digits) == 11:
+        return f"({digits[:2]}) {digits[2:7]}-{digits[7:11]}"
+    return "(17) 99744-0441"
+
+
+def _auto_reply_text(inbound_text: str) -> str:
+    text = _plain_text(inbound_text)
+    order_words = ("pedido", "pedir", "comprar", "agua", "galão", "galao", "garrafao", "entrega")
+    if any(word in text for word in order_words):
+        return (
+            "Oi! Para pedir água, você pode fazer seu pedido pelo app da Central Águas:\n"
+            "https://app.centralaguas.com.br\n\n"
+            f"Se preferir atendimento pelo WhatsApp, use nosso número de pedidos: {_business_order_contact()}."
+        )
+    return (
+        "Oi! Obrigado por chamar a Central Águas.\n\n"
+        "Você já pode conhecer e usar nosso app para fazer pedidos, consultar pontos, controlar seus galões "
+        "e criar lembretes:\n"
+        "https://app.centralaguas.com.br\n\n"
+        f"Para pedidos pelo WhatsApp, fale com nosso atendimento em {_business_order_contact()}."
+    )
+
+
+def _should_auto_reply(db: Session, conversation: WhatsAppConversation, inbound_text: str) -> bool:
+    if conversation.opt_out:
+        return False
+    if not (inbound_text or "").strip():
+        return False
+    if _plain_text(inbound_text).strip() in {"sair", "parar", "stop", "cancelar"}:
+        return False
+    last_auto_reply_at = db.scalar(
+        select(WhatsAppMessage.timestamp)
+        .where(
+            WhatsAppMessage.conversation_id == conversation.id,
+            WhatsAppMessage.direction == "outbound",
+            WhatsAppMessage.message_type == "auto_reply",
+        )
+        .order_by(WhatsAppMessage.timestamp.desc())
+        .limit(1)
+    )
+    if last_auto_reply_at and datetime.utcnow() - last_auto_reply_at < AUTO_REPLY_COOLDOWN:
+        return False
+    return True
+
+
+def _send_auto_reply(db: Session, conversation: WhatsAppConversation, customer: Customer | None, inbound_text: str) -> None:
+    if not _should_auto_reply(db, conversation, inbound_text):
+        return
+
+    reply_text = _auto_reply_text(inbound_text)
+    ok, reason, wa_message_id = send_text_whatsapp(to_phone=conversation.phone, text=reply_text)
+    now = datetime.utcnow()
+    db.add(
+        WhatsAppMessage(
+            conversation_id=conversation.id,
+            customer_id=customer.id if customer else None,
+            phone=conversation.phone,
+            direction="outbound",
+            wa_message_id=wa_message_id,
+            message_type="auto_reply",
+            text=reply_text,
+            raw_payload=json.dumps({"auto_reply": True, "reason": reason}, ensure_ascii=False),
+            status="accepted" if ok else f"failed:{reason}"[:40],
+            timestamp=now,
+        )
+    )
+    if ok:
+        conversation.last_message_at = now
+        conversation.last_outbound_at = now
+        conversation.updated_at = now
+    else:
+        logger.warning("WhatsApp auto reply failed phone=%s reason=%s", conversation.phone, reason)
 
 
 def get_or_create_whatsapp_conversation(db: Session, *, phone: str, customer: Customer | None) -> WhatsAppConversation:
@@ -166,4 +254,5 @@ def _store_message(db: Session, message: dict, contacts_by_wa_id: dict[str, dict
         db.rollback()
         logger.info("Duplicate WhatsApp message ignored id=%s", wa_message_id)
         return "duplicate"
+    _send_auto_reply(db, conversation, customer, text)
     return "stored"
