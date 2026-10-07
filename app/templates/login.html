@@ -186,6 +186,11 @@
     font-size: 0.78rem;
     line-height: 1.35;
   }
+  .login-hint a {
+    color: var(--ca-primary);
+    font-weight: 800;
+    text-decoration: none;
+  }
   @media (max-width: 520px) {
     .auth-top {
       min-height: 236px;
@@ -248,7 +253,11 @@
 
             <button class="biometric-button" type="button" data-biometric-login><i class="bi bi-fingerprint"></i> Entrar com digital</button>
             <button type="submit" class="ca-pill ca-primary w-100">Entrar</button>
-            <p class="login-hint">Ao lembrar o acesso, este aparelho continua identificado para receber notificações do app.</p>
+            <p class="login-hint">
+              Use o mesmo acesso do Cartão Fidelidade. Se não lembrar a senha,
+              <a href="{{ password_reset_link or '/esqueci-senha' }}">clique em Esqueci a senha</a>
+              para receber a recuperação no WhatsApp cadastrado.
+            </p>
           </form>
 
           <div class="auth-link-row">

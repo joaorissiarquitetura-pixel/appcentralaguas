@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 420" role="img" aria-label="Botijao de gas">
+  <defs>
+    <linearGradient id="body" x1="70" x2="290" y1="110" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f7be0"/>
+      <stop offset=".48" stop-color="#0b4ccb"/>
+      <stop offset="1" stop-color="#083a9a"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="105" x2="190" y1="125" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+      <stop offset=".55" stop-color="#ffffff" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="420" fill="none"/>
+  <ellipse cx="180" cy="382" rx="104" ry="18" fill="#091f4f" opacity=".16"/>
+  <path d="M135 62c0-18 15-32 33-32h24c18 0 33 14 33 32v42h-90V62Z" fill="#0b4ccb"/>
+  <path d="M151 62c0-9 7-16 16-16h26c9 0 16 7 16 16v18h-58V62Z" fill="#f6fbff" opacity=".96"/>
+  <path d="M123 90h114c18 0 33 15 33 33v22H90v-22c0-18 15-33 33-33Z" fill="#083a9a"/>
+  <path d="M78 162c0-28 23-51 51-51h102c28 0 51 23 51 51v161c0 34-28 62-62 62h-80c-34 0-62-28-62-62V162Z" fill="url(#body)"/>
+  <path d="M89 199h182v42H89z" fill="#083a9a" opacity=".2"/>
+  <path d="M89 299h182v43H89z" fill="#083a9a" opacity=".22"/>
+  <path d="M118 135c-18 22-26 55-26 103 0 52 8 91 27 116 12 15 35 18 48 5-18-33-26-74-26-123 0-44 8-81 24-111-14-9-35-6-47 10Z" fill="url(#shine)"/>
+  <rect x="109" y="232" width="142" height="58" rx="14" fill="#ffffff" opacity=".96"/>
+  <text x="180" y="258" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#0b4ccb">GAS</text>
+  <text x="180" y="279" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#526070">Central Aguas</text>
+  <path d="M131 101h98v25h-98z" fill="#ffffff" opacity=".13"/>
+</svg>

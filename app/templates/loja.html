@@ -991,6 +991,7 @@
 
       <div class="product-list">
         {% for offer in quick_offers %}
+        {% set product_fallback_image = '/static/img/gas.svg' if offer.category == 'gas' else ('/static/img/510.png' if offer.category == 'descartaveis' else ('/static/img/10.png' if offer.category == 'galao10' else '/static/img/20.png')) %}
         <article
           class="product-card {% if loop.first %}is-featured{% endif %}"
           data-product-card
@@ -999,14 +1000,14 @@
           data-pickup="{{ offer.pickup_price }}"
           data-delivery="{{ offer.delivery_price }}"
           data-badge="{{ offer.badge }}"
-          data-image="{{ offer.image_url or '' }}"
+          data-image="{{ offer.image_url or product_fallback_image }}"
           data-preselect="{{ 'true' if preselected_product == offer.slug else 'false' }}"
         >
           <div class="product-media">
             {% if offer.image_url %}
-              <img src="{{ offer.image_url }}" alt="{{ offer.name }}">
+              <img src="{{ offer.image_url }}" alt="{{ offer.name }}" onerror="this.onerror=null;this.src='{{ product_fallback_image }}';">
             {% else %}
-              <div class="product-placeholder" aria-label="{{ offer.name }}"></div>
+              <img src="{{ product_fallback_image }}" alt="{{ offer.name }}">
             {% endif %}
             <span class="stock-badge {% if offer.stock_status == 'baixo_estoque' %}low{% elif offer.stock_status == 'indisponivel' %}off{% endif %}">
               {% if offer.stock_status == 'baixo_estoque' %}

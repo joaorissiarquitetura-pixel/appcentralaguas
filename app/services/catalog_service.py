@@ -23,6 +23,8 @@ def _slug_from_text(value: str) -> str:
 
 def _catalog_image_for_name(name: str) -> str | None:
     name_lower = name.lower()
+    if "glp" in name_lower or "botijão" in name_lower or "botijao" in name_lower or "gás" in name_lower or "gas" in name_lower:
+        return "/static/img/gas.svg"
     if "510" in name_lower or "500" in name_lower or "fardo" in name_lower:
         return "/static/img/510.png"
     if "20" in name_lower:

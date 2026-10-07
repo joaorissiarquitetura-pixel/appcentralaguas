@@ -254,6 +254,8 @@ def _product_image_url(product: Product) -> str | None:
 
 def _catalog_image_for_name(name: str) -> str | None:
     name_lower = name.lower()
+    if "glp" in name_lower or "botijão" in name_lower or "botijao" in name_lower or "gás" in name_lower or "gas" in name_lower:
+        return "/static/img/gas.svg"
     if "510" in name_lower or "500" in name_lower or "fardo" in name_lower:
         return "/static/img/510.png"
     if "20" in name_lower:
@@ -723,8 +725,11 @@ def api_grj_product_image(external_id: str):
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=502)
 
     product = next((item for item in grj_products if item.external_id == external_id), None)
-    if not product or not product.image_url:
+    fallback_image = _catalog_image_for_name(product.name) if product else "/static/img/20.png"
+    if not product:
         return JSONResponse({"ok": False, "error": "product_image_not_found"}, status_code=404)
+    if not product.image_url:
+        return RedirectResponse(fallback_image or "/static/img/20.png", status_code=307)
 
     request = urllib.request.Request(
         product.image_url,
@@ -740,7 +745,8 @@ def api_grj_product_image(external_id: str):
             image_body = response.read(8_000_000)
     except Exception as exc:
         reason = getattr(exc, "reason", exc)
-        return JSONResponse({"ok": False, "error": f"product_image_fetch_failed: {reason}"}, status_code=502)
+        logger.warning("GRJ product image fetch failed external_id=%s reason=%s", external_id, reason)
+        return RedirectResponse(fallback_image or "/static/img/20.png", status_code=307)
 
     return Response(
         content=image_body,

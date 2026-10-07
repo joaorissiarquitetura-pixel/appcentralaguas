@@ -623,10 +623,11 @@
 
       <div class="repeat-product">
         <div class="repeat-product-media">
+          {% set primary_fallback_image = '/static/img/gas.svg' if primary_offer.category == 'gas' else ('/static/img/510.png' if primary_offer.category == 'descartaveis' else ('/static/img/10.png' if primary_offer.category == 'galao10' else '/static/img/20.png')) %}
           {% if primary_offer.image_url %}
-            <img src="{{ primary_offer.image_url }}" alt="{{ primary_offer.name }}">
+            <img src="{{ primary_offer.image_url }}" alt="{{ primary_offer.name }}" onerror="this.onerror=null;this.src='{{ primary_fallback_image }}';">
           {% else %}
-            <div class="product-water-shape" aria-hidden="true"></div>
+            <img src="{{ primary_fallback_image }}" alt="{{ primary_offer.name }}">
           {% endif %}
         </div>
         <div class="repeat-info">

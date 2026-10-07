@@ -7,6 +7,17 @@
 {% block content %}
 <style>
   .wa-page { display: grid; gap: 22px; }
+  {% if active_tab == 'messages' %}
+  main.container {
+    margin-top: 12px !important;
+    margin-bottom: 0 !important;
+  }
+  footer { display: none; }
+  .navbar .container { padding-top: 4px !important; padding-bottom: 4px !important; }
+  .navbar-brand img { height: 42px; }
+  .navbar .nav-link { font-size: .9rem; padding-top: .38rem; padding-bottom: .38rem; }
+  .navbar .ca-pill { min-height: 40px; padding: 0 16px; border-radius: 14px; }
+  {% endif %}
   .wa-hero {
     display: flex;
     justify-content: space-between;
@@ -21,6 +32,11 @@
   .wa-hero p { max-width: 680px; }
   .wa-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
   .wa-grid { display: grid; grid-template-columns: minmax(360px, .92fr) minmax(0, 1.08fr); gap: 18px; align-items: start; }
+  .wa-grid.messages-layout {
+    grid-template-columns: minmax(320px, .86fr) minmax(0, 1.14fr);
+    align-items: stretch;
+    min-height: 0;
+  }
   .wa-card {
     padding: 22px;
     border: 1px solid #dbe8fb;
@@ -78,6 +94,17 @@
   .status-bad { background: #dc2626; }
   .campaign-list,
   .recipient-list { display: grid; gap: 10px; }
+  .messages-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .messages-panel .campaign-list {
+    overflow-y: auto;
+    padding-right: 4px;
+    min-height: 0;
+  }
   .campaign-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -136,7 +163,7 @@
   .chat-card {
     display: flex;
     flex-direction: column;
-    min-height: 620px;
+    min-height: 0;
     max-height: calc(100vh - 230px);
     padding: 0;
     overflow: hidden;
@@ -210,7 +237,26 @@
     background: #fff;
   }
   .reply-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-  .reply-actions label { display: none !important; }
+  .reply-signature {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 8px;
+    border: 1px solid rgba(11, 76, 203, .12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .72);
+    color: #526070;
+    font-size: .72rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .reply-signature input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--ca-primary);
+  }
   .reply-actions .ca-pill { min-height: 44px; width: 48px; padding: 0; border-radius: 999px; }
   .reply-actions .ca-pill .reply-label { display: none; }
   .tab-nav { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -230,6 +276,49 @@
     border-color: var(--ca-primary);
     color: #fff;
   }
+  .wa-page.is-messages {
+    gap: 12px;
+    height: calc(100vh - 82px);
+    min-height: 0;
+  }
+  .wa-page.is-messages .wa-hero {
+    padding: 12px 18px;
+    border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(17, 84, 196, 0.06);
+  }
+  .wa-page.is-messages .wa-hero h1 {
+    font-size: 1.35rem;
+    margin: 2px 0 0 !important;
+  }
+  .wa-page.is-messages .wa-hero p { display: none; }
+  .wa-page.is-messages .section-label,
+  .wa-page.is-messages .tag {
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: .74rem;
+  }
+  .wa-page.is-messages .tab-link {
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: .9rem;
+  }
+  .wa-page.is-messages .messages-layout {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+  .wa-page.is-messages .messages-panel,
+  .wa-page.is-messages .chat-card {
+    height: 100%;
+    max-height: none;
+  }
+  .wa-page.is-messages .messages-panel {
+    padding: 16px;
+  }
+  .wa-page.is-messages .messages-panel .wa-card-head {
+    margin-bottom: 10px;
+  }
   @media (max-width: 1100px) {
     .wa-hero { align-items: flex-start; flex-direction: column; }
     .wa-hero-actions { justify-content: flex-start; }
@@ -241,10 +330,15 @@
     .wa-inbox-item { grid-template-columns: 1fr; }
     .campaign-delete-button { width: 100%; min-height: 42px; }
     .chat-card { min-height: 540px; max-height: none; }
+    .wa-page.is-messages { height: auto; }
+    .wa-page.is-messages .messages-panel,
+    .wa-page.is-messages .chat-card {
+      height: auto;
+    }
   }
 </style>
 
-<div class="wa-page">
+<div class="wa-page {% if active_tab == 'messages' %}is-messages{% endif %}">
   <div class="wa-hero">
     <div>
       <span class="section-label">WhatsApp</span>
@@ -381,8 +475,8 @@
   {% endif %}
 
   {% if active_tab == 'messages' %}
-  <div class="wa-grid">
-    <section class="wa-card">
+  <div class="wa-grid messages-layout">
+    <section class="wa-card messages-panel">
       <div class="wa-card-head">
         <div class="wa-heading">
           <span class="wa-title-icon"><i class="bi bi-inbox"></i></span>
@@ -432,7 +526,10 @@
         <form class="reply-box" method="post" action="/admin/whatsapp-conversations/{{ selected_conversation.id }}/reply" data-reply-form>
           <textarea class="form-control" name="message" rows="2" maxlength="4096" placeholder="Digite sua resposta para {{ selected_conversation.customer_name or selected_conversation.phone }}" required data-reply-textarea></textarea>
           <div class="reply-actions">
-            <input type="hidden" name="identify_sender" value="1">
+            <label class="reply-signature" title="Inclui seu nome no início da mensagem enviada">
+              <input type="checkbox" name="identify_sender" value="1" checked>
+              <span>Assinar</span>
+            </label>
             <button class="ca-pill ca-primary" type="submit" title="Enviar"><i class="bi bi-send"></i><span class="reply-label">Responder</span></button>
           </div>
         </form>
