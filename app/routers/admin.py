@@ -278,10 +278,12 @@ def _refresh_draft_campaign_previews(db: Session) -> None:
         db.commit()
 
 
-def _campaign_message_text(campaign: WhatsAppCampaign) -> str:
+def _campaign_message_text(campaign: WhatsAppCampaign, customer_name: str | None = None) -> str:
     """Texto legível no histórico para um template enviado pela campanha."""
     preview = (campaign.message_preview or "").strip()
     if preview:
+        first_name = (customer_name or "cliente").strip().split(" ", 1)[0] or "cliente"
+        preview = preview.replace("{{1}}", first_name[:60])
         return preview[:4096]
     return f"Template enviado: {campaign.template_name}"[:4096]
 
@@ -312,7 +314,7 @@ def _backfill_campaign_messages(db: Session) -> None:
             phone=recipient.phone,
             direction="outbound",
             message_type="template",
-            text=_campaign_message_text(campaign),
+            text=_campaign_message_text(campaign, recipient.customer_name),
             raw_payload=json.dumps(
                 {
                     "campaign_id": campaign.id,
@@ -335,6 +337,28 @@ def _backfill_campaign_messages(db: Session) -> None:
         conversation.updated_at = datetime.utcnow()
         changed = True
 
+    if changed:
+        db.commit()
+
+
+def _refresh_campaign_message_history(db: Session) -> None:
+    """Mantém o histórico das campanhas com o nome renderizado do cliente."""
+    sent_messages = db.execute(
+        select(WhatsAppCampaignRecipient, WhatsAppCampaign, WhatsAppMessage)
+        .join(WhatsAppCampaign, WhatsAppCampaign.id == WhatsAppCampaignRecipient.campaign_id)
+        .join(WhatsAppMessage, WhatsAppMessage.id == WhatsAppCampaignRecipient.message_id)
+        .where(WhatsAppMessage.message_type == "template")
+    ).all()
+
+    changed = False
+    for recipient, campaign, message in sent_messages:
+        rendered_text = _campaign_message_text(campaign, recipient.customer_name)
+        if message.text != rendered_text:
+            message.text = rendered_text
+            changed = True
+        if message.authored_attendant_id is not None:
+            message.authored_attendant_id = None
+            changed = True
     if changed:
         db.commit()
 
@@ -947,6 +971,7 @@ def whatsapp_campaigns_page(
         return RedirectResponse("/atendente/login", status_code=303)
 
     _backfill_campaign_messages(db)
+    _refresh_campaign_message_history(db)
     _refresh_draft_campaign_previews(db)
 
     campaigns = db.execute(
@@ -1205,12 +1230,11 @@ def send_whatsapp_campaign_batch(
             message = WhatsAppMessage(
                 conversation_id=conversation.id,
                 customer_id=customer.id if customer else None,
-                authored_attendant_id=admin.id,
                 phone=recipient.phone,
                 direction="outbound",
                 wa_message_id=wa_message_id,
                 message_type="template",
-                text=_campaign_message_text(campaign),
+                text=_campaign_message_text(campaign, recipient.customer_name),
                 raw_payload=json.dumps({"campaign_id": campaign.id, "template_name": campaign.template_name}, ensure_ascii=False),
                 status="accepted",
                 timestamp=sent_at,
