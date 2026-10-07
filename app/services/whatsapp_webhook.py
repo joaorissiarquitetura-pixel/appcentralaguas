@@ -47,6 +47,15 @@ def _message_text(message: dict) -> str:
         button_reply = interactive.get("button_reply") or {}
         list_reply = interactive.get("list_reply") or {}
         return str(button_reply.get("title") or list_reply.get("title") or "")
+    media_labels = {
+        "image": "Foto recebida",
+        "sticker": "Figurinha recebida",
+        "video": "Vídeo recebido",
+        "audio": "Áudio recebido",
+        "document": "Documento recebido",
+    }
+    if message_type in media_labels:
+        return media_labels[message_type]
     return ""
 
 
@@ -73,14 +82,16 @@ def _auto_reply_text(inbound_text: str) -> str:
         return (
             "Oi! Para pedir água, você pode fazer seu pedido pelo app da Central Águas:\n"
             "https://app.centralaguas.com.br\n\n"
-            f"Se preferir atendimento pelo WhatsApp, use nosso número de pedidos: {_business_order_contact()}."
+            f"Se preferir atendimento pelo WhatsApp, use nosso número de pedidos: {_business_order_contact()}.\n\n"
+            "Por aqui eu consigo orientar por texto, mas não consigo analisar fotos, áudios ou figurinhas."
         )
     return (
         "Oi! Obrigado por chamar a Central Águas.\n\n"
         "Você já pode conhecer e usar nosso app para fazer pedidos, consultar pontos, controlar seus galões "
         "e criar lembretes:\n"
         "https://app.centralaguas.com.br\n\n"
-        f"Para pedidos pelo WhatsApp, fale com nosso atendimento em {_business_order_contact()}."
+        f"Para pedidos pelo WhatsApp, fale com nosso atendimento em {_business_order_contact()}.\n\n"
+        "Por aqui eu consigo orientar por texto, mas não consigo analisar fotos, áudios ou figurinhas."
     )
 
 
