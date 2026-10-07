@@ -235,11 +235,47 @@ def _active_consumption_alerts(db: Session, limit: int = 200) -> list[dict]:
 
 def _campaign_default_preview() -> str:
     return (
+        "Oi, {{1}}! Vim te contar uma novidade.\n\n"
+        "A Central Águas está ficando ainda mais perto de você. Agora também no digital!\n\n"
+        "Como você já faz parte do nosso Clube de Fidelidade, queremos te convidar para conhecer "
+        "em primeira mão o novo app da Central Águas.\n\n"
+        "Por lá, você já pode:\n"
+        "- Fazer pedidos de água online\n"
+        "- Consultar seus pontos\n"
+        "- Controlar seus galões cheios e vazios\n"
+        "- Criar lembretes para não deixar a água acabar\n"
+        "- Acompanhar promoções e cupons\n"
+        "- Continuar acumulando pontos nas compras\n\n"
+        "O app ainda está em fase de testes, então sua experiência e seu feedback vão nos ajudar "
+        "a deixar tudo cada vez melhor.\n\n"
+        "E fique tranquilo: nossos outros canais de atendimento continuam os mesmos. Você ainda "
+        "pode falar com a Central Águas pelo telefone e WhatsApp de sempre.\n\n"
+        "Central Águas: a gente cuida da água para você ter tempo de cuidar de todo o resto."
+    )
+
+
+def _campaign_legacy_preview() -> str:
+    return (
         "Olá, {{1}}! A Central Águas está com o app funcionando. "
         "Acesse app.centralaguas.com.br para fazer pedidos, consultar seus pontos, "
         "controlar seu estoque de galões e criar lembretes para beber água. "
         "Para não receber mais avisos, responda SAIR."
     )
+
+
+def _refresh_draft_campaign_previews(db: Session) -> None:
+    legacy_preview = _campaign_legacy_preview()
+    default_preview = _campaign_default_preview()
+    campaigns = db.execute(
+        select(WhatsAppCampaign).where(
+            WhatsAppCampaign.status == "draft",
+            WhatsAppCampaign.message_preview == legacy_preview,
+        )
+    ).scalars().all()
+    for campaign in campaigns:
+        campaign.message_preview = default_preview
+    if campaigns:
+        db.commit()
 
 
 def _campaign_message_text(campaign: WhatsAppCampaign) -> str:
@@ -911,6 +947,7 @@ def whatsapp_campaigns_page(
         return RedirectResponse("/atendente/login", status_code=303)
 
     _backfill_campaign_messages(db)
+    _refresh_draft_campaign_previews(db)
 
     campaigns = db.execute(
         select(WhatsAppCampaign).order_by(WhatsAppCampaign.created_at.desc()).limit(30)
