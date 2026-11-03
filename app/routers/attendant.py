@@ -115,6 +115,9 @@ def attendant_login_action(request: Request, email: str = Form(...), password: s
 
 @router.get("/logout")
 def attendant_logout(request: Request):
+    from ..services.grj_admin import grj_attendant_id
+    if grj_attendant_id(request):
+        return RedirectResponse("/integracoes/grj/sair", status_code=303)
     logout_attendant(request)
     return RedirectResponse("/atendente/login", status_code=303)
 

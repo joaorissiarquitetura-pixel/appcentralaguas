@@ -106,7 +106,7 @@ def require_admin(request: Request, db: Session) -> Attendant | None:
     if not aid:
         return None
     admin = db.scalar(select(Attendant).where(Attendant.id == int(aid)))
-    if not admin or not is_admin(admin):
+    if not admin or not admin.is_active or not is_admin(admin):
         return None
     return admin
 

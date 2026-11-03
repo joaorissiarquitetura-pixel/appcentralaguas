@@ -24,6 +24,10 @@ def logout_attendant(request: Request):
     request.session.pop(ATTENDANT_SESSION_KEY, None)
 
 def get_current_attendant_id(request: Request) -> int | None:
+    from .services.grj_admin import grj_attendant_id
+    grj_id = grj_attendant_id(request)
+    if grj_id:
+        return grj_id
     return request.session.get(ATTENDANT_SESSION_KEY)
 
 def require_customer(request: Request) -> int:
