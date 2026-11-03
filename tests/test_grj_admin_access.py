@@ -33,8 +33,11 @@ class GRJAdminAccessTests(unittest.TestCase):
 
     @patch.object(grj_admin, "redeem_grj_code")
     def test_untrusted_parent_is_rejected_before_redemption(self, redeem):
-        response = self.client.post("/integracoes/grj/acesso", data={"code": "x" * 43}, headers={"origin": "https://example.test"})
-        self.assertEqual(response.status_code, 403)
+        for origin in ("https://example.test", "null", None):
+            with self.subTest(origin=origin):
+                headers = {"origin": origin} if origin else {}
+                response = self.client.post("/integracoes/grj/acesso", data={"code": "x" * 43}, headers=headers)
+                self.assertEqual(response.status_code, 403)
         redeem.assert_not_called()
 
     @patch.object(grj_admin, "redeem_grj_code", return_value={"user": {"id": 42, "name": "João", "email": "admin@example.test"}, "section": "painel"})
